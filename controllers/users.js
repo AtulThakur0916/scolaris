@@ -46,29 +46,34 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
      */
     app.post('/users/data', async (req, res) => {
 
-        const { id, logo, role, name } = req.user;
+        try {
+            const { role } = req.user;
 
-        if (!req.isAuthenticated()) {
-            req.flash('error', 'Please login to continue');
-            return res.redirect('/login');
+            if (!req.isAuthenticated()) {
+                req.flash('error', 'Please login to continue');
+                return res.redirect('/login');
+            }
+
+            if (role.name !== "SuperAdmin") {
+                req.flash('error', 'You are not authorised to access this page.');
+                return res.redirect('/');
+            }
+
+            var users = await models.Users.findAll({
+                raw: true,
+                include: [{
+                    model: models.Roles,
+                    as: 'role',
+                    attributes: ['name']
+                }],
+                order: [['name', 'ASC']]
+            });
+
+            res.json(users);
+        } catch (error) {
+            console.error('Error in /users/data:', error);
+            res.status(500).send('Error fetching users data');
         }
-
-        if (role.name !== "SuperAdmin") {
-            req.flash('error', 'You are not authorised to access this page.');
-            return res.redirect('/');
-        }
-
-        var users = await models.Users.findAll({
-            raw: true,
-            include: [{
-                model: models.Roles,
-                as: 'role',
-                attributes: ['name']
-            }],
-            order: [['name', 'ASC']]
-        });
-
-        res.json(users);
     });
 
     /*

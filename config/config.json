@@ -1,0 +1,45 @@
+{
+  "development": {
+    "username": "postgres",
+    "password": "password",
+    "database": "lms",
+    "host": "localhost",
+    "dialect": "postgres",
+    "mail": {
+        "host": "sandbox.smtp.mailtrap.io",
+        "username": "9f798c435b0365",
+        "password": "7e8d5fea21ae3d",
+        "port": 587
+    }
+  },
+  "test": {
+    "username": "postgres",
+    "password": "test",
+    "database": "database_test",
+    "host": "127.0.0.1",
+    "dialect": "postgres",
+    "mail": {
+        "host": "",
+        "username": "",
+        "password": ""
+    }
+  },
+  "production": {
+    "username": "tvmedia_user_khabriya",
+    "password": "u5y$y%mA}Ed!C[s^&?k",
+    "database": "tv_db_production",
+    "host": "localhost",
+    "dialect": "postgres",
+    "mail": {
+        "host": "smtppro.zoho.in",
+        "username": "publisher@khabriya.in",
+        "password": "Sandeep#141414",
+        "port": 587
+    }
+  },
+  "secret": "AJT_Lbim_0f6bd8a808ea3e9996b3aee1900aa2e8",
+  "jwt_secret": "topTV_sq2d1yYfSetXXnmOb7HzKQNk0WwvdK36",
+  "accountSid": "",
+  "authToken": "",
+  "authorApiURL": "https://news.khabriya.in/wp-json/wp/v2/users/"
+}

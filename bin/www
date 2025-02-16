@@ -1,0 +1,9 @@
+#!/usr/bin/env node
+const { app, initializeRedisClient } = require('../server');
+const server = require('http').Server(app);
+const port = 2600;
+
+server.listen(port, "localhost", async function () {
+    console.log('listening on port *:' + port);
+    await initializeRedisClient();
+});

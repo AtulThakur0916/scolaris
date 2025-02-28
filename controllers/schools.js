@@ -1,41 +1,9 @@
 const models = require('../models');
 const waterfall = require('async-waterfall');
-const path = require('path');
 const moment = require('moment');
 const multer = require('multer');
 const fs = require('fs');
-
-const uploadPath = 'public/uploads/schools';
-if (!fs.existsSync(uploadPath)) {
-  fs.mkdirSync(uploadPath, { recursive: true });
-}
-
-// Multer storage configuration
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadPath);
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname)); // Rename file with timestamp
-  }
-});
-
-// File filter for image validation
-const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed!'), false);
-  }
-};
-
-// Multer upload configuration with size limits
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: fileFilter
-});
-
+const path = require('path');
 
 module.exports.controller = function (app) {
 
@@ -69,34 +37,6 @@ module.exports.controller = function (app) {
       console.error("Error fetching schools:", error);
       req.flash('error', 'Failed to load schools.');
       res.redirect('/');
-    }
-  });
-
-
-
-  /**
-   * Fetch schools data
-   */
-  app.post('/schools/data', async (req, res) => {
-    try {
-      if (!req.isAuthenticated()) {
-        req.flash('error', 'Please login to continue');
-        return res.redirect('/login');
-      }
-
-      if (req.user.role.name !== "SuperAdmin") {
-        req.flash('error', 'You are not authorised to access this page.');
-        return res.redirect('/');
-      }
-
-      const schools = await models.Schools.findAll({
-        raw: true,
-        order: [['name', 'ASC']]
-      });
-      res.json(schools);
-    } catch (error) {
-      console.error('Error in /schools/data:', error);
-      res.status(500).send('Error fetching schools data');
     }
   });
 
@@ -144,29 +84,71 @@ module.exports.controller = function (app) {
     }
   });
 
-  /**
-   * Save school (create/update)
-   */
   app.post('/schools/create', async (req, res) => {
-    const { name, location, phone_number, email, type } = req.body;
-    // const logo = req.file ? req.file.filename : null;
-
-    try {
-      await models.Schools.create({ name, location, phone_number, email, type });
-      req.flash('success', 'School created successfully.');
-      res.redirect('/schools/index');
-    } catch (error) {
-      console.error('Error creating school:', error);
-
-      if (error.name === 'SequelizeValidationError' && error.errors && error.errors.length > 0) {
-        req.flash('error', error.errors.map(err => err.message).join(', '));
-      } else {
-        req.flash('error', 'An unexpected error occurred.');
-      }
-
-      res.redirect('/schools/create');
+    if (!req.isAuthenticated()) {
+      req.flash('error', 'Please login to continue');
+      return res.redirect('/login');
     }
+
+    const { role } = req.user;
+    if (role.name !== "SuperAdmin") {
+      req.flash('error', "You are not authorised to access this page.");
+      return res.redirect('/schools/index');
+    }
+
+    const { name, location, phone_number, email, type } = req.body;
+
+    waterfall([
+      async function (done) {
+        if (req.files && req.files.logo) {
+          let file = req.files.logo;
+          let ext = path.extname(file.name); // Get file extension
+          let baseName = path.basename(file.name, ext); // Get filename without extension
+          let logoName = `${baseName}-${Date.now()}${ext}`; // Correct timestamped filename
+
+          let uploadDir = path.join(__dirname, '../public/uploads/schools/'); // Ensure correct path
+          let uploadPath = path.join(uploadDir, logoName);
+
+          // Check if the directory exists, if not, create it
+          if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+          }
+
+          file.mv(uploadPath, function (err) {
+            if (err) {
+              return done(err);
+            }
+            // done(null, `https://lms.khabriya.in/uploads/schools/${logoName}`);
+            done(null, `/uploads/schools/${logoName}`);
+          });
+        } else {
+          done(null, null);
+        }
+      },
+      async function (logoUrl, done) {
+        try {
+          let schoolData = logoUrl
+            ? { name, location, phone_number, email, type, logo: logoUrl }
+            : { name, location, phone_number, email, type };
+
+          await models.Schools.create(schoolData);
+          req.flash('success', 'School created successfully.');
+          done(null);
+        } catch (error) {
+          done(error);
+        }
+      }
+    ], function (err) {
+      if (err) {
+        console.error('Error creating school:', err);
+        req.flash('error', 'School not created.');
+        return res.redirect('/schools/create');
+      }
+      res.redirect('/schools/index');
+    });
   });
+
+
 
 
 
@@ -223,54 +205,5 @@ module.exports.controller = function (app) {
       return res.json({ success: false, message: error.message });
     }
   });
-  // Add this new route handler
-  exports.getSchoolsData = async (req, res) => {
-    try {
-      const draw = parseInt(req.body.draw);
-      const start = parseInt(req.body.start);
-      const length = parseInt(req.body.length);
-      const search = req.body.search.value;
-      const orderColumn = req.body.order[0].column;
-      const orderDir = req.body.order[0].dir;
 
-      // Get column name from columns array
-      const columns = ['id', 'name', 'location', 'phone_number', 'email', 'type']; // adjust based on your actual column names
-      const orderColumnName = columns[orderColumn];
-
-      // Build query
-      let query = {};
-      if (search) {
-        query = {
-          $or: [
-            { name: { $regex: search, $options: 'i' } },
-            { email: { $regex: search, $options: 'i' } }
-          ]
-        };
-      }
-
-      // Get total records count
-      const totalRecords = await models.Schools.countDocuments();
-
-      // Get filtered records count
-      const filteredRecords = await models.Schools.countDocuments(query);
-
-      // Get paginated records
-      const schools = await models.Schools.find(query)
-        .sort({ [orderColumnName]: orderDir === 'asc' ? 1 : -1 })
-        .skip(start)
-        .limit(length);
-
-      res.json({
-        draw: draw,
-        recordsTotal: totalRecords,
-        recordsFiltered: filteredRecords,
-        data: schools
-      });
-    } catch (error) {
-      console.error('Error fetching schools:', error);
-      res.status(500).json({
-        error: 'Internal server error'
-      });
-    }
-  };
 };

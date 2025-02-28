@@ -6,43 +6,59 @@
       <span class="text-muted fw-light">Users /</span>
       List
     </h4>
-    
+
     {{#if success}}
-      <div class="alert alert-success alert-dismissible" role="alert">
-        {{#each success}}
-          {{this}}
-        {{else}}
-          {{success}}
-        {{/each}}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
+    <div class="alert alert-success alert-dismissible" role="alert">
+      {{#each success}}
+      {{this}}
+      {{else}}
+      {{success}}
+      {{/each}}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
     {{/if}}
 
     {{#if error}}
-      <div class="alert alert-danger alert-dismissible" role="alert">
-        {{#each error}}
-          {{this}}
-        {{else}}
-          {{error}}
-        {{/each}}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
+    <div class="alert alert-danger alert-dismissible" role="alert">
+      {{#each error}}
+      {{this}}
+      {{else}}
+      {{error}}
+      {{/each}}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
     {{/if}}
     <!-- Users List Table -->
     <div class="card">
       <div class="card-header border-bottom">
         <h5 class="card-title mb-3">Users List</h5>
       </div>
-      <div class="card-datatable table-responsive">
-        <table class="table border-top" id="usersTable">
+      <div class="card-datatable table-responsive p-4">
+        <table class="table border-top" id="dataTable">
           <thead>
             <tr>
               <th>#</th>
               <th>Name</th>
               <th>Email</th>
-              <th>Actions1</th>
+              <th>Actions</th>
             </tr>
           </thead>
+          <tbody>
+            {{#each users}}
+            <tr>
+              <td>{{@index}}</td>
+              <td>{{this.name}}</td>
+              <td>{{this.email}}</td>
+              <td>
+                <a href="/users/create/{{this.id}}"> <i class="menu-icon tf-icons bx bx-edit-alt text-primary"></i></a>
+                <a href="#" onclick="deleteItem('/users/delete', '{{this.id}}')">
+                  <i class="menu-icon tf-icons bx bx-box text-danger"></i>
+                </a>
+
+              </td>
+            </tr>
+            {{/each}}
+          </tbody>
         </table>
       </div>
     </div>

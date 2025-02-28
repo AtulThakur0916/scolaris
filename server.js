@@ -1,15 +1,15 @@
 const express = require('express'),
-        path = require('path'),
-        fs = require('fs'),
-        bodyParser = require('body-parser'),
-        verifyJwt = require('./helpers/jwt'),
-        errorHandler = require('./helpers/error-handler'),
-        alert = require('./helpers/alert.js'),
-        config = require('./config/config.json'),
-        sequelize = require('sequelize'),
-//        cors = require('cors'),
-        flash = require('connect-flash'),
-        fileUpload = require('express-fileupload');
+  path = require('path'),
+  fs = require('fs'),
+  bodyParser = require('body-parser'),
+  verifyJwt = require('./helpers/jwt'),
+  errorHandler = require('./helpers/error-handler'),
+  alert = require('./helpers/alert.js'),
+  config = require('./config/config.json'),
+  sequelize = require('sequelize'),
+  //        cors = require('cors'),
+  flash = require('connect-flash'),
+  fileUpload = require('express-fileupload');
 
 require('dotenv').config();
 
@@ -18,15 +18,15 @@ const { initializeRedisClient } = require("./helpers/redis")
 var session = require('express-session');
 var app = express();
 
-const {sendEmail} = require('./helpers/zepto');  //Send email global function
-const {Op} = sequelize;
+const { sendEmail } = require('./helpers/zepto');  //Send email global function
+const { Op } = sequelize;
 
 var passport = require('passport');
 require('./passport/init')(passport);
 
 const hbs = require('express-handlebars');
 // parse application/x-www-form-urlencoded
-app.use(bodyParser.urlencoded({limit: "50mb", extended: true}));
+app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 
 // parse application/json
 app.use(bodyParser.json());
@@ -40,13 +40,13 @@ app.engine('hbs', hbs.engine({
     ifEquals: function (v1, v2, options) {
       return v1 === v2 ? options.fn(this) : options.inverse(this);
     },
-    json: function(context) {
+    json: function (context) {
       return JSON.stringify(context, null, 2);
     },
-    eq: function(a, b) {
+    eq: function (a, b) {
       return a === b;
     },
-    startsWith: function(a, b) {
+    startsWith: function (a, b) {
       return a && a.startsWith(b);
     }
   }
@@ -64,7 +64,7 @@ app.use(session({
   key: 'super-secret-cookie',
   resave: false,
   saveUninitialized: false,
-  cookie: {secure: false, maxAge: 1 * 60 * 60 * 1000}
+  cookie: { secure: false, maxAge: 1 * 60 * 60 * 1000 }
 }));
 
 app.use(passport.initialize());
@@ -82,10 +82,10 @@ app.use(flash());
 
 // Make flash messages available to all views
 app.use((req, res, next) => {
-    res.locals.success = req.flash('success');
-    res.locals.error = req.flash('error');
-    res.locals.currentPath = req.path;
-    next();
+  res.locals.success = req.flash('success');
+  res.locals.error = req.flash('error');
+  res.locals.currentPath = req.path;
+  next();
 });
 // global alert handler
 alert.handle(sequelize, sendEmail, Op); // Uncomment this for alerts
@@ -100,7 +100,7 @@ app.get('/*', (req, res, next) => {
   if (req.path.indexOf('/reset') === 0) // Add reset authentication
     publicRoutes.push(req.path);
 
-  if(req.path.indexOf('/admin/') === 0 ) // No authentication rule for API routes
+  if (req.path.indexOf('/admin/') === 0) // No authentication rule for API routes
     publicRoutes.push(req.path);
 
   if (!req.isAuthenticated() && publicRoutes.indexOf(req.path) < 0) {

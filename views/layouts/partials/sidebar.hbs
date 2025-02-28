@@ -48,6 +48,25 @@
                 </li>
               </ul>   
             </li>
+            <li class="menu-item {{#if (startsWith currentPath '/schools')}}active open{{/if}}">
+              <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-buildings"></i>
+                <div class="text-truncate" data-i18n="Layouts">Schools Management</div>
+              </a>
+
+              <ul class="menu-sub">
+                <li class="menu-item {{#if (eq currentPath '/schools/index')}}active{{/if}}">
+                  <a href="/schools/index" class="menu-link">
+                    <div class="text-truncate" data-i18n="Without menu">Schools List</div>
+                  </a>
+                </li>
+                <li class="menu-item {{#if (eq currentPath '/schools/create')}}active{{/if}}">
+                  <a href="/schools/create" class="menu-link">
+                    <div class="text-truncate" data-i18n="Without menu">Create School</div>
+                  </a>
+                </li>
+              </ul>   
+            </li>
             {{!-- <!-- Layouts -->
             <li class="menu-item">
               <a href="javascript:void(0);" class="menu-link menu-toggle">

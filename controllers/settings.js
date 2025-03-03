@@ -3,32 +3,32 @@ const waterfall = require('async-waterfall');
 const path = require('path');
 const moment = require('moment');
 
-module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
+module.exports = function (app) {
 
     /*
      * Create a new setting, get
      */
-    app.get('/settings', async(req, res) => {
+    app.get('/settings', async (req, res) => {
 
         if (!req.isAuthenticated()) {
             req.flash('error', 'Please login to continue');
             return res.redirect('/login');
         }
 
-        const {role, name} = req.user;
-        if(role.name !== "SuperAdmin") {
+        const { role, name } = req.user;
+        if (role.name !== "SuperAdmin") {
             req.flash('error', 'You are trying to access unauthorized page.');
             return res.redirect('/');
             //res.sendStatus({status: 500, error: "You are not authorised to access this page."});
         }
 
         var setting = await models.Settings.findOne({
-                limit: 1,
-                raw: true,
-                order: [['created_at', 'DESC']]
-            });
+            limit: 1,
+            raw: true,
+            order: [['created_at', 'DESC']]
+        });
 
-        if(!setting) {
+        if (!setting) {
             setting = {
                 id: null,
                 version: '',
@@ -41,13 +41,13 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         }
 
         console.log('setting', setting);
-        res.render('settings/create', {role, name, setting});
+        res.render('settings/create', { role, name, setting });
     });
 
     /*
      * Create a new setting, post
      */
-    app.post('/settings/create', async(req, res) => {
+    app.post('/settings/create', async (req, res) => {
 
         waterfall([
             function (done) {
@@ -59,10 +59,10 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 }
             },
             function (done) {
-                
+
                 const { version, force_update, payment_activate, message, sort_value, watch_api } = req.body;
-                
-                let object = {version, force_update, payment_activate, message, sort_value, watch_api};
+
+                let object = { version, force_update, payment_activate, message, sort_value, watch_api };
 
                 models.Settings.create(object)
                     .then(() => {
@@ -76,7 +76,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                         req.flash('error', error.errors[0].message);
                         done(error, null);
                     });
-                
+
             }
         ], function (err) {
             if (err)
@@ -90,15 +90,15 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     /**
      * Update settings
      */
-    app.post('/settings', async(req, res) => {
+    app.post('/settings', async (req, res) => {
 
         if (!req.isAuthenticated()) {
             req.flash('error', 'Please login to continue');
             return res.redirect('/login');
         }
-        
+
         const { role } = req.user;
-        if(role.name !== "SuperAdmin") {
+        if (role.name !== "SuperAdmin") {
             req.flash('error', 'You are trying to access unauthorized page.');
             return res.redirect('/');
             //res.sendStatus({status: 500, error: "You are not authorised to access this page."});
@@ -108,11 +108,11 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         const id = req.body.id || null;
         try {
 
-            const object = { version, payment_activate: payment_activate == 'on' ? true: false, force_update: force_update == 'on' ? true: false, message, sort_value, watch_api: watch_api == 'on' ? true: false };
-            if(id === null) {
+            const object = { version, payment_activate: payment_activate == 'on' ? true : false, force_update: force_update == 'on' ? true : false, message, sort_value, watch_api: watch_api == 'on' ? true : false };
+            if (id === null) {
                 await models.Settings.create(object);
             } else {
-                await models.Settings.update( object,
+                await models.Settings.update(object,
                     {
                         where: {
                             id

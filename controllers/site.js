@@ -6,12 +6,12 @@ const path = require('path');
 const moment = require('moment');
 const config = require('../config/config.json');
 
-module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
+module.exports = function (app, passport, sendEmail, Op, sequelize) {
 
     /**
      * Render view for dashboard
      */
-    app.get('/', async(req, res) => {
+    app.get('/', async (req, res) => {
         res.render('dashboard', {
             title: 'Dashboard',
             layout_style: 'light',
@@ -35,16 +35,16 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
      * Handle Login POST
      */
     app.post('/login',
-            passport.authenticate('login', {failureRedirect: "/login"}),
-            function (req, res) {
-                if (!req.user.email) {
-//                    req.flash("info", "Your account needs to be verified. Please check your email to verify your account.");
-//                    req.logout();
-                    res.redirect("/account");
-                } else {
-                    res.redirect("/");
-                }
+        passport.authenticate('login', { failureRedirect: "/login" }),
+        function (req, res) {
+            if (!req.user.email) {
+                //                    req.flash("info", "Your account needs to be verified. Please check your email to verify your account.");
+                //                    req.logout();
+                res.redirect("/account");
+            } else {
+                res.redirect("/");
             }
+        }
     );
 
     /**
@@ -87,11 +87,11 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     /**
      * Render view for account
      */
-    app.get('/account', async(req, res) => {
+    app.get('/account', async (req, res) => {
 
-        const {id, logo, role, name} = req.user;
+        const { id, logo, role, name } = req.user;
         let account = await models.Users.findOne({
-            where: {id}
+            where: { id }
         });
 
         if (req.session.account !== undefined) {
@@ -99,13 +99,13 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             delete req.session['account'];
         }
 
-        res.render('site/account', {account, role, name, logo});
+        res.render('site/account', { account, role, name, logo });
     });
 
     /**
      * Handle Account POST
      */
-    app.post('/account', async(req, res) => {
+    app.post('/account', async (req, res) => {
 
         waterfall([
             function (done) {
@@ -118,20 +118,20 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             },
             function (done) {
 
-                const {email} = req.body;
+                const { email } = req.body;
                 const { role } = req.user;
-                models.Users.findOne({where: {id: req.user.id}}).then(async(user) => {
+                models.Users.findOne({ where: { id: req.user.id } }).then(async (user) => {
                     if (!user) {
                         req.flash('error', 'User not found.');
                         return res.redirect('/login');
                     }
 
-                    if(role.name === "SuperAdmin") {
+                    if (role.name === "SuperAdmin") {
                         user.cpi = req.body.cpi;
-                        
+
                         const user_id = req.user.id;
-//                        const month = moment().format('MMMM-YYYY');
-                        await models.RevenueStats.findOne({where: { user_id, month: req.body.month }}).then(async(revenue) => {
+                        //                        const month = moment().format('MMMM-YYYY');
+                        await models.RevenueStats.findOne({ where: { user_id, month: req.body.month } }).then(async (revenue) => {
                             if (!revenue) {
                                 await models.RevenueStats.create({ user_id, month: req.body.month, cpi: req.body.cpi });
                             } else {
@@ -139,7 +139,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                                 revenue.save();
                             }
                         });
-                        
+
                     }
                     //user.name = name;
                     user.email = email;
@@ -179,8 +179,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             },
             function (token, done) {
 
-                const {email} = req.body;
-                models.Users.findOne({where: {email: email}}).then(user => {
+                const { email } = req.body;
+                models.Users.findOne({ where: { email: email } }).then(user => {
                     if (!user) {
                         req.flash('error', 'No account with that email address exists.');
                         return res.redirect('/forgot');
@@ -195,23 +195,23 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             },
             function (token, user, done) {
 
-                var text = 'Hello '+ user.name +',\n\n' +
+                var text = 'Hello ' + user.name + ',\n\n' +
                     'You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n' +
                     'Please click on the following link, or paste this into your browser to change your password:\n\n' +
                     'https://dashboard.khabriya.in/reset/' + token + '\n\n' +
-                    'If you did not request this, please ignore this email and your password will remain unchanged.\n\n'+
+                    'If you did not request this, please ignore this email and your password will remain unchanged.\n\n' +
                     'Cheers, \nTeam Khabriya';
 
                 sendEmail(user.email, 'Khabriya Password Reset', text, {})
-                        .then(() => {
-                            req.flash('info', 'An e-mail has been sent to ' + user.email + ' with further instructions.');
-                            done(null, 'done');
-                        })
-                        .catch((err) => {
-                            console.log(err);
-                            req.flash('error', err.message);
-                            res.redirect('/login');
-                        });
+                    .then(() => {
+                        req.flash('info', 'An e-mail has been sent to ' + user.email + ' with further instructions.');
+                        done(null, 'done');
+                    })
+                    .catch((err) => {
+                        console.log(err);
+                        req.flash('error', err.message);
+                        res.redirect('/login');
+                    });
             }
         ], function (err) {
             if (err)
@@ -223,9 +223,9 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     /**
      * Render view for reset password
      */
-    app.get('/reset/:token', async(req, res) => {
+    app.get('/reset/:token', async (req, res) => {
 
-        const user = await models.Users.findOne({where: {reset_password_token: req.params.token, reset_password_expires: {[Op.gt]: Date.now()}}});
+        const user = await models.Users.findOne({ where: { reset_password_token: req.params.token, reset_password_expires: { [Op.gt]: Date.now() } } });
         if (!user) {
             req.flash('error', 'Password reset token is invalid or has expired.');
             return res.redirect('/forgot');
@@ -244,13 +244,13 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         waterfall([
             function (done) {
 
-                models.Users.findOne({where: {reset_password_token: req.params.token, reset_password_expires: {[Op.gt]: Date.now()}}}).then(user => {
+                models.Users.findOne({ where: { reset_password_token: req.params.token, reset_password_expires: { [Op.gt]: Date.now() } } }).then(user => {
                     if (!user) {
                         req.flash('error', 'Password reset token is invalid or has expired.');
                         return res.redirect('back');
                     }
 
-                    const {password} = req.body;
+                    const { password } = req.body;
                     var hashPassword = bcrypt.hashSync(password, bcrypt.genSaltSync(10), null);
                     user.password = hashPassword;
                     user.reset_password_token = null;
@@ -263,17 +263,17 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             function (user, done) {
 
                 var text = 'Hello ' + user.name + ',\n\n' +
-                        'This is a confirmation that the password for your account ' + user.email + ' has just been changed.\n\n' +
-                        'Cheers';
+                    'This is a confirmation that the password for your account ' + user.email + ' has just been changed.\n\n' +
+                    'Cheers';
 
                 sendEmail(user.email, 'Your password has been changed', text, {})
-                        .then(() => {
-                            req.flash('success', 'Success! Your password has been changed.');
-                            done(null, user);
-                        })
-                        .catch((err) => {
-                            done(err);
-                        });
+                    .then(() => {
+                        req.flash('success', 'Success! Your password has been changed.');
+                        done(null, user);
+                    })
+                    .catch((err) => {
+                        done(err);
+                    });
             }
         ], function (err) {
             res.redirect('/');
@@ -285,9 +285,9 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
      */
     app.get('/password', (req, res) => {
 
-        const {logo, role, name} = req.user;
+        const { logo, role, name } = req.user;
 
-        res.render('site/password', {logo, role, name});
+        res.render('site/password', { logo, role, name });
     });
 
     /**
@@ -303,13 +303,13 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         waterfall([
             function (done) {
 
-                models.Users.findOne({where: {id: req.user.id}}).then(user => {
+                models.Users.findOne({ where: { id: req.user.id } }).then(user => {
                     if (!user) {
                         req.flash('error', 'Something went wrong, please login to continue.');
                         return res.redirect('login');
                     }
 
-                    const {password, current_password} = req.body;
+                    const { password, current_password } = req.body;
 
                     if (!bcrypt.compareSync(current_password, user.password)) {
                         req.flash('error', 'Your current password is wrong, please enter correct password to continue.');
@@ -327,18 +327,18 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             },
             function (user, done) {
 
-//                var text = 'Hello ' + user.name + ',\n\n' +
-//                        'This is a confirmation that the password for your account ' + user.email + ' has just been changed.\n\n' +
-//                        'Cheers';
-//
-//                sendEmail(user.email, 'Your password has been changed', text, {})
-//                        .then(() => {
-//                            req.flash('success', 'Success! Your password has been changed.');
+                //                var text = 'Hello ' + user.name + ',\n\n' +
+                //                        'This is a confirmation that the password for your account ' + user.email + ' has just been changed.\n\n' +
+                //                        'Cheers';
+                //
+                //                sendEmail(user.email, 'Your password has been changed', text, {})
+                //                        .then(() => {
+                //                            req.flash('success', 'Success! Your password has been changed.');
                 done(null, user);
-//                        })
-//                        .catch((err) => {
-//                            done(err);
-//                        });
+                //                        })
+                //                        .catch((err) => {
+                //                            done(err);
+                //                        });
             }
         ], function (err) {
             res.redirect('/');
@@ -357,14 +357,14 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     /**
      * Sync Revenue
      */
-    app.get('/sync-revenue', async(req, res) => {
+    app.get('/sync-revenue', async (req, res) => {
 
-        let {id, logo, email, name, cpi, role, contact_person, phone} = req.user;
+        let { id, logo, email, name, cpi, role, contact_person, phone } = req.user;
 
-        if(role.name === "SuperAdmin") {
+        if (role.name === "SuperAdmin") {
             return res.send('Access is denied... ' + req.user.role.name);
         }
-        
+
         const monthF = moment().format('MMMM-YYYY');
         const month = moment().startOf('month').format();
 
@@ -377,7 +377,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 'user_id',
                 [sequelize.fn('sum', sequelize.col('views')), 'views'],
             ],
-            where: {user_id: id},
+            where: { user_id: id },
             group: ['user_id']
         });
 
@@ -403,8 +403,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 }
             },
             attributes: [
-                [ sequelize.fn('date_trunc', 'hour', sequelize.col('created_at')), 'hour'],
-                [ sequelize.fn('count', '*'), 'count']
+                [sequelize.fn('date_trunc', 'hour', sequelize.col('created_at')), 'hour'],
+                [sequelize.fn('count', '*'), 'count']
             ],
             group: 'hour',
             raw: true
@@ -417,8 +417,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 }
             },
             attributes: [
-                [ sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
-                [ sequelize.fn('count', '*'), 'count']
+                [sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
+                [sequelize.fn('count', '*'), 'count']
             ],
             group: 'day',
             raw: true
@@ -431,8 +431,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 }
             },
             attributes: [
-                [ sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
-                [ sequelize.fn('count', '*'), 'count']
+                [sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
+                [sequelize.fn('count', '*'), 'count']
             ],
             group: 'day',
             raw: true
@@ -445,8 +445,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 }
             },
             attributes: [
-                [ sequelize.fn('date_trunc', 'month', sequelize.col('created_at')), 'month'],
-                [ sequelize.fn('count', '*'), 'count']
+                [sequelize.fn('date_trunc', 'month', sequelize.col('created_at')), 'month'],
+                [sequelize.fn('count', '*'), 'count']
             ],
             group: 'month',
             raw: true
@@ -457,7 +457,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 'user_id',
                 [sequelize.fn('sum', sequelize.col('views')), 'views'],
             ],
-            where: {user_id: id},
+            where: { user_id: id },
             group: ['user_id']
         });
 
@@ -495,8 +495,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 }
             },
             attributes: [
-                [ sequelize.fn('date_trunc', 'hour', sequelize.col('created_at')), 'hour'],
-                [ sequelize.fn('sum', sequelize.col('views')), 'count']
+                [sequelize.fn('date_trunc', 'hour', sequelize.col('created_at')), 'hour'],
+                [sequelize.fn('sum', sequelize.col('views')), 'count']
             ],
             group: 'hour',
             raw: true
@@ -510,8 +510,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 }
             },
             attributes: [
-                [ sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
-                [ sequelize.fn('sum', sequelize.col('views')), 'count']
+                [sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
+                [sequelize.fn('sum', sequelize.col('views')), 'count']
             ],
             group: 'day',
             raw: true
@@ -525,8 +525,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 }
             },
             attributes: [
-                [ sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
-                [ sequelize.fn('sum', sequelize.col('views')), 'count']
+                [sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
+                [sequelize.fn('sum', sequelize.col('views')), 'count']
             ],
             group: 'day',
             raw: true
@@ -540,8 +540,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 }
             },
             attributes: [
-                [ sequelize.fn('date_trunc', 'month', sequelize.col('created_at')), 'month'],
-                [ sequelize.fn('sum', sequelize.col('views')), 'count']
+                [sequelize.fn('date_trunc', 'month', sequelize.col('created_at')), 'month'],
+                [sequelize.fn('sum', sequelize.col('views')), 'count']
             ],
             group: 'month',
             raw: true
@@ -553,7 +553,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 month: monthF
             }
         });
-        if(!hasCPI)
+        if (!hasCPI)
             await models.RevenueStats.create({ cpi, month: monthF, user_id: id });
 
         // Get Admin CPM
@@ -564,23 +564,23 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 month: monthF
             }
         });
-        if(!admin)
-             admin = await models.RevenueStats.create({ cpi: 0, month: monthF, user_id: '4c47bfca-51d2-40d3-bd61-651f02337e28' });
+        if (!admin)
+            admin = await models.RevenueStats.create({ cpi: 0, month: monthF, user_id: '4c47bfca-51d2-40d3-bd61-651f02337e28' });
 
         let totalViews = 0;
-        if(views.length > 0) 
+        if (views.length > 0)
             totalViews = views[0].views;
 
         let monthlyViews = 0;
-        if(adViewsThisMonth.length > 0) 
+        if (adViewsThisMonth.length > 0)
             monthlyViews = adViewsThisMonth[0].views;
 
         console.log('monthlyViews', monthlyViews);
 
         let pCPI = (role.name === "SuperAdmin") ? admin.cpi : cpi;
-        let cpm = (role.name === "SuperAdmin") ? admin.cpi : (pCPI/100) * admin.cpi;
-        let revenue = ((monthlyViews/1000) * cpm).toFixed(2);
-        let grossRevenue = ((monthlyViews/1000) * admin.cpi).toFixed(2);
+        let cpm = (role.name === "SuperAdmin") ? admin.cpi : (pCPI / 100) * admin.cpi;
+        let revenue = ((monthlyViews / 1000) * cpm).toFixed(2);
+        let grossRevenue = ((monthlyViews / 1000) * admin.cpi).toFixed(2);
 
         //Realtime update views in RevenueStats
         await models.RevenueStats.update(
@@ -590,26 +590,26 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             }
         );
 
-        if(adYearly.length > 0 && role.name !== "SuperAdmin") {
+        if (adYearly.length > 0 && role.name !== "SuperAdmin") {
 
             let dd = await Promise.all(adYearly.map(async data => {
                 let monViews = data.count;
                 let mon = moment(data.month).format('MMMM-YYYY');
 
                 let pCPI = (role.name === "SuperAdmin") ? admin.cpi : cpi;
-                let cpm = (role.name === "SuperAdmin") ? admin.cpi : (pCPI/100) * admin.cpi;
-                let revenue = ((monViews/1000) * cpm).toFixed(2);
-                let grossRevenue = ((monViews/1000) * admin.cpi).toFixed(2);
+                let cpm = (role.name === "SuperAdmin") ? admin.cpi : (pCPI / 100) * admin.cpi;
+                let revenue = ((monViews / 1000) * cpm).toFixed(2);
+                let grossRevenue = ((monViews / 1000) * admin.cpi).toFixed(2);
 
-                const nw = {views: monViews, revenue, gross_revenue: grossRevenue, month: mon, user_id: id};
+                const nw = { views: monViews, revenue, gross_revenue: grossRevenue, month: mon, user_id: id };
                 const revRevision = await models.RevenueStats.findOne(
                     {
                         where: { user_id: id, month: mon },
-                        raw:true
+                        raw: true
                     }
                 );
 
-                if(revRevision && (revRevision.views === null || revRevision.views == '0.00') && monViews > 0) {
+                if (revRevision && (revRevision.views === null || revRevision.views == '0.00') && monViews > 0) {
                     //Revision update views in RevenueStats
                     await models.RevenueStats.update(
                         { views: monViews, revenue, gross_revenue: grossRevenue },
@@ -617,7 +617,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                             where: { user_id: id, month: mon }
                         }
                     );
-                } else if(!revRevision && monViews > 0) {
+                } else if (!revRevision && monViews > 0) {
                     await models.RevenueStats.create(
                         { views: monViews, revenue, gross_revenue: grossRevenue, user_id: id, month }
                     );
@@ -630,37 +630,37 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         req.flash('error', 'Nothing to Sync.');
         return res.redirect("/");
     });
-    
+
     /**
      * Render view for dashboard
      */
-    app.get('/sync-views/:uId', async(req, res) => {
+    app.get('/sync-views/:uId', async (req, res) => {
 
-        if(req.user.role.name !== "SuperAdmin") {
+        if (req.user.role.name !== "SuperAdmin") {
             return res.send('Access is denied... ' + req.user.role.name);
         }
 
         const user = await models.Users.findOne({
-            where: { id: req.params.uId},
+            where: { id: req.params.uId },
             include: [{
                 model: models.Roles,
                 as: 'role'
             }]
         });
-        
-        if(!user) {
+
+        if (!user) {
             return res.send('Parameter is incorrect...');
         }
-        
-        let {id, logo, email, name, cpi, role, contact_person, phone} = user;
+
+        let { id, logo, email, name, cpi, role, contact_person, phone } = user;
         const monthF = moment().format('MMMM-YYYY');
         const month = moment().startOf('month').format();
 
         let views = viewsThisMonth = today = weekly = monthly = yearly = [];
         let adViews = adViewsThisMonth = adToday = adWeekly = adMonthly = adYearly = [];
         let todayLogins = 0;
-        if(role.name == "SuperAdmin") {
-            
+        if (role.name == "SuperAdmin") {
+
             return res.send('Not available for Superadmin.');
 
             todayLogins = await models.Logins.count({
@@ -696,8 +696,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     }
                 },
                 attributes: [
-                    [ sequelize.fn('date_trunc', 'hour', sequelize.col('created_at')), 'hour'],
-                    [ sequelize.fn('count', '*'), 'count']
+                    [sequelize.fn('date_trunc', 'hour', sequelize.col('created_at')), 'hour'],
+                    [sequelize.fn('count', '*'), 'count']
                 ],
                 group: 'hour',
                 raw: true
@@ -710,8 +710,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     }
                 },
                 attributes: [
-                    [ sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
-                    [ sequelize.fn('count', '*'), 'count']
+                    [sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
+                    [sequelize.fn('count', '*'), 'count']
                 ],
                 group: 'day',
                 raw: true
@@ -724,8 +724,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     }
                 },
                 attributes: [
-                    [ sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
-                    [ sequelize.fn('count', '*'), 'count']
+                    [sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
+                    [sequelize.fn('count', '*'), 'count']
                 ],
                 group: 'day',
                 raw: true
@@ -738,13 +738,13 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     }
                 },
                 attributes: [
-                    [ sequelize.fn('date_trunc', 'month', sequelize.col('created_at')), 'month'],
-                    [ sequelize.fn('count', '*'), 'count']
+                    [sequelize.fn('date_trunc', 'month', sequelize.col('created_at')), 'month'],
+                    [sequelize.fn('count', '*'), 'count']
                 ],
                 group: 'month',
                 raw: true
             });
-            
+
             adViews = await models.AdViews.findAll({
                 attributes: [
                     [sequelize.fn('sum', sequelize.col('views')), 'views'],
@@ -769,8 +769,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     }
                 },
                 attributes: [
-                    [ sequelize.fn('date_trunc', 'hour', sequelize.col('created_at')), 'hour'],
-                    [ sequelize.fn('sum', sequelize.col('views')), 'count']
+                    [sequelize.fn('date_trunc', 'hour', sequelize.col('created_at')), 'hour'],
+                    [sequelize.fn('sum', sequelize.col('views')), 'count']
                 ],
                 group: 'hour',
                 raw: true
@@ -783,8 +783,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     }
                 },
                 attributes: [
-                    [ sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
-                    [ sequelize.fn('sum', sequelize.col('views')), 'count']
+                    [sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
+                    [sequelize.fn('sum', sequelize.col('views')), 'count']
                 ],
                 group: 'day',
                 raw: true
@@ -797,8 +797,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     }
                 },
                 attributes: [
-                    [ sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
-                    [ sequelize.fn('sum', sequelize.col('views')), 'count']
+                    [sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
+                    [sequelize.fn('sum', sequelize.col('views')), 'count']
                 ],
                 group: 'day',
                 raw: true
@@ -811,8 +811,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     }
                 },
                 attributes: [
-                    [ sequelize.fn('date_trunc', 'month', sequelize.col('created_at')), 'month'],
-                    [ sequelize.fn('sum', sequelize.col('views')), 'count'],
+                    [sequelize.fn('date_trunc', 'month', sequelize.col('created_at')), 'month'],
+                    [sequelize.fn('sum', sequelize.col('views')), 'count'],
                 ],
                 group: 'month',
                 raw: true
@@ -825,7 +825,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     'user_id',
                     [sequelize.fn('sum', sequelize.col('views')), 'views'],
                 ],
-                where: {user_id: id},
+                where: { user_id: id },
                 group: ['user_id']
             });
 
@@ -851,8 +851,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     }
                 },
                 attributes: [
-                    [ sequelize.fn('date_trunc', 'hour', sequelize.col('created_at')), 'hour'],
-                    [ sequelize.fn('count', '*'), 'count']
+                    [sequelize.fn('date_trunc', 'hour', sequelize.col('created_at')), 'hour'],
+                    [sequelize.fn('count', '*'), 'count']
                 ],
                 group: 'hour',
                 raw: true
@@ -865,8 +865,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     }
                 },
                 attributes: [
-                    [ sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
-                    [ sequelize.fn('count', '*'), 'count']
+                    [sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
+                    [sequelize.fn('count', '*'), 'count']
                 ],
                 group: 'day',
                 raw: true
@@ -879,8 +879,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     }
                 },
                 attributes: [
-                    [ sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
-                    [ sequelize.fn('count', '*'), 'count']
+                    [sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
+                    [sequelize.fn('count', '*'), 'count']
                 ],
                 group: 'day',
                 raw: true
@@ -893,8 +893,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     }
                 },
                 attributes: [
-                    [ sequelize.fn('date_trunc', 'month', sequelize.col('created_at')), 'month'],
-                    [ sequelize.fn('count', '*'), 'count']
+                    [sequelize.fn('date_trunc', 'month', sequelize.col('created_at')), 'month'],
+                    [sequelize.fn('count', '*'), 'count']
                 ],
                 group: 'month',
                 raw: true
@@ -905,7 +905,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     'user_id',
                     [sequelize.fn('sum', sequelize.col('views')), 'views'],
                 ],
-                where: {user_id: id},
+                where: { user_id: id },
                 group: ['user_id']
             });
 
@@ -943,8 +943,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     }
                 },
                 attributes: [
-                    [ sequelize.fn('date_trunc', 'hour', sequelize.col('created_at')), 'hour'],
-                    [ sequelize.fn('sum', sequelize.col('views')), 'count']
+                    [sequelize.fn('date_trunc', 'hour', sequelize.col('created_at')), 'hour'],
+                    [sequelize.fn('sum', sequelize.col('views')), 'count']
                 ],
                 group: 'hour',
                 raw: true
@@ -958,8 +958,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     }
                 },
                 attributes: [
-                    [ sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
-                    [ sequelize.fn('sum', sequelize.col('views')), 'count']
+                    [sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
+                    [sequelize.fn('sum', sequelize.col('views')), 'count']
                 ],
                 group: 'day',
                 raw: true
@@ -973,8 +973,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     }
                 },
                 attributes: [
-                    [ sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
-                    [ sequelize.fn('sum', sequelize.col('views')), 'count']
+                    [sequelize.fn('date_trunc', 'day', sequelize.col('created_at')), 'day'],
+                    [sequelize.fn('sum', sequelize.col('views')), 'count']
                 ],
                 group: 'day',
                 raw: true
@@ -988,8 +988,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     }
                 },
                 attributes: [
-                    [ sequelize.fn('date_trunc', 'month', sequelize.col('created_at')), 'month'],
-                    [ sequelize.fn('sum', sequelize.col('views')), 'count']
+                    [sequelize.fn('date_trunc', 'month', sequelize.col('created_at')), 'month'],
+                    [sequelize.fn('sum', sequelize.col('views')), 'count']
                 ],
                 group: 'month',
                 raw: true
@@ -1001,7 +1001,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     month: monthF
                 }
             });
-            if(!hasCPI)
+            if (!hasCPI)
                 await models.RevenueStats.create({ cpi, month: monthF, user_id: id });
         }
 
@@ -1013,23 +1013,23 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 month: monthF
             }
         });
-        if(!admin)
-             admin = await models.RevenueStats.create({ cpi: 0, month: monthF, user_id: '4c47bfca-51d2-40d3-bd61-651f02337e28' });
+        if (!admin)
+            admin = await models.RevenueStats.create({ cpi: 0, month: monthF, user_id: '4c47bfca-51d2-40d3-bd61-651f02337e28' });
 
         let totalViews = 0;
-        if(views.length > 0) 
+        if (views.length > 0)
             totalViews = views[0].views;
 
         let monthlyViews = 0;
-        if(adViewsThisMonth.length > 0) 
+        if (adViewsThisMonth.length > 0)
             monthlyViews = adViewsThisMonth[0].views;
 
         console.log('monthlyViews', monthlyViews);
 
         let pCPI = (role.name === "SuperAdmin") ? admin.cpi : cpi;
-        let cpm = (role.name === "SuperAdmin") ? admin.cpi : (pCPI/100) * admin.cpi;
-        let revenue = ((monthlyViews/1000) * cpm).toFixed(2);
-        let grossRevenue = ((monthlyViews/1000) * admin.cpi).toFixed(2);
+        let cpm = (role.name === "SuperAdmin") ? admin.cpi : (pCPI / 100) * admin.cpi;
+        let revenue = ((monthlyViews / 1000) * cpm).toFixed(2);
+        let grossRevenue = ((monthlyViews / 1000) * admin.cpi).toFixed(2);
 
         //Realtime update views in RevenueStats
         await models.RevenueStats.update(
@@ -1039,26 +1039,26 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             }
         );
 
-        if(adYearly.length > 0 && role.name !== "SuperAdmin") {
+        if (adYearly.length > 0 && role.name !== "SuperAdmin") {
 
             let changed = await Promise.all(adYearly.map(async data => {
                 let monViews = data.count;
                 let mon = moment(data.month).format('MMMM-YYYY');
 
                 let pCPI = (role.name === "SuperAdmin") ? admin.cpi : cpi;
-                let cpm = (role.name === "SuperAdmin") ? admin.cpi : (pCPI/100) * admin.cpi;
-                let revenue = ((monViews/1000) * cpm).toFixed(2);
-                let grossRevenue = ((monViews/1000) * admin.cpi).toFixed(2);
+                let cpm = (role.name === "SuperAdmin") ? admin.cpi : (pCPI / 100) * admin.cpi;
+                let revenue = ((monViews / 1000) * cpm).toFixed(2);
+                let grossRevenue = ((monViews / 1000) * admin.cpi).toFixed(2);
 
-                const nw = {views: monViews, revenue, gross_revenue: grossRevenue, month: mon, user_id: id};
+                const nw = { views: monViews, revenue, gross_revenue: grossRevenue, month: mon, user_id: id };
                 const revRevision = await models.RevenueStats.findOne(
                     {
                         where: { user_id: id, month: mon },
-                        raw:true
+                        raw: true
                     }
                 );
 
-                if(revRevision && (revRevision.views === null || revRevision.views == '0.00') && monViews > 0) {
+                if (revRevision && (revRevision.views === null || revRevision.views == '0.00') && monViews > 0) {
                     //Revision update views in RevenueStats
                     await models.RevenueStats.update(
                         { views: monViews, revenue, gross_revenue: grossRevenue },
@@ -1066,7 +1066,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                             where: { user_id: id, month: mon }
                         }
                     );
-                } else if(!revRevision && monViews > 0) {
+                } else if (!revRevision && monViews > 0) {
                     await models.RevenueStats.create(
                         { views: monViews, revenue, gross_revenue: grossRevenue, user_id: id, month }
                     );

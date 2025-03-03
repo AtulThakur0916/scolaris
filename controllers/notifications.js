@@ -3,21 +3,21 @@ const waterfall = require('async-waterfall');
 const path = require('path');
 const moment = require('moment');
 
-module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
+module.exports = function (app) {
 
     /**
      * Render view for manage notifications
      */
-    app.get('/notifications/index', async(req, res) => {
+    app.get('/notifications/index', async (req, res) => {
 
-        const {id, logo, role, name} = req.user;
+        const { id, logo, role, name } = req.user;
 
         if (!req.isAuthenticated()) {
             req.flash('error', 'Please login to continue');
             return res.redirect('/login');
         }
 
-        if(role.name !== "SuperAdmin") {
+        if (role.name !== "SuperAdmin") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
@@ -27,28 +27,28 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             order: [['sort_value', 'ASC']]
         });
 
-//        var subscribers = await models.Subscribers.findAll({
-//            attributes: ['id', 'email'],
-//            where: {
-//                subscriber_id,
-//                status: 'PAID',
-//                valid_to: {[Op.gt]: Date.now()}
-//            },
-//            raw: true,
-//            limit: 5,
-//            offset: 0,
-//            order: [['valid_to', 'DESC']]
-//        });
+        //        var subscribers = await models.Subscribers.findAll({
+        //            attributes: ['id', 'email'],
+        //            where: {
+        //                subscriber_id,
+        //                status: 'PAID',
+        //                valid_to: {[Op.gt]: Date.now()}
+        //            },
+        //            raw: true,
+        //            limit: 5,
+        //            offset: 0,
+        //            order: [['valid_to', 'DESC']]
+        //        });
 
-        res.render('notifications/index', {notifications: JSON.stringify(notifications), role, name});
+        res.render('notifications/index', { notifications: JSON.stringify(notifications), role, name });
     });
 
     /*
      * Create a new notify, get
      */
-    app.get('/notifications/create', async(req, res) => {
+    app.get('/notifications/create', async (req, res) => {
 
-        const {role, name} = req.user;
+        const { role, name } = req.user;
 
         var notify = {
             message: '',
@@ -57,19 +57,19 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             status: true,
             sort_value: 0
         };
-        
-        if(req.session.notify !== undefined) {
+
+        if (req.session.notify !== undefined) {
             notify = req.session.notify;
             delete req.session['notify'];
         }
 
-        res.render('notifications/create', {role, name, notify: JSON.stringify(notify)});
+        res.render('notifications/create', { role, name, notify: JSON.stringify(notify) });
     });
 
     /*
      * Create a new notify, post
      */
-    app.post('/notifications/create', async(req, res) => {
+    app.post('/notifications/create', async (req, res) => {
 
         waterfall([
             function (done) {
@@ -81,9 +81,9 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 }
             },
             function (done) {
-                
+
                 const { message, notify_type, notify_for, subscriber_id, status, sort_value } = req.body;
-                
+
                 let object = { message, notify_type, notify_for, subscriber_id, status: status === 'on' ? true : false, sort_value };
 
                 models.Notifications.create(object)
@@ -98,7 +98,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                         req.flash('error', error.errors[0].message);
                         done(error, null);
                     });
-                
+
             }
         ], function (err) {
             if (err)
@@ -112,9 +112,9 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     /**
      * Update notifications
      */
-    app.post('/notifications/update', async(req, res) => {
+    app.post('/notifications/update', async (req, res) => {
 
-       waterfall([
+        waterfall([
             function (done) {
                 if (!req.isAuthenticated()) {
                     req.flash('error', 'Please login to continue');
@@ -126,20 +126,20 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             async function (done) {
 
                 const { id, message, notify_type, notify_for, subscriber_id, status, sort_value } = req.body;
-                
+
                 let object = { message, notify_type, notify_for, subscriber_id, status: status === 'on' ? true : false, sort_value };
 
-                models.Notifications.update( object,
+                models.Notifications.update(object,
                     {
-                        where: {id}
+                        where: { id }
                     }
                 )
-                .then(function (rowsUpdated) { 
-                   if(rowsUpdated)
-                        req.flash('success', 'Notification updated successfully.');
-                    
-                    done(null);
-                });
+                    .then(function (rowsUpdated) {
+                        if (rowsUpdated)
+                            req.flash('success', 'Notification updated successfully.');
+
+                        done(null);
+                    });
             }
         ], function (err) {
             if (err)

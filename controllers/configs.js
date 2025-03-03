@@ -3,21 +3,21 @@ const waterfall = require('async-waterfall');
 const path = require('path');
 const moment = require('moment');
 
-module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
+module.exports = function (app) {
 
     /**
      * Render view for manage notifications
      */
-    app.get('/config/index', async(req, res) => {
+    app.get('/config/index', async (req, res) => {
 
-        const {id, logo, role, name} = req.user;
+        const { id, logo, role, name } = req.user;
 
         if (!req.isAuthenticated()) {
             req.flash('error', 'Please login to continue');
             return res.redirect('/login');
         }
 
-        if(role.name !== "SuperAdmin") {
+        if (role.name !== "SuperAdmin") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
@@ -27,15 +27,15 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             order: [['created_at', 'ASC']]
         });
 
-        res.render('configs/index', {configs: JSON.stringify(configs), role, name});
+        res.render('configs/index', { configs: JSON.stringify(configs), role, name });
     });
 
     /*
      * Create a new notify, get
      */
-    app.get('/config/create', async(req, res) => {
+    app.get('/config/create', async (req, res) => {
 
-        const {role, name} = req.user;
+        const { role, name } = req.user;
 
         var config = {
             key: '',
@@ -44,19 +44,19 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             status: true,
             other: ''
         };
-        
-        if(req.session.config !== undefined) {
+
+        if (req.session.config !== undefined) {
             config = req.session.config;
             delete req.session['config'];
         }
 
-        res.render('configs/create', {role, name, config: JSON.stringify(config)});
+        res.render('configs/create', { role, name, config: JSON.stringify(config) });
     });
 
     /*
      * Create a new notify, post
      */
-    app.post('/config/create', async(req, res) => {
+    app.post('/config/create', async (req, res) => {
 
         waterfall([
             function (done) {
@@ -68,9 +68,9 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 }
             },
             function (done) {
-                
+
                 const { key, config_type, value, other, status } = req.body;
-                
+
                 let object = { key, config_type, value, other, status: status === 'on' ? true : false };
 
                 models.Configs.create(object)
@@ -85,7 +85,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                         req.flash('error', error.errors[0].message);
                         done(error, null);
                     });
-                
+
             }
         ], function (err) {
             if (err)
@@ -99,9 +99,9 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     /**
      * Update notifications
      */
-    app.post('/config/update', async(req, res) => {
+    app.post('/config/update', async (req, res) => {
 
-       waterfall([
+        waterfall([
             function (done) {
                 if (!req.isAuthenticated()) {
                     req.flash('error', 'Please login to continue');
@@ -113,20 +113,20 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             async function (done) {
 
                 const { id, key, config_type, value, other, status } = req.body;
-                
+
                 let object = { key, config_type, value, other, status: status === 'on' ? true : false };
 
-                models.Configs.update( object,
+                models.Configs.update(object,
                     {
-                        where: {id}
+                        where: { id }
                     }
                 )
-                .then(function (rowsUpdated) { 
-                   if(rowsUpdated)
-                        req.flash('success', 'Config updated successfully.');
-                    
-                    done(null);
-                });
+                    .then(function (rowsUpdated) {
+                        if (rowsUpdated)
+                            req.flash('success', 'Config updated successfully.');
+
+                        done(null);
+                    });
             }
         ], function (err) {
             if (err)

@@ -4,7 +4,7 @@ const bcrypt = require('bcryptjs');
 const path = require('path');
 const moment = require('moment');
 
-module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
+module.exports = function (app, Op, sequelize) {
 
     /**
      * Render view for manage user

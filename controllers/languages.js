@@ -3,62 +3,62 @@ const waterfall = require('async-waterfall');
 const path = require('path');
 const moment = require('moment');
 
-module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
+module.exports = function (app) {
 
     /**
      * Render view for manage languages
      */
-    app.get('/languages/index', async(req, res) => {
+    app.get('/languages/index', async (req, res) => {
 
-        const {id, logo, role, name} = req.user;
+        const { id, logo, role, name } = req.user;
 
         if (!req.isAuthenticated()) {
             req.flash('error', 'Please login to continue');
             return res.redirect('/login');
         }
 
-        if(role.name !== "SuperAdmin") {
+        if (role.name !== "SuperAdmin") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
 
         var languages = await models.Languages.findAll({
-//            attributes: ['insert_language', 'status'],
-//            where: {
-//                status: 1,
-//            },
+            //            attributes: ['insert_language', 'status'],
+            //            where: {
+            //                status: 1,
+            //            },
             raw: true,
             order: [['sort_value', 'ASC']]
         });
 
-        res.render('languages/index', {languages: JSON.stringify(languages), role, name});
+        res.render('languages/index', { languages: JSON.stringify(languages), role, name });
     });
 
     /*
      * Create a new language, get
      */
-    app.get('/languages/create', async(req, res) => {
+    app.get('/languages/create', async (req, res) => {
 
-        const {role, name} = req.user;
+        const { role, name } = req.user;
 
         var language = {
             insert_language: '',
             branch: '',
             country: ''
         };
-        
-        if(req.session.language !== undefined) {
+
+        if (req.session.language !== undefined) {
             language = req.session.language;
             delete req.session['language'];
         }
 
-        res.render('languages/create', {role, name, language: JSON.stringify(language)});
+        res.render('languages/create', { role, name, language: JSON.stringify(language) });
     });
 
     /*
      * Create a new language, post
      */
-    app.post('/languages/create', async(req, res) => {
+    app.post('/languages/create', async (req, res) => {
 
         waterfall([
             function (done) {
@@ -76,7 +76,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     let image = file.name.split('.').join('-lang-' + Date.now() + '.');
 
                     // Use the mv() method to place the file somewhere on your server
-                    file.mv(path.join(`public/uploads/${image}`), function(err) {
+                    file.mv(path.join(`public/uploads/${image}`), function (err) {
                         done(err, image);
                     });
                 } else {
@@ -85,11 +85,11 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             },
             function (data, done) {
 
-                let {insert_language, sort_value, branch, country} = req.body;
+                let { insert_language, sort_value, branch, country } = req.body;
                 branch = branch ? '1001' : '';
                 const website = true;
                 const status = true;
-                let object = data !== null ? {insert_language, sort_value, status, image: "https://dashboard.khabriya.in/uploads/"+data, branch, website, country } : {insert_language, sort_value, status, image: "https://dashboard.khabriya.in/uploads/default-lang.png", branch, website, country };
+                let object = data !== null ? { insert_language, sort_value, status, image: "https://dashboard.khabriya.in/uploads/" + data, branch, website, country } : { insert_language, sort_value, status, image: "https://dashboard.khabriya.in/uploads/default-lang.png", branch, website, country };
                 models.Languages.create(object)
                     .then(() => {
                         done(null, null);
@@ -101,7 +101,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                         //req.flash('error', error.errors[0].message);
                         done(error, null);
                     });
-                
+
             }
         ], function (err) {
             if (err)
@@ -115,39 +115,39 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     /**
      * Update language
      */
-    app.put('/languages/update', async(req, res) => {
+    app.put('/languages/update', async (req, res) => {
 
         if (!req.isAuthenticated()) {
             req.flash('error', 'Please login to continue');
             return res.redirect('/login');
         }
-        
+
         const { role } = req.user;
-        if(role.name !== "SuperAdmin") {
-            res.sendStatus({status: 500, error: "You are not authorised to access this page."});
+        if (role.name !== "SuperAdmin") {
+            res.sendStatus({ status: 500, error: "You are not authorised to access this page." });
         }
 
-//        const { id } = req.params;
+        //        const { id } = req.params;
         let { id, insert_language, status, branch, website, sort_value, country } = req.body;
         branch = branch ? '1001' : '';
-//      models.UserPresentations.findOrCreate({where: {presentation_id: presentation.id}, defaults: {user_id: req.user.id}})
+        //      models.UserPresentations.findOrCreate({where: {presentation_id: presentation.id}, defaults: {user_id: req.user.id}})
         models.Languages.update(
             { insert_language, status, branch, website, country },
             {
-                where: {id}
+                where: { id }
             }
         )
-        .then(function (rowsUpdated) {
-            res.send({id, insert_language, branch: branch === "true" ? true: false, status: status === "true" ? true: false, website: website === "true" ? true: false, sort_value, country});
-        });
+            .then(function (rowsUpdated) {
+                res.send({ id, insert_language, branch: branch === "true" ? true : false, status: status === "true" ? true : false, website: website === "true" ? true : false, sort_value, country });
+            });
     });
 
     /**
      * Update channels
      */
-    app.post('/languages/edit', async(req, res) => {
+    app.post('/languages/edit', async (req, res) => {
 
-       waterfall([
+        waterfall([
             function (done) {
                 if (!req.isAuthenticated()) {
                     req.flash('error', 'Please login to continue');
@@ -163,8 +163,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     let image = file.name.split('.').join('-lang-' + Date.now() + '.');
 
                     // Use the mv() method to place the file somewhere on your server
-                    file.mv(path.join(`public/uploads/${image}`), function(err) {
-                        done(err, "https://dashboard.khabriya.in/uploads/"+image);
+                    file.mv(path.join(`public/uploads/${image}`), function (err) {
+                        done(err, "https://dashboard.khabriya.in/uploads/" + image);
                     });
                 } else {
                     done(null, null);
@@ -172,22 +172,22 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             },
             async function (image, done) {
 
-                let {id, insert_language, sort_value, branch, website, country} = req.body;
+                let { id, insert_language, sort_value, branch, website, country } = req.body;
                 branch = branch === 'on' ? '1001' : '';
                 website = website === 'on' ? true : false;
-                let object = image !== null ? {insert_language, image, sort_value, branch, website, country } : {insert_language, sort_value, branch, website, country};
+                let object = image !== null ? { insert_language, image, sort_value, branch, website, country } : { insert_language, sort_value, branch, website, country };
 
-                models.Languages.update( object,
+                models.Languages.update(object,
                     {
-                        where: {id}
+                        where: { id }
                     }
                 )
-                .then(function (rowsUpdated) { 
-                   if(rowsUpdated)
-                        req.flash('success', insert_language + ' updated successfully.');
-                    
-                    done(null);
-                });
+                    .then(function (rowsUpdated) {
+                        if (rowsUpdated)
+                            req.flash('success', insert_language + ' updated successfully.');
+
+                        done(null);
+                    });
             }
         ], function (err) {
             if (err)

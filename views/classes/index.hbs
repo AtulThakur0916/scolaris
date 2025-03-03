@@ -1,0 +1,77 @@
+<!-- Content wrapper -->
+<div class="content-wrapper">
+  <!-- Content -->
+  <div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="py-3 mb-4">
+      <span class="text-muted fw-light">Classes /</span>
+      List
+    </h4>
+
+    {{#if success}}
+    <div class="alert alert-success alert-dismissible" role="alert">
+      {{#each success}}
+      {{this}}
+      {{else}}
+      {{success}}
+      {{/each}}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {{/if}}
+
+    {{#if error}}
+    <div class="alert alert-danger alert-dismissible" role="alert">
+      {{#each error}}
+      {{this}}
+      {{else}}
+      {{error}}
+      {{/each}}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {{/if}}
+
+    <!-- Classes List Table -->
+    <div class="card">
+      {{!-- <div class="card-header border-bottom d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Classes List</h5>
+        <a href="/classes/create" class="btn btn-primary">Add New Class</a>
+      </div> --}}
+      <div class="card-datatable table-responsive p-4">
+        <table class="table border-top" id="dataTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Class Name</th>
+              <th>School</th>
+              {{!-- <th>Status</th> --}}
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each classes}}
+            <tr>
+              <td>{{@index}}</td>
+              <td>{{this.name}}</td>
+              <td>{{this.school.name}}</td>
+              {{!-- <td>
+                <span class="badge {{#if this.status}}bg-success{{else}}bg-danger{{/if}}">
+                  {{#if this.status}}Active{{else}}Inactive{{/if}}
+                </span>
+              </td> --}}
+              <td>
+                <a href="/classes/create/{{this.id}}" class="me-2">
+                  <i class="menu-icon tf-icons bx bx-edit-alt text-primary"></i>
+                </a>
+                
+                 <a href="#" onclick="deleteItem('/classes/delete', '{{this.id}}')">
+                  <i class="menu-icon tf-icons bx bx-box text-danger"></i>
+                </a>
+              </td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+

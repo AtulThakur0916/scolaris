@@ -43,6 +43,7 @@
               <th>Location</th>
               <th>Phone</th>
               <th>Email</th>
+              <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -64,6 +65,13 @@
               <td>{{this.phone_number}}</td>
               <td>{{this.email}}</td>
               <td>
+                  <select class="status-select form-select" data-id="{{this.id}}">
+                    <option value="Pending" class="text-warning" {{#if (eq this.status "Pending")}}selected{{/if}}>Pending</option>
+                    <option value="Approve" class="text-success" {{#if (eq this.status "Approve")}}selected{{/if}}>Approve</option>
+                    <option value="Reject" class="text-danger" {{#if (eq this.status "Reject")}}selected{{/if}}>Reject</option>
+                  </select>
+              </td>
+              <td>
                 <a href="/schools/create/{{this.id}}"> <i
                     class="menu-icon tf-icons bx bx-edit-alt text-primary"></i></a>
                 <a href="#" onclick="deleteItem('/schools/delete', '{{this.id}}')">
@@ -80,3 +88,59 @@
         </table>
       </div>
     </div>
+<script>
+  $(document).ready(function () {
+    // Function to update status color
+    function updateStatusColor(selectElement) {
+      var status = $(selectElement).val();
+      $(selectElement).removeClass('text-warning text-success text-danger');
+
+      if (status === 'Pending') {
+        $(selectElement).addClass('text-warning'); // Yellow for Pending
+      } else if (status === 'Approve') {
+        $(selectElement).addClass('text-success'); // Green for Approved
+      } else if (status === 'Reject') {
+        $(selectElement).addClass('text-danger'); // Red for Rejected
+      }
+    }
+
+    // Apply colors on page load
+    $('.status-select').each(function () {
+      updateStatusColor(this);
+    });
+
+    // Handle status change
+    $(document).on('change', '.status-select', function () {
+      var schoolId = $(this).data('id');
+      var newStatus = $(this).val();
+      var selectElement = this;
+
+      $.ajax({
+        url: '/schools/status/' + schoolId,
+        type: 'PATCH',
+        contentType: 'application/json',
+        data: JSON.stringify({ status: newStatus }),
+        success: function (response) {
+          updateStatusColor(selectElement); // Update color after successful update
+          Swal.fire({
+            icon: 'success',
+            title: 'Updated!',
+            text: 'School status has been updated.',
+            timer: 2000,
+            showConfirmButton: false
+          });
+        },
+        error: function (xhr) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: xhr.responseJSON?.message || 'Failed to update status.',
+          });
+        }
+      });
+    });
+  });
+</script>
+
+
+

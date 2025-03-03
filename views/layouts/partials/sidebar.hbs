@@ -67,6 +67,44 @@
                 </li>
               </ul>   
             </li>
+              <li class="menu-item {{#if (startsWith currentPath '/classes')}}active open{{/if}}">
+              <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-buildings"></i>
+                <div class="text-truncate" data-i18n="Layouts">Classes Management</div>
+              </a>
+
+              <ul class="menu-sub">
+                <li class="menu-item {{#if (eq currentPath '/classes/index')}}active{{/if}}">
+                  <a href="/classes/index" class="menu-link">
+                    <div class="text-truncate" data-i18n="Without menu">Classes List</div>
+                  </a>
+                </li>
+                <li class="menu-item {{#if (eq currentPath '/classes/create')}}active{{/if}}">
+                  <a href="/classes/create" class="menu-link">
+                    <div class="text-truncate" data-i18n="Without menu">Create Classes</div>
+                  </a>
+                </li>
+              </ul>   
+            </li>
+            <li class="menu-item {{#if (startsWith currentPath '/students')}}active open{{/if}}">
+              <a href="javascript:void(0);" class="menu-link menu-toggle">
+                <i class="menu-icon tf-icons bx bx-buildings"></i>
+                <div class="text-truncate" data-i18n="Layouts">Students Management</div>
+              </a>
+
+              <ul class="menu-sub">
+                <li class="menu-item {{#if (eq currentPath '/students/index')}}active{{/if}}">
+                  <a href="/students/index" class="menu-link">
+                    <div class="text-truncate" data-i18n="Without menu">Students List</div>
+                  </a>
+                </li>
+                <li class="menu-item {{#if (eq currentPath '/classes/create')}}active{{/if}}">
+                  <a href="/students/create" class="menu-link">
+                    <div class="text-truncate" data-i18n="Without menu">Create Students</div>
+                  </a>
+                </li>
+              </ul>   
+            </li>
             {{!-- <!-- Layouts -->
             <li class="menu-item">
               <a href="javascript:void(0);" class="menu-link menu-toggle">

@@ -12,11 +12,16 @@ const express = require('express'),
   fileUpload = require('express-fileupload');
 
 require('dotenv').config();
+//route file 
+const apiRouts = require('./routes/api')
 
 const { initializeRedisClient } = require("./helpers/redis")
 
 var session = require('express-session');
 var app = express();
+
+//routes for the API
+app.use('/api', apiRouts)
 
 const { sendEmail } = require('./helpers/zepto');  //Send email global function
 const { Op } = sequelize;
@@ -114,12 +119,25 @@ app.get('/*', (req, res, next) => {
   }
 });
 
-// dynamically include routes (Controller)
-fs.readdirSync('./controllers').forEach(function (file) {
+// // dynamically include routes (Controller)
+// fs.readdirSync('./controllers').forEach(function (file) {
 
-  if (file.substr(-3) === '.js') {
-    var route = require('./controllers/' + file);
-    route.controller(app, passport, sendEmail, Op, sequelize);
+//   if (file.substr(-3) === '.js') {
+//     var route = require('./controllers/' + file);
+//     route.controller(app, passport, sendEmail, Op, sequelize);
+//   }
+// });
+
+fs.readdirSync('./controllers').forEach(function (file) {
+  if (file.endsWith('.js')) {
+    const route = require('./controllers/' + file);
+
+    if (typeof route === 'function') {
+      route(app, passport, sendEmail, Op, sequelize);
+      console.log(`Loaded controller: ${file}`);
+    } else {
+      console.warn(`⚠️ Skipping invalid controller file: ${file}`);
+    }
   }
 });
 

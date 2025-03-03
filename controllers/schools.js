@@ -1,11 +1,9 @@
 const models = require('../models');
 const waterfall = require('async-waterfall');
-const moment = require('moment');
-const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 
-module.exports.controller = function (app) {
+module.exports = function (app) {
 
   /**
    * Render view for managing schools
@@ -23,7 +21,7 @@ module.exports.controller = function (app) {
 
     try {
       const schools = await models.Schools.findAll({
-        attributes: ['id', 'name', 'location', 'phone_number', 'email'],
+        attributes: ['id', 'name', 'location', 'phone_number', 'email', 'logo', 'status'],
         raw: true,
         order: [['name', 'ASC']]
       });
@@ -118,7 +116,6 @@ module.exports.controller = function (app) {
             if (err) {
               return done(err);
             }
-            // done(null, `https://lms.khabriya.in/uploads/schools/${logoName}`);
             done(null, `/uploads/schools/${logoName}`);
           });
         } else {
@@ -155,29 +152,97 @@ module.exports.controller = function (app) {
   /**
    * Update school details
    */
+
+
   app.post('/schools/update/:school_id', async (req, res) => {
     if (!req.isAuthenticated()) {
       req.flash('error', 'Please login to continue');
       return res.redirect('/login');
     }
 
-    if (req.user.role.name !== "SuperAdmin") {
-      req.flash('error', 'You are not authorised to access this page.');
-      return res.redirect('/');
+    const { role } = req.user;
+    if (role.name !== "SuperAdmin") {
+      req.flash('error', "You are not authorised to access this page.");
+      return res.redirect('/schools/index');
     }
 
     const { school_id } = req.params;
-    const { name, address, status } = req.body;
+    const { name, location, phone_number, email, type } = req.body;
 
-    try {
-      await models.Schools.update({ name, address, status }, { where: { id: school_id } });
-      req.flash('success', 'School updated successfully.');
-    } catch (error) {
-      req.flash('error', 'Error updating school.');
-    }
+    waterfall([
+      async function (done) {
+        try {
+          // Fetch the current school details to get the existing logo
+          let school = await models.Schools.findByPk(school_id);
+          if (!school) {
+            req.flash('error', 'School not found.');
+            return res.redirect('/schools/index');
+          }
 
-    res.redirect('/schools/index');
+          let oldLogo = school.logo; // Save old logo path for deletion
+          done(null, oldLogo);
+        } catch (err) {
+          done(err);
+        }
+      },
+      async function (oldLogo, done) {
+        if (req.files && req.files.logo) {
+          let file = req.files.logo;
+          let ext = path.extname(file.name);
+          let baseName = path.basename(file.name, ext);
+          let logoName = `${baseName}-${Date.now()}${ext}`;
+
+          let uploadDir = path.join(__dirname, '../public/uploads/schools/');
+          let uploadPath = path.join(uploadDir, logoName);
+
+          if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+          }
+
+          file.mv(uploadPath, function (err) {
+            if (err) return done(err);
+
+            // If an old logo exists, delete it
+            if (oldLogo && oldLogo !== '/uploads/schools/default-placeholder.png') {
+              let oldLogoPath = path.join(__dirname, '../public', oldLogo);
+              if (fs.existsSync(oldLogoPath)) {
+                fs.unlink(oldLogoPath, (err) => {
+                  if (err) console.error('Error deleting old logo:', err);
+                });
+              }
+            }
+
+            done(null, `/uploads/schools/${logoName}`);
+          });
+        } else {
+          done(null, null); // No new logo uploaded
+        }
+      },
+      async function (logoUrl, done) {
+        try {
+          let updateData = { name, location, phone_number, email, type };
+          if (logoUrl) updateData.logo = logoUrl; // Only update logo if a new file is uploaded
+
+          let rowsUpdated = await models.Schools.update(updateData, { where: { id: school_id } });
+
+          if (rowsUpdated)
+            req.flash('success', 'School updated successfully.');
+
+          done(null);
+        } catch (error) {
+          done(error);
+        }
+      }
+    ], function (err) {
+      if (err) {
+        console.error('Error updating school:', err);
+        req.flash('error', 'Error updating school.');
+        return res.redirect('/schools/update/' + school_id);
+      }
+      res.redirect('/schools/index');
+    });
   });
+
 
   /**
    * Delete school
@@ -205,5 +270,40 @@ module.exports.controller = function (app) {
       return res.json({ success: false, message: error.message });
     }
   });
+
+  app.patch('/schools/status/:school_id', async (req, res) => {
+    await console.log(req.body);
+    const { school_id } = req.params;
+    const { status } = req.body;
+
+    if (!req.isAuthenticated()) {
+      return res.status(403).json({ message: 'Unauthorized. Please log in.' });
+    }
+
+    if (req.user.role.name !== "SuperAdmin") {
+      return res.status(403).json({ message: 'Permission denied.' });
+    }
+
+    const validStatuses = ['Approve', 'Reject', 'Pending'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: 'Invalid status value.' });
+    }
+
+    try {
+      const school = await models.Schools.findOne({ where: { id: school_id } });
+      console.log(school);
+      if (!school) {
+        return res.status(404).json({ message: 'School not found.' });
+      }
+
+      await school.update({ status });
+
+      return res.json({ message: 'Status updated successfully.' });
+    } catch (error) {
+      console.error('Error updating status:', error);
+      return res.status(500).json({ message: 'Internal server error.' });
+    }
+  });
+
 
 };

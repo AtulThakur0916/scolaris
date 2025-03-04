@@ -1,0 +1,196 @@
+{{!-- Debug information --}}
+<div style="display: none;">
+    Debug Info:
+    hasFee: {{debug.hasFee}}
+    feeId: {{debug.feeId}}
+    raw fee: {{json feeData}}
+</div>
+
+<div class="content-wrapper">
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <div class="row g-6">
+            <div class="col-md-12">
+                <div class="card">
+                    {{#if messages.error}}
+                    <div class="alert alert-danger">
+                        {{messages.error}}
+                    </div>
+                    {{/if}}
+
+                    {{#if messages.success}}
+                    <div class="alert alert-success">
+                        {{messages.success}}
+                    </div>
+                    {{/if}}
+
+                    <h5 class="card-header">Edit Fee</h5>
+
+                    <div class="card-body">
+                        <form action="/fees/update/{{debug.feeId}}" method="POST">
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <label for="school_id" class="form-label">School</label>
+                                    <select class="form-control {{#if errors.school_id}}is-invalid{{/if}}"
+                                        name="school_id" id="schoolSelect">
+                                        <option value="" disabled>Select School</option>
+                                        {{#each schools}}
+                                        <option value="{{id}}" {{#ifEquals ../feeData.school_id
+                                            id}}selected{{/ifEquals}}>{{name}}</option>
+                                        {{/each}}
+                                    </select>
+                                    {{#if errors.school_id}}
+                                    <div class="invalid-feedback">{{errors.school_id.msg}}</div>
+                                    {{/if}}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="class_id" class="form-label">Class</label>
+                                    <select class="form-control {{#if errors.class_id}}is-invalid{{/if}}"
+                                        name="class_id" id="classSelect">
+                                        <option value="" disabled>Select Class</option>
+                                        {{#each classes}}
+                                        <option value="{{id}}" {{#ifEquals ../feeData.class_id
+                                            id}}selected{{/ifEquals}}>{{name}}</option>
+                                        {{/each}}
+                                    </select>
+                                    {{#if errors.class_id}}
+                                    <div class="invalid-feedback">{{errors.class_id.msg}}</div>
+                                    {{/if}}
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <label for="fee_type" class="form-label">Fee Type</label>
+                                    <select class="form-control {{#if errors.fee_type}}is-invalid{{/if}}"
+                                        name="fee_type" id="feeType">
+                                        <option value="" disabled>Select Fee Type</option>
+                                        <option value="Tuition" {{#ifEquals feeData.fee_type "Tuition"
+                                            }}selected{{/ifEquals}}>Tuition</option>
+                                        <option value="Transport" {{#ifEquals feeData.fee_type "Transport"
+                                            }}selected{{/ifEquals}}>Transport</option>
+                                        <option value="Cafeteria" {{#ifEquals feeData.fee_type "Cafeteria"
+                                            }}selected{{/ifEquals}}>Cafeteria</option>
+                                        <option value="Exam" {{#ifEquals feeData.fee_type "Exam"
+                                            }}selected{{/ifEquals}}>Exam</option>
+                                        <option value="Boarding" {{#ifEquals feeData.fee_type "Boarding"
+                                            }}selected{{/ifEquals}}>Boarding</option>
+                                        <option value="Events" {{#ifEquals feeData.fee_type "Events"
+                                            }}selected{{/ifEquals}}>Events</option>
+                                        <option value="Other" {{#ifEquals feeData.fee_type "Other"
+                                            }}selected{{/ifEquals}}>Other</option>
+                                    </select>
+                                    {{#if errors.fee_type}}
+                                    <div class="invalid-feedback">{{errors.fee_type.msg}}</div>
+                                    {{/if}}
+                                </div>
+                                <div class="col-md-6" id="customFeeContainer" style="display: none;">
+                                    <label for="custom_fee_name" class="form-label">Custom Fee Name</label>
+                                    <input type="text"
+                                        class="form-control {{#if errors.custom_fee_name}}is-invalid{{/if}}"
+                                        name="custom_fee_name" value="{{feeData.custom_fee_name}}" />
+                                    {{#if errors.custom_fee_name}}
+                                    <div class="invalid-feedback">{{errors.custom_fee_name.msg}}</div>
+                                    {{/if}}
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <label for="amount" class="form-label">Amount</label>
+                                    <input type="number" class="form-control {{#if errors.amount}}is-invalid{{/if}}"
+                                        name="amount" step="0.01" value="{{feeData.amount}}" required />
+                                    {{#if errors.amount}}
+                                    <div class="invalid-feedback">{{errors.amount.msg}}</div>
+                                    {{/if}}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="frequency" class="form-label">Frequency</label>
+                                    <select class="form-control {{#if errors.frequency}}is-invalid{{/if}}"
+                                        name="frequency">
+                                        <option value="" disabled>Select Frequency</option>
+                                        <option value="Monthly" {{#ifEquals feeData.frequency "Monthly"
+                                            }}selected{{/ifEquals}}>Monthly</option>
+                                        <option value="Quarterly" {{#ifEquals feeData.frequency "Quarterly"
+                                            }}selected{{/ifEquals}}>Quarterly</option>
+                                        <option value="Annually" {{#ifEquals feeData.frequency "Annually"
+                                            }}selected{{/ifEquals}}>Annually</option>
+                                        <option value="One-Time" {{#ifEquals feeData.frequency "One-Time"
+                                            }}selected{{/ifEquals}}>One-Time</option>
+                                    </select>
+                                    {{#if errors.frequency}}
+                                    <div class="invalid-feedback">{{errors.frequency.msg}}</div>
+                                    {{/if}}
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-12">
+                                    <label for="description" class="form-label">Description (Optional)</label>
+                                    <textarea class="form-control {{#if errors.description}}is-invalid{{/if}}"
+                                        name="description">{{feeData.description}}</textarea>
+                                    {{#if errors.description}}
+                                    <div class="invalid-feedback">{{errors.description.msg}}</div>
+                                    {{/if}}
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <label for="status" class="form-label">Status</label>
+                                    <select class="form-control {{#if errors.status}}is-invalid{{/if}}" name="status">
+                                        <option value="1" {{#ifEquals feeData.status 1}}selected{{/ifEquals}}>Active
+                                        </option>
+                                        <option value="0" {{#ifEquals feeData.status 0}}selected{{/ifEquals}}>Inactive
+                                        </option>
+                                    </select>
+                                    {{#if errors.status}}
+                                    <div class="invalid-feedback">{{errors.status.msg}}</div>
+                                    {{/if}}
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <button type="submit" class="btn btn-primary float-end">Update Fee</button>
+                                <a href="/fees/index" class="btn btn-secondary float-end me-2">Cancel</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const schoolSelect = document.getElementById("schoolSelect");
+        const classSelect = document.getElementById("classSelect");
+        const feeType = document.getElementById("feeType");
+        const customFeeContainer = document.getElementById("customFeeContainer");
+
+        // Show/Hide custom fee name field based on initial selection
+        if (feeType.value === "Other") {
+            customFeeContainer.style.display = "block";
+        }
+
+        schoolSelect.addEventListener("change", async function () {
+            const schoolId = this.value;
+            classSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
+
+            if (schoolId) {
+                try {
+                    const response = await fetch(`/school/class/${schoolId}`);
+                    const data = await response.json();
+
+                    classSelect.innerHTML = `<option value="" disabled selected>Select Class</option>`;
+                    data.classes.forEach(cls => {
+                        classSelect.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
+                    });
+                } catch (error) {
+                    console.error("Error fetching classes:", error);
+                    classSelect.innerHTML = `<option value="" disabled>Error loading classes</option>`;
+                }
+            }
+        });
+
+        feeType.addEventListener("change", function () {
+            customFeeContainer.style.display = this.value === "Other" ? "block" : "none";
+        });
+    });
+
+</script>

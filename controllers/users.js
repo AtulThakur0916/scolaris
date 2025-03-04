@@ -30,7 +30,8 @@ module.exports = function (app, Op, sequelize) {
                 as: 'role',
                 attributes: ['name']
             }],
-            order: [['name', 'ASC']]
+            order: [['name', 'ASC']],
+            nest: true
         });
 
         res.render('users/index', {

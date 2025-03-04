@@ -24,7 +24,8 @@ module.exports = function (app) {
                 attributes: ['id', 'name', 'school_id', 'status'],
                 include: [{ model: models.Schools, as: 'school', attributes: ['name'] }],
                 raw: true,
-                order: [['name', 'ASC']]
+                order: [['name', 'ASC']],
+                nest: true
             });
 
 

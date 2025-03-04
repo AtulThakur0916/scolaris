@@ -8,17 +8,32 @@ const express = require('express'),
   config = require('./config/config.json'),
   sequelize = require('sequelize'),
   //        cors = require('cors'),
-  flash = require('connect-flash'),
+  // flash = require('connect-flash'),
   fileUpload = require('express-fileupload');
+// const session = require('express-session');
+
+
 
 require('dotenv').config();
 //route file 
 const apiRouts = require('./routes/api')
 
+
 const { initializeRedisClient } = require("./helpers/redis")
 
 var session = require('express-session');
+const flash = require('express-flash');
 var app = express();
+const methodOverride = require('method-override');
+app.use(session({
+  secret: 'e74c6ac40997da1a0c04a4be608c9ea1c29885271619795c02bd2eb11b27cdc2',
+  resave: false,
+  saveUninitialized: true
+}));
+app.use(flash());
+
+app.use(methodOverride('_method'));
+app.use(express.urlencoded({ extended: true }));
 
 //routes for the API
 app.use('/api', apiRouts)
@@ -141,6 +156,17 @@ fs.readdirSync('./controllers').forEach(function (file) {
   }
 });
 
+app.use((req, res, next) => {
+  console.log(`\n===== Incoming Request =====`);
+  console.log(`🔹 Method: ${req.method}`);
+  console.log(`🔹 URL: ${req.originalUrl}`);
+  console.log(`🔹 Headers:`, req.headers);
+  console.log(`🔹 Body:`, req.body);
+  console.log(`🔹 Query Params:`, req.query);
+  console.log(`🔹 Params:`, req.params);
+  console.log(`===========================\n`);
+  next();
+});
 
 
 

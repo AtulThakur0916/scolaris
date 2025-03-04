@@ -11,13 +11,15 @@
         <div class="row g-6">
             <div class="col-md-12">
                 <div class="card">
-                    {{!-- Debugging block --}}
-
-                    {{!--
-                    <pre style="display: block; background: #222; color: #fff; padding: 10px;">
-    Errors: {{json errors}}
-</pre> --}}
-
+                    {{!-- {{#if errors}}
+                    <div class="alert alert-danger">
+                        <ul>
+                            {{#each errors}}
+                            <li>{{this.msg}}</li>
+                            {{/each}}
+                        </ul>
+                    </div>
+                    {{/if}} --}}
                     {{#if messages.error}}
                     <div class="alert alert-danger">
                         {{messages.error}}
@@ -33,7 +35,8 @@
                     <h5 class="card-header">Edit Student</h5>
 
                     <div class="card-body">
-                        <form action="/students/update/{{lookup studentData 'id'}}" method="post">
+                        <form action="/students/update/{{debug.studentId}}" method="POST">
+
 
                             <div class="row">
                                 <div class="col-md-6">
@@ -65,36 +68,29 @@
                                     {{/if}}
                                 </div>
 
-                                <div class="col-md-6">
-                                    <label for="class_id" class="form-label">Class</label>
-                                    <select class="form-control {{#if errors.class_id}}is-invalid{{/if}}"
-                                        name="class_id">
-                                        <option value="" disabled>Select Class</option>
-                                        {{#each classes}}
-                                        <option value="{{id}}" {{#ifEquals ../studentData.class_id
-                                            id}}selected{{/ifEquals}}>{{name}}</option>
-                                        {{/each}}
-                                    </select>
-                                    {{#if errors.class_id}}
-                                    <div class="invalid-feedback">{{errors.class_id.msg}}</div>
-                                    {{/if}}
-                                </div>
-                            </div>
 
-                            <div class="row mt-2">
                                 <div class="col-md-6">
                                     <label for="school_id" class="form-label">School</label>
-                                    <select class="form-control {{#if errors.school_id}}is-invalid{{/if}}"
-                                        name="school_id">
+                                    <select class="form-control" name="school_id" id="schoolSelect">
                                         <option value="" disabled>Select School</option>
                                         {{#each schools}}
                                         <option value="{{id}}" {{#ifEquals ../studentData.school_id
                                             id}}selected{{/ifEquals}}>{{name}}</option>
                                         {{/each}}
                                     </select>
-                                    {{#if errors.school_id}}
-                                    <div class="invalid-feedback">{{errors.school_id.msg}}</div>
-                                    {{/if}}
+                                </div>
+                            </div>
+
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <label for="class_id" class="form-label">Class</label>
+                                    <select class="form-control" name="class_id" id="classSelect">
+                                        <option value="" disabled>Select Class</option>
+                                        {{#each classes}}
+                                        <option value="{{id}}" {{#ifEquals ../studentData.class_id
+                                            id}}selected{{/ifEquals}}>{{name}}</option>
+                                        {{/each}}
+                                    </select>
                                 </div>
 
                                 <div class="col-md-6">
@@ -124,3 +120,37 @@
         </div>
     </div>
 </div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const schoolSelect = document.getElementById("schoolSelect");
+        const classSelect = document.getElementById("classSelect");
+
+        schoolSelect.addEventListener("change", async function () {
+            const schoolId = this.value;
+
+            classSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
+
+            if (schoolId) {
+                try {
+                    const response = await fetch(`/school/class/${schoolId}`);
+                    const data = await response.json();
+
+                    if (data.classes && data.classes.length > 0) {
+                        classSelect.innerHTML = `<option value="" disabled selected>Select Class</option>`;
+                        data.classes.forEach(cls => {
+                            classSelect.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
+                        });
+                    } else {
+                        classSelect.innerHTML = `<option value="" disabled>No classes available</option>`;
+                    }
+                } catch (error) {
+                    console.error("Error fetching classes:", error);
+                    classSelect.innerHTML = `<option value="" disabled>Error loading classes</option>`;
+                }
+            } else {
+                classSelect.innerHTML = `<option value="" disabled selected>Select Class</option>`;
+            }
+        });
+    });
+
+</script>

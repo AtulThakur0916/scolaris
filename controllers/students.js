@@ -1,4 +1,5 @@
 const models = require('../models');
+const dd = require('../helpers/dd');
 // const { body, validationResult } = require('express-validator');
 const { body, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
@@ -27,14 +28,20 @@ module.exports = function (app) {
                     { model: models.Schools, as: 'school', attributes: ['name'] }
                 ],
                 raw: true,
-                order: [['name', 'ASC']]
+                order: [['name', 'ASC']],
+                nest: true
             });
 
-            res.render('students/index', {
-                students,
-                success: req.flash('success'),
-                error: req.flash('error')
-            });
+            // res.render('students/index', {
+            //     students,
+            //     success: req.flash('success'),
+            //     error: req.flash('error')
+            // });
+            const successMessages = req.flash('success');
+            const errorMessages = req.flash('error');
+
+            res.render('students/index', { students, success: successMessages, error: errorMessages });
+
         } catch (error) {
             console.error("Error fetching students:", error);
             req.flash('error', 'Failed to load students.');
@@ -94,18 +101,37 @@ module.exports = function (app) {
             res.status(500).send('Error loading student data');
         }
     });
+
+
     app.get('/students/edit/:student_id?', async (req, res) => {
         try {
+            console.log('student_id:', req.params.student_id);
             const { student_id } = req.params;
-            // let studentData = null;
-            const classes = await models.Classes.findAll({ attributes: ['id', 'name'], raw: true });
+
+
             const schools = await models.Schools.findAll({ attributes: ['id', 'name'], raw: true });
-            const studentData = await models.Students.findOne({ where: { id: student_id }, raw: true });
+            let studentData = await models.Students.findOne({ where: { id: student_id }, raw: true });
+            const classes = await models.Classes.findAll({ where: { school_id: studentData.school_id }, attributes: ['id', 'name'], raw: true });
+            // ✅ Preserve student ID even after validation errors
+            const storedStudentData = req.flash('studentData')[0] || {};
+            storedStudentData.id = storedStudentData.id || student_id; // ✅ Ensure ID is set
 
-
-            res.render('students/edit', { studentData, classes, schools });
+            res.render('students/edit', {
+                studentData: storedStudentData.name ? storedStudentData : studentData,
+                errors: req.flash('errors')[0] || {},
+                messages: {
+                    success: req.flash('success'),
+                    error: req.flash('error')
+                },
+                classes,
+                schools,
+                debug: {
+                    hasStudent: !!studentData,
+                    studentId: student_id,
+                }
+            });
         } catch (error) {
-            console.error('Error in /students/create:', error);
+            console.error('Error loading student edit page:', error);
             res.status(500).send('Error loading student data');
         }
     });
@@ -113,9 +139,6 @@ module.exports = function (app) {
     /**
      * Create student with validation
      */
-
-
-
     app.post('/students/create', [
         body('name').notEmpty().withMessage('Name is required'),
         body('email')
@@ -172,21 +195,20 @@ module.exports = function (app) {
      * Update student with validation
      */
 
-
     app.post('/students/update/:student_id', [
         body('name').notEmpty().withMessage('Name is required'),
         body('email')
             .isEmail().withMessage('Invalid email format')
             .custom(async (value, { req }) => {
-                const studentId = req.params.student_id; // Ensure student_id is correctly retrieved
+                const studentId = req.params.student_id;
                 if (!studentId) {
-                    throw new Error("Invalid student ID");
+                    throw new Error('Invalid student ID');
                 }
 
                 const existingStudent = await models.Students.findOne({
                     where: {
                         email: value,
-                        id: { [Op.ne]: studentId } // Ensure proper exclusion
+                        id: { [Op.ne]: studentId }
                     }
                 });
 
@@ -195,38 +217,32 @@ module.exports = function (app) {
                 }
                 return true;
             }),
-
-
         body('age').isInt({ min: 5 }).withMessage('Age must be at least 5'),
-        // body('phone').isMobilePhone().withMessage('Invalid phone number'),
         body('class_id').notEmpty().withMessage('Class is required'),
         body('school_id').notEmpty().withMessage('School is required'),
-        body('status').isIn(['1', '0']).withMessage('Status must be Active (1) or Inactive (0)'),
+        body('status').isIn(['1', '0']).withMessage('Status must be Active (1) or Inactive (0)')
     ], async (req, res) => {
+        const { student_id } = req.params; // ✅ Get student ID from params
+
         if (!req.isAuthenticated()) {
             req.flash('error', 'Please login to continue');
             return res.redirect('/login');
         }
 
         if (req.user.role.name !== "SuperAdmin") {
-            req.flash('error', "You are not authorised to access this page.");
+            req.flash('error', "You are not authorized to access this page.");
             return res.redirect('/students/index');
         }
 
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.render('students/edit', {
-                studentData: req.body,
-                errors: errors.mapped(),
-                classes: await models.Classes.findAll({ attributes: ['id', 'name'], raw: true }),
-                schools: await models.Schools.findAll({ attributes: ['id', 'name'], raw: true })
-            });
+            req.flash('errors', errors.mapped()); // ✅ Store validation errors
+            req.flash('studentData', { ...req.body, id: student_id }); // ✅ Preserve input values including ID
+            return res.redirect(`/students/edit/${student_id}`); // ✅ Redirect to correct edit page
         }
 
-        const { student_id } = req.params;
-        const { name, email, age, class_id, school_id, status } = req.body;
-
         try {
+            const { name, email, age, class_id, school_id, status } = req.body;
             const [rowsUpdated] = await models.Students.update(
                 { name, email, age, class_id, school_id, status },
                 { where: { id: student_id } }
@@ -242,10 +258,9 @@ module.exports = function (app) {
         } catch (error) {
             console.error('Error updating student:', error);
             req.flash('error', 'Error updating student. Please try again.');
-            res.redirect(`/students/edit/${student_id}`);
+            res.redirect(`/students/edit/${student_id}`); // ✅ Ensure we always pass student_id
         }
     });
-
 
 
     /**
@@ -274,4 +289,31 @@ module.exports = function (app) {
             return res.json({ success: false, message: error.message });
         }
     });
+
+    app.get('/school/class/:school_id', async (req, res) => {
+        try {
+            const { school_id } = req.params;
+
+            if (!school_id) {
+                return res.status(400).json({ error: "School ID is required" });
+            }
+
+            // Fetch classes linked to the given school_id
+            const classes = await models.Classes.findAll({
+                where: { school_id },
+                attributes: ['id', 'name'],
+                raw: true
+            });
+
+            if (classes.length === 0) {
+                return res.status(404).json({ error: "No classes found for this school" });
+            }
+
+            res.json({ classes });
+        } catch (error) {
+            console.error("Error fetching classes:", error);
+            res.status(500).json({ error: "Internal Server Error" });
+        }
+    });
+
 };

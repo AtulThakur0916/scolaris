@@ -1,0 +1,85 @@
+<!-- Content wrapper -->
+<div class="content-wrapper">
+  <!-- Content -->
+  <div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="py-3 mb-4">
+      <span class="text-muted fw-light">Fees /</span>
+      List
+    </h4>
+
+    {{#if success}}
+    <div class="alert alert-success alert-dismissible" role="alert">
+      {{#each success}}
+      {{this}}
+      {{else}}
+      {{success}}
+      {{/each}}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {{/if}}
+
+    {{#if error}}
+    <div class="alert alert-danger alert-dismissible" role="alert">
+      {{#each error}}
+      {{this}}
+      {{else}}
+      {{error}}
+      {{/each}}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {{/if}}
+
+
+    <!-- Fees List Table -->
+    <div class="card">
+      <div class="card-header border-bottom d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-3">Fees List</h5>
+      </div>
+      <div class="card-datatable table-responsive p-4">
+        <table class="table border-top" id="dataTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Fee Type</th>
+              <th>Custom Name</th>
+              <th>Amount</th>
+              <th>Frequency</th>
+              <th>School</th>
+              <th>Class</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each fees}}
+            <tr>
+              <td>{{@index}}</td>
+              <td>{{this.fee_type}}</td>
+              <td>{{#if this.custom_fee_name}}{{this.custom_fee_name}}{{else}}-{{/if}}</td>
+              <td>${{this.amount}}</td>
+              <td>{{this.frequency}}</td>
+              <td>{{this.school.name}}</td>
+              <td>{{#if this.class.name}}{{this.class.name}}{{else}}-{{/if}}</td>
+              <td>
+                {{#ifEquals this.status 1}}
+                <span class="badge bg-success">Active</span>
+                {{else}}
+                <span class="badge bg-danger">Inactive</span>
+                {{/ifEquals}}
+              </td>
+              <td>
+                <a href="/fees/edit/{{this.id}}">
+                  <i class="menu-icon tf-icons bx bx-edit-alt text-primary"></i>
+                </a>
+                <a href="#" onclick="deleteItem('/fees/delete', '{{this.id}}')">
+                  <i class="menu-icon tf-icons bx bx-trash text-danger"></i>
+                </a>
+              </td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

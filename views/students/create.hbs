@@ -70,24 +70,9 @@
                   </div>
 
                   <div class="col-md-6">
-                    <label for="class_id" class="form-label">Class</label>
-                    <select class="form-control {{#if errors.class_id}}is-invalid{{/if}}" name="class_id">
-                      <option value="" disabled selected>Select Class</option>
-                      {{#each classes}}
-                      <option value="{{id}}" {{#ifEquals ../studentData.class_id id}}selected{{/ifEquals}}>{{name}}
-                      </option>
-                      {{/each}}
-                    </select>
-                    {{#if errors.class_id}}
-                    <div class="invalid-feedback">{{errors.class_id.msg}}</div>
-                    {{/if}}
-                  </div>
-                </div>
-
-                <div class="row mt-2">
-                  <div class="col-md-6">
                     <label for="school_id" class="form-label">School</label>
-                    <select class="form-control {{#if errors.school_id}}is-invalid{{/if}}" name="school_id">
+                    <select class="form-control {{#if errors.school_id}}is-invalid{{/if}}" name="school_id"
+                      id="schoolSelect">
                       <option value="" disabled selected>Select School</option>
                       {{#each schools}}
                       <option value="{{id}}" {{#ifEquals ../studentData.school_id id}}selected{{/ifEquals}}>{{name}}
@@ -98,6 +83,18 @@
                     <div class="invalid-feedback">{{errors.school_id.msg}}</div>
                     {{/if}}
                   </div>
+
+                  <div class="col-md-6">
+                    <label for="class_id" class="form-label">Class</label>
+                    <select class="form-control {{#if errors.class_id}}is-invalid{{/if}}" name="class_id"
+                      id="classSelect">
+                      <option value="" disabled selected>Select Class</option>
+                    </select>
+                    {{#if errors.class_id}}
+                    <div class="invalid-feedback">{{errors.class_id.msg}}</div>
+                    {{/if}}
+                  </div>
+
 
                   <div class="col-md-6">
                     <label for="status" class="form-label">Status</label>
@@ -123,3 +120,38 @@
     </div>
   </div>
 </div>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const schoolSelect = document.getElementById("schoolSelect");
+    const classSelect = document.getElementById("classSelect");
+
+    schoolSelect.addEventListener("change", async function () {
+      const schoolId = this.value;
+
+      // Clear previous classes
+      classSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
+
+      if (schoolId) {
+        try {
+          const response = await fetch(`/school/class/${schoolId}`);
+          const data = await response.json();
+
+          if (data.classes && data.classes.length > 0) {
+            classSelect.innerHTML = `<option value="" disabled selected>Select Class</option>`;
+            data.classes.forEach(cls => {
+              classSelect.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
+            });
+          } else {
+            classSelect.innerHTML = `<option value="" disabled>No classes available</option>`;
+          }
+        } catch (error) {
+          console.error("Error fetching classes:", error);
+          classSelect.innerHTML = `<option value="" disabled>Error loading classes</option>`;
+        }
+      } else {
+        classSelect.innerHTML = `<option value="" disabled selected>Select Class</option>`;
+      }
+    });
+  });
+
+</script>

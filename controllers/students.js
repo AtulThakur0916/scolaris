@@ -32,15 +32,12 @@ module.exports = function (app) {
                 nest: true
             });
 
-            // res.render('students/index', {
-            //     students,
-            //     success: req.flash('success'),
-            //     error: req.flash('error')
-            // });
-            const successMessages = req.flash('success');
-            const errorMessages = req.flash('error');
 
-            res.render('students/index', { students, success: successMessages, error: errorMessages });
+
+            res.render('students/index', {
+                students, success: res.locals.success,
+                error: res.locals.error
+            });
 
         } catch (error) {
             console.error("Error fetching students:", error);

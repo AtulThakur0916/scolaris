@@ -2,6 +2,7 @@ const models = require('../models');
 const waterfall = require('async-waterfall');
 const fs = require('fs');
 const path = require('path');
+const { body, validationResult } = require('express-validator');
 
 module.exports = function (app) {
 
@@ -31,8 +32,8 @@ module.exports = function (app) {
 
             res.render('classes/index', {
                 classes,
-                success: req.flash('success'),
-                error: req.flash('error')
+                success: res.locals.success,
+                error: res.locals.error
             });
         } catch (error) {
             console.error("Error fetching classes:", error);
@@ -83,67 +84,166 @@ module.exports = function (app) {
                 classData = await models.Classes.findOne({ where: { id: class_id }, raw: true });
             }
 
-            res.render('classes/create', { classData, schools });
+            res.render('classes/create', {
+                classData, schools, success: res.locals.success,
+                error: res.locals.error,
+
+            });
         } catch (error) {
             console.error('Error in /classes/create:', error);
             res.status(500).send('Error loading class data');
         }
     });
 
-    app.post('/classes/create', async (req, res) => {
-        if (!req.isAuthenticated()) {
-            req.flash('error', 'Please login to continue');
-            return res.redirect('/login');
-        }
 
-        if (req.user.role.name !== "SuperAdmin") {
-            req.flash('error', "You are not authorised to access this page.");
-            return res.redirect('/classes/index');
-        }
-
-        const { name, school_id, status, } = req.body;
-
+    app.post('/classes/create', [
+        body('name').notEmpty().withMessage('Class name is required'),
+        body('school_id').notEmpty().withMessage('Please select a school'),
+        body('status').isIn(['0', '1']).withMessage('Invalid status')
+    ], async (req, res) => {
         try {
+            if (!req.isAuthenticated()) {
+                req.flash('error', 'Please login to continue');
+                return res.redirect('/login');
+            }
+
+            if (req.user.role.name !== "SuperAdmin") {
+                req.flash('error', "You are not authorised to access this page.");
+                return res.redirect('/classes/index');
+            }
+
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                const errorMessages = errors.array().map(error => error.msg);
+                req.flash('error', errorMessages);
+                return res.render('classes/create', {
+                    error: errorMessages,
+                    classData: req.body, // Store old input values
+                    schools: await models.Schools.findAll({ attributes: ['id', 'name'], raw: true })
+                });
+            }
+
+            const { name, school_id, status } = req.body;
+
+            // Check for duplicate class name in the same school
+            const existingClass = await models.Classes.findOne({ where: { name, school_id } });
+            if (existingClass) {
+                req.flash('error', ['A class with this name already exists for the selected school.']);
+                return res.render('classes/create', {
+                    error: ['A class with this name already exists for the selected school.'],
+                    classData: req.body, // Retain old input values
+                    schools: await models.Schools.findAll({ attributes: ['id', 'name'], raw: true })
+                });
+            }
+
+            // Create new class
             await models.Classes.create({ name, school_id, status });
             req.flash('success', 'Class created successfully.');
-            res.redirect('/classes/index');
+            return res.redirect('/classes/index');
+
         } catch (error) {
             console.error('Error creating class:', error);
-            req.flash('error', 'Class not created.');
+            req.flash('error', ['Class not created due to an error.']);
             res.redirect('/classes/create');
         }
     });
 
+
+    app.get('/classes/edit/:class_id?', async (req, res) => {
+        try {
+            const { class_id } = req.params;
+            let classData = null;
+            const schools = await models.Schools.findAll({ attributes: ['id', 'name'], raw: true });
+
+            if (class_id) {
+                classData = await models.Classes.findOne({ where: { id: class_id }, raw: true });
+            }
+
+            // Retrieve old input and errors from flash messages
+            const oldData = req.flash('oldData')[0] || {};
+            const errors = req.flash('errors')[0] || [];
+
+            res.render('classes/edit', {
+                classData: { ...classData, ...oldData }, // Merge old input with class data
+                schools,
+                errors,
+                messages: {
+                    success: res.locals.success,
+                    error: res.locals.error
+                }
+            });
+
+        } catch (error) {
+            console.error('Error loading class edit page:', error);
+            res.status(500).send('Error loading class data');
+        }
+    });
+
+
     /**
      * Update class details
      */
-    app.post('/classes/update/:class_id', async (req, res) => {
-        if (!req.isAuthenticated()) {
-            req.flash('error', 'Please login to continue');
-            return res.redirect('/login');
-        }
 
-        if (req.user.role.name !== "SuperAdmin") {
-            req.flash('error', "You are not authorised to access this page.");
-            return res.redirect('/classes/index');
-        }
 
-        const { class_id } = req.params;
-        const { name, school_id } = req.body;
-
+    app.post('/classes/update/:class_id', [
+        body('name').notEmpty().withMessage('Class name is required'),
+        body('school_id').notEmpty().withMessage('Please select a school')
+    ], async (req, res) => {
         try {
-            let rowsUpdated = await models.Classes.update({ name, school_id }, { where: { id: class_id } });
+            if (!req.isAuthenticated()) {
+                req.flash('error', 'Please login to continue');
+                return res.redirect('/login');
+            }
 
-            if (rowsUpdated)
+            if (req.user.role.name !== "SuperAdmin") {
+                req.flash('error', "You are not authorised to access this page.");
+                return res.redirect('/classes/index');
+            }
+
+            const { class_id } = req.params;
+            const { name, school_id, status } = req.body;
+
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                const errorMessages = errors.array().map(error => error.msg);
+                req.flash('errors', errorMessages);
+                req.flash('oldData', { name, school_id, status });
+
+                return res.redirect(`/classes/edit/${class_id}`);
+            }
+
+            // Check if class name already exists in the same school, excluding the current class
+            const existingClass = await models.Classes.findOne({
+                where: { name, school_id, id: { [models.Sequelize.Op.ne]: class_id } }
+            });
+
+            if (existingClass) {
+                req.flash('error', 'A class with this name already exists for the selected school.');
+                req.flash('oldData', { name, school_id, status });
+
+                return res.redirect(`/classes/edit/${class_id}`);
+            }
+
+            // Update the class
+            const [rowsUpdated] = await models.Classes.update({ name, school_id, status }, { where: { id: class_id } });
+
+            if (rowsUpdated) {
                 req.flash('success', 'Class updated successfully.');
+            } else {
+                req.flash('error', 'No changes were made.');
+            }
 
-            res.redirect('/classes/index');
+            return res.redirect('/classes/index');
+
         } catch (error) {
             console.error('Error updating class:', error);
             req.flash('error', 'Error updating class.');
-            res.redirect(`/classes/update/${class_id}`);
+            return res.redirect(`/classes/edit/${class_id}`);
         }
     });
+
+
+
 
     /**
      * Delete class

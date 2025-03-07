@@ -34,8 +34,8 @@ module.exports = function (app) {
             console.log(req.flash());
             res.render('fees/index', {
                 fees: plainFees,
-                success: req.flash('success'),
-                error: req.flash('error')
+                success: res.locals.success,
+                error: res.locals.error
             });
         } catch (error) {
             console.error("Error fetching fees:", error);

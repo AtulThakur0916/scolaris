@@ -25,68 +25,69 @@
           <h5 class="card-header">Create Banking Detail</h5>
 
           <div class="card-body">
-            <form action="/banking/create" method="post">
+            <form action="/banking/create" method="POST" enctype="multipart/form-data">
               <div class="row">
                 <div class="col-md-6">
                   <label for="school_id" class="form-label">School</label>
                   <select class="form-control {{#if errors.school_id}}is-invalid{{/if}}" name="school_id">
                     <option value="" disabled selected>Select School</option>
                     {{#each schools}}
-                    <option value="{{id}}">{{name}}</option>
+                    <option value="{{id}}" {{#if (eq ../bankingDetail.school_id id)}}selected{{/if}}>{{name}}</option>
                     {{/each}}
                   </select>
                   {{#if errors.school_id}}
                   <div class="invalid-feedback">{{errors.school_id.msg}}</div>
                   {{/if}}
                 </div>
-              </div>
 
-              <div class="row mt-2">
                 <div class="col-md-6">
                   <label for="bank_name" class="form-label">Bank Name</label>
                   <input type="text" class="form-control {{#if errors.bank_name}}is-invalid{{/if}}" name="bank_name"
-                    required />
+                    value="{{bankingDetail.bank_name}}" required />
                   {{#if errors.bank_name}}
                   <div class="invalid-feedback">{{errors.bank_name.msg}}</div>
                   {{/if}}
                 </div>
+              </div>
 
+              <div class="row mt-2">
                 <div class="col-md-6">
                   <label for="account_holder" class="form-label">Account Holder</label>
                   <input type="text" class="form-control {{#if errors.account_holder}}is-invalid{{/if}}"
-                    name="account_holder" required />
+                    name="account_holder" value="{{bankingDetail.account_holder}}" required />
                   {{#if errors.account_holder}}
                   <div class="invalid-feedback">{{errors.account_holder.msg}}</div>
                   {{/if}}
                 </div>
-              </div>
 
-              <div class="row mt-2">
                 <div class="col-md-6">
                   <label for="account_number" class="form-label">Account Number</label>
                   <input type="text" class="form-control {{#if errors.account_number}}is-invalid{{/if}}"
-                    name="account_number" required />
+                    name="account_number" value="{{bankingDetail.account_number}}" required />
                   {{#if errors.account_number}}
                   <div class="invalid-feedback">{{errors.account_number.msg}}</div>
                   {{/if}}
                 </div>
-
-                <div class="col-md-6">
-                  <label for="iban_document" class="form-label">IBAN Document</label>
-                  <input type="file" class="form-control {{#if errors.iban_document}}is-invalid{{/if}}"
-                    name="iban_document" />
-                  {{#if errors.iban_document}}
-                  <div class="invalid-feedback">{{errors.iban_document.msg}}</div>
-                  {{/if}}
-                </div>
               </div>
 
               <div class="row mt-2">
                 <div class="col-md-6">
+                  <label for="iban_document" class="form-label">IBAN Document</label>
+                  <input type="file" class="form-control {{#if errors.iban_document}}is-invalid{{/if}}"
+                    name="iban_document" />
+                  {{#if bankingDetail.iban_document}}
+                  <p>Current File: <a href="{{bankingDetail.iban_document}}" target="_blank">View Document</a></p>
+                  {{/if}}
+                  {{#if errors.iban_document}}
+                  <div class="invalid-feedback">{{errors.iban_document.msg}}</div>
+                  {{/if}}
+                </div>
+
+                <div class="col-md-6">
                   <label for="status" class="form-label">Status</label>
                   <select class="form-control {{#if errors.status}}is-invalid{{/if}}" name="status">
-                    <option value="1">Active</option>
-                    <option value="0">Inactive</option>
+                    <option value="1" {{#if (eq bankingDetail.status "1" )}}selected{{/if}}>Active</option>
+                    <option value="0" {{#if (eq bankingDetail.status "0" )}}selected{{/if}}>Inactive</option>
                   </select>
                   {{#if errors.status}}
                   <div class="invalid-feedback">{{errors.status.msg}}</div>
@@ -99,6 +100,7 @@
                 <a href="/banking/index" class="btn btn-secondary float-end me-2">Cancel</a>
               </div>
             </form>
+
           </div>
         </div>
       </div>

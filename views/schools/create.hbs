@@ -1,10 +1,15 @@
-{{!-- Debug information --}}
-<div style="display: none;">
-  Debug Info:
-  hasSchool: {{debug.hasSchool}}
-  schoolId: {{debug.schoolId}}
-  raw school: {{json school}}
-</div>
+{{!-- Flash Messages --}}
+{{#if messages.success}}
+<div class="alert alert-success">{{messages.success}}</div>
+{{/if}}
+{{#if messages.error}}
+<div class="alert alert-danger">{{messages.error}}</div>
+{{/if}}
+
+
+{{#if messages.error}}
+<div class="alert alert-danger">{{messages.error}}</div>
+{{/if}}
 
 <div class="content-wrapper">
   <div class="container-xxl flex-grow-1 container-p-y">
@@ -12,81 +17,90 @@
       <div class="col-md-12">
         <div class="card">
 
-          <h5 class="card-header">
-            {{#if school}}
-            Edit School
-            {{else}}
-            Create School
-            {{/if}}
-          </h5>
+          <h5 class="card-header">Create School</h5>
 
           <div class="card-body">
-            {{#if school}}
-            <form action="/schools/update/{{lookup school 'id'}}" method="post" enctype="multipart/form-data">
-              {{else}}
-              <form action="/schools/create" method="post" enctype="multipart/form-data">
-                {{/if}}
+            <form action="/schools/create" method="post" enctype="multipart/form-data">
 
-                {{!-- School Name --}}
-                <div class="row">
-                  <div class="col-md-6">
-                    <label for="name" class="form-label">School Name</label>
-                    <input type="text" class="form-control" placeholder="Enter school name" name="name"
-                      value="{{lookup school 'name'}}" required />
-                  </div>
-                  {{!-- School Type --}}
-                  <div class="col-md-6">
-                    <label for="type" class="form-label">School Type</label>
-                    <select class="form-control" name="type" required>
-                      <option value="Primary" {{#ifEquals school.type "Primary" }}selected{{/ifEquals}}>Primary
-                      </option>
-                      <option value="Secondary" {{#ifEquals school.type "Secondary" }}selected{{/ifEquals}}>Secondary
-                      </option>
-                      <option value="High School" {{#ifEquals school.type "High School" }}selected{{/ifEquals}}>High
-                        School</option>
-                      <option value="University" {{#ifEquals school.type "University" }}selected{{/ifEquals}}>
-                        University</option>
-                    </select>
-                  </div>
-
+              {{!-- School Name --}}
+              <div class="row">
+                <div class="col-md-6">
+                  <label for="name" class="form-label">School Name</label>
+                  <input type="text" class="form-control {{#if errors.name}}is-invalid{{/if}}"
+                    placeholder="Enter school name" name="name" value="{{lookup schoolData 'name'}}" required />
+                  {{#if errors.name}}
+                  <div class="invalid-feedback">{{errors.name.msg}}</div>
+                  {{/if}}
                 </div>
 
-                {{!-- Contact Details --}}
-                <div class="row mt-2">
-                  <div class="col-md-6">
-                    <label for="phone_number" class="form-label">Phone Number</label>
-                    <input type="tel" class="form-control" placeholder="Enter phone number" name="phone_number"
-                      value="{{lookup school 'phone_number'}}" required />
-                  </div>
+                {{!-- School Type --}}
+                <div class="col-md-6">
+                  <label for="type" class="form-label">School Type</label>
+                  <select class="form-control {{#if errors.type}}is-invalid{{/if}}" name="type" required>
+                    <option value="">Select Type</option>
+                    <option value="Primary" {{#ifEquals schoolData.type "Primary" }}selected{{/ifEquals}}>Primary
+                    </option>
+                    <option value="Secondary" {{#ifEquals schoolData.type "Secondary" }}selected{{/ifEquals}}>Secondary
+                    </option>
+                    <option value="High School" {{#ifEquals schoolData.type "High School" }}selected{{/ifEquals}}>High
+                      School</option>
+                    <option value="University" {{#ifEquals schoolData.type "University" }}selected{{/ifEquals}}>
+                      University</option>
+                  </select>
+                  {{#if errors.type}}
+                  <div class="invalid-feedback">{{errors.type.msg}}</div>
+                  {{/if}}
+                </div>
+              </div>
 
-                  <div class="col-md-6">
-                    <label for="email" class="form-label">Email</label>
-                    <input type="email" class="form-control" placeholder="Enter school email" name="email"
-                      value="{{lookup school 'email'}}" required />
-                  </div>
+              {{!-- Contact Details --}}
+              <div class="row mt-2">
+                <div class="col-md-6">
+                  <label for="phone_number" class="form-label">Phone Number</label>
+                  <input type="tel" class="form-control {{#if errors.phone_number}}is-invalid{{/if}}"
+                    placeholder="Enter phone number" name="phone_number" value="{{lookup schoolData 'phone_number'}}"
+                    required />
+                  {{#if errors.phone_number}}
+                  <div class="invalid-feedback">{{errors.phone_number.msg}}</div>
+                  {{/if}}
                 </div>
 
-                <div class="row mt-2">
-                  <div class="col-md-6">
-                    <label for="location" class="form-label">Location</label>
-                    <textarea class="form-control" placeholder="Enter school location" name="location"
-                      required>{{lookup school 'location'}}</textarea>
-                  </div>
-                  <div class="col-md-6">
-                    <label for="logo" class="form-label">School Logo</label>
-                    <input type="file" class="form-control" name="logo" accept="image/*" />
-                    {{#if school.logo}}
-                    <img src="{{school.logo}}" alt="School Logo" class="mt-2" width="100">
-                    {{/if}}
-                  </div>
+                <div class="col-md-6">
+                  <label for="email" class="form-label">Email</label>
+                  <input type="email" class="form-control {{#if errors.email}}is-invalid{{/if}}"
+                    placeholder="Enter school email" name="email" value="{{lookup schoolData 'email'}}" required />
+                  {{#if errors.email}}
+                  <div class="invalid-feedback">{{errors.email.msg}}</div>
+                  {{/if}}
+                </div>
+              </div>
+
+              <div class="row mt-2">
+                <div class="col-md-6">
+                  <label for="location" class="form-label">Location</label>
+                  <textarea class="form-control {{#if errors.location}}is-invalid{{/if}}"
+                    placeholder="Enter school location" name="location"
+                    required>{{lookup schoolData 'location'}}</textarea>
+                  {{#if errors.location}}
+                  <div class="invalid-feedback">{{errors.location.msg}}</div>
+                  {{/if}}
                 </div>
 
-                {{!-- Submit & Cancel Buttons --}}
-                <button type="submit" class="mt-4 float-end btn btn-primary">
-                  {{#if school}}Update{{else}}Create{{/if}} School
-                </button>
-                <a href="/schools/index" class="mt-4 float-end btn btn-secondary me-2">Cancel</a>
-              </form>
+                <div class="col-md-6">
+                  <label for="logo" class="form-label">School Logo</label>
+                  <input type="file" class="form-control {{#if errors.logo}}is-invalid{{/if}}" name="logo"
+                    accept="image/*" />
+                  {{#if errors.logo}}
+                  <div class="invalid-feedback">{{errors.logo.msg}}</div>
+                  {{/if}}
+
+                </div>
+              </div>
+
+              {{!-- Submit & Cancel Buttons --}}
+              <button type="submit" class="mt-4 float-end btn btn-primary">Create School</button>
+              <a href="/schools/index" class="mt-4 float-end btn btn-secondary me-2">Cancel</a>
+            </form>
           </div>
 
         </div>

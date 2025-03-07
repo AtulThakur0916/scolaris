@@ -6,6 +6,8 @@ const path = require('path');
 const moment = require('moment');
 const config = require('../config/config.json');
 
+const { body, validationResult } = require('express-validator');
+
 module.exports = function (app, passport, sendEmail, Op, sequelize) {
 
     /**
@@ -34,18 +36,126 @@ module.exports = function (app, passport, sendEmail, Op, sequelize) {
     /* 
      * Handle Login POST
      */
+
+    // app.post('/login',
+    //     [
+    //         body('email')
+    //             .trim()
+    //             .notEmpty().withMessage('Email is required')
+    //             .isEmail().withMessage('Please enter a valid email address'),
+    //         body('password')
+    //             .notEmpty().withMessage('Password is required')
+    //     ],
+    //     (req, res, next) => {
+    //         const errors = validationResult(req);
+    //         if (!errors.isEmpty()) {
+    //             return res.render('login', {
+    //                 layout: 'auth',
+    //                 title: 'Login',
+    //                 customizer_hide: true,
+    //                 pageSpecificCSS: ['../assets/vendor/css/pages/page-auth.css'],
+    //                 errors: errors.mapped(), // Pass validation errors to view
+    //                 oldInput: req.body // Keep entered data
+    //             });
+    //         }
+    //         next();
+    //     },
+    //     passport.authenticate('login', (err, user, info) => {
+    //         if (err) {
+    //             return next(err);
+    //         }
+    //         if (!user) {
+    //             return res.render('login', {
+    //                 layout: 'auth',
+    //                 title: 'Login',
+    //                 customizer_hide: true,
+    //                 pageSpecificCSS: ['../assets/vendor/css/pages/page-auth.css'],
+    //                 errors: { email: { msg: "Invalid email or password!" } }, // Show error in email field
+    //                 oldInput: req.body // Keep entered data
+    //             });
+    //         }
+    //         req.logIn(user, (err) => {
+    //             if (err) {
+    //                 return next(err);
+    //             }
+    //             req.flash('success', 'Login successful! Welcome back.');
+    //             return res.redirect("/");
+    //         });
+    //     })
+    // );
+
+
+
+
+
+
+
+
+
     app.post('/login',
-        passport.authenticate('login', { failureRedirect: "/login" }),
-        function (req, res) {
-            if (!req.user.email) {
-                //                    req.flash("info", "Your account needs to be verified. Please check your email to verify your account.");
-                //                    req.logout();
-                res.redirect("/account");
-            } else {
-                res.redirect("/");
+        [
+            body('email')
+                .trim()
+                .notEmpty().withMessage('Please enter email')
+                .isEmail().withMessage('Please enter a valid email address'),
+            body('password')
+                .notEmpty().withMessage('Please enter password')
+        ],
+        (req, res, next) => {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.render('login', {
+                    layout: 'auth',
+                    title: 'Login',
+                    customizer_hide: true,
+                    pageSpecificCSS: ['../assets/vendor/css/pages/page-auth.css'],
+                    errors: errors.mapped(),
+                    formData: req.body,
+                    messages: { error: "Please enter email and password" }
+                });
             }
+            next();
+        },
+        (req, res, next) => {
+            passport.authenticate('login', (err, user, info) => {
+                if (err) {
+                    console.error("Passport Authentication Error:", err);
+                    req.flash('error', 'An unexpected error occurred. Please try again.');
+                    return res.redirect('/login');
+                }
+                if (!user) {
+                    return res.render('login', {
+                        layout: 'auth',
+                        title: 'Login',
+                        customizer_hide: true,
+                        pageSpecificCSS: ['../assets/vendor/css/pages/page-auth.css'],
+                        errors: { email: { msg: "Credentials are incorrect!" } },
+                        formData: req.body,
+                        messages: { error: "Credentials are incorrect!" }
+                    });
+                }
+                req.logIn(user, (err) => {
+                    if (err) {
+                        console.error("Login Error:", err);
+                        req.flash('error', 'Error logging in. Please try again.');
+                        return res.redirect('/login');
+                    }
+
+                    // Handle "Remember Me" Functionality
+                    if (req.body.remember) {
+                        res.cookie('remember_me', user.id, { maxAge: 30 * 24 * 60 * 60 * 1000, httpOnly: true }); // 30 days
+                    } else {
+                        res.clearCookie('remember_me');
+                    }
+
+                    req.flash('success', 'Login successful! Welcome back.');
+                    return res.redirect("/");
+                });
+            })(req, res, next);
         }
     );
+
+
 
     /**
      * Render view for register
@@ -349,7 +459,7 @@ module.exports = function (app, passport, sendEmail, Op, sequelize) {
      * Logout user
      */
     app.get('/logout', (req, res) => {
-
+        res.clearCookie('remember_me');
         req.logout();
         res.redirect('/login');
     });

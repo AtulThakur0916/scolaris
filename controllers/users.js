@@ -3,6 +3,7 @@ const waterfall = require('async-waterfall');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const moment = require('moment');
+const { body, validationResult } = require('express-validator');
 
 module.exports = function (app, Op, sequelize) {
 
@@ -10,19 +11,24 @@ module.exports = function (app, Op, sequelize) {
      * Render view for manage user
      */
     app.get('/users/index', async (req, res) => {
-
-        const { id, logo, role, name } = req.user;
-
         if (!req.isAuthenticated()) {
             req.flash('error', 'Please login to continue');
             return res.redirect('/login');
         }
+
+        if (!req.user || !req.user.role) {
+            req.flash('error', 'Invalid user session. Please log in again.');
+            return res.redirect('/login');
+        }
+
+        const { id, logo, role, name } = req.user;
 
         if (role.name !== "SuperAdmin") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
 
+        // Fetch users
         var users = await models.Users.findAll({
             raw: true,
             include: [{
@@ -376,13 +382,45 @@ module.exports = function (app, Op, sequelize) {
     /*
      * Create a new user, post
      */
-    app.post('/users/create', async (req, res) => {
+    app.post('/users/create', [
+        body('name').notEmpty().withMessage('Name is required'),
+        body('email').isEmail().withMessage('Invalid email address')
+            .custom(async (email) => {
+                const existingUser = await models.Users.findOne({ where: { email } });
+                if (existingUser) {
+                    throw new Error('A user with this email already exists');
+                }
+            }),
+        body('contact_person').notEmpty().withMessage('Contact person is required'),
+        body('phone').isMobilePhone().withMessage('Invalid phone number'),
+        body('phone')
+            .isMobilePhone().withMessage('Invalid phone number')
+            .custom(async (phone) => {
+                const existingUser = await models.Users.findOne({ where: { phone } });
+                if (existingUser) {
+                    throw new Error('A user with this phone number already exists.');
+                }
+            }),
+    ], async (req, res) => {
 
         if (!req.isAuthenticated()) {
             req.flash('error', 'Please login to continue');
             return res.redirect('/login');
         }
-
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            try {
+                const roles = await models.Roles.findAll({ raw: true });
+                return res.render('users/create', {
+                    userData: req.body,
+                    errors: errors.mapped(),
+                    roles
+                });
+            } catch (err) {
+                req.flash('error', 'Error loading roles');
+                return res.redirect('/users/create');
+            }
+        }
         const { name, email, contact_person, phone, status, role_id } = req.body;
 
         // Check if user with same email already exists
@@ -396,76 +434,129 @@ module.exports = function (app, Op, sequelize) {
         }
 
         var password = bcrypt.hashSync(req.body.password, bcrypt.genSaltSync(10), null);
-        models.Users.create({ name, email, contact_person, phone, status, password, role_id })
-            .then((user) => {
-                req.flash('success', 'New user created successfully.');
-                console.log(req.flash('success'));
-            })
-            .catch(error => {
-                req.flash('error', error.errors[0].message);
-            });
+        await models.Users.create({ name, email, contact_person, phone, status, password, role_id });
+
+        req.flash('success', 'User Created successfully.');
+
 
         res.redirect('/users/index');
 
+    });
+    app.get('/users/edit/:user_id?', async (req, res) => {
+        try {
+            const { user_id } = req.params;
+            let user = null;
+
+            if (user_id) {
+                // Get user data
+                const userData = await models.Users.findOne({
+                    where: { id: user_id },
+                    raw: true
+                });
+
+                if (userData) {
+                    user = userData;
+                }
+            }
+
+            const roles = await models.Roles.findAll({ raw: true });
+
+            // Retrieve flash messages
+            const errors = req.flash('errors')[0] || {};  // Retrieve validation errors
+            const formData = req.flash('formData')[0] || {}; // Retrieve old input values
+
+            // Merge old input with existing user data
+            const userDataMerged = { ...user, ...formData };
+
+            res.render('users/edit', {
+                user: userDataMerged, // Send merged data
+                roles,
+                errors,
+                messages: {
+                    success: res.locals.success,
+                    error: res.locals.error
+                }
+            });
+        } catch (error) {
+            console.error('Error loading user edit page:', error);
+            res.status(500).send('Error loading user data');
+        }
     });
 
     /**
      * Update user
      */
-    app.post('/users/update/:user_id', async (req, res) => {
 
-        if (!req.isAuthenticated()) {
-            req.flash('error', 'Please login to continue');
-            return res.redirect('/login');
-        }
 
-        const { role } = req.user;
-        if (role.name !== "SuperAdmin") {
-            res.sendStatus({ status: 500, error: "You are not authorised to access this page." });
-        }
-
-        const { user_id } = req.params;
-        const { name, email, contact_person, phone, logo, status, } = req.body;
-
-        waterfall([
-            async function (done) {
-                if (req.files && req.files !== null && Object.keys(req.files).length > 0 && req.files.logo !== undefined) {
-                    // The name of the input field (i.e. "sampleFile") is used to retrieve the uploaded file
-                    let file = req.files.logo;
-                    let logo = file.name.split('.').join('-' + Date.now() + '.');
-
-                    // Use the mv() method to place the file somewhere on your server
-                    file.mv(path.join(`public/uploads/${logo}`), function (err) {
-                        done(err, logo);
-                    });
-                } else {
-                    done(null, null);
+    app.post('/users/update/:user_id', [
+        body('name').notEmpty().withMessage('Name is required'),
+        body('email')
+            .isEmail().withMessage('Invalid email address')
+            .custom(async (email, { req }) => {
+                const existingUser = await models.Users.findOne({
+                    where: { email, id: { [models.Sequelize.Op.ne]: req.params.user_id } }
+                });
+                if (existingUser) {
+                    throw new Error('Email is already in use by another user.');
                 }
-            },
-            async function (logo, done) {
-                let object = logo !== null ? { name, email, contact_person, phone, logo: "https://lms.khabriya.in/uploads/" + logo, status } : { name, email, contact_person, phone, status };
-                let rowsUpdated = await models.Users.update(
-                    object,
-                    {
-                        where: { id: user_id }
-                    }
-                );
-
-                if (rowsUpdated)
-                    req.flash('success', 'User updated successfully.');
-
-                done(null);
-
+            }),
+        body('contact_person').notEmpty().withMessage('Contact person is required'),
+        body('phone').isMobilePhone().withMessage('Invalid phone number'),
+        body('role_id')
+            .custom(async (role_id) => {
+                const role = await models.Roles.findByPk(role_id);
+                if (!role) {
+                    throw new Error('Selected role does not exist.');
+                }
+            })
+    ], async (req, res) => {
+        try {
+            if (!req.isAuthenticated()) {
+                req.flash('error', 'Please login to continue');
+                return res.redirect('/login');
             }
-        ], function (err) {
 
-            if (err) {
-                console.log(err);
-                req.flash('error', 'User not updated.');
+            if (req.user.role.name !== "SuperAdmin") {
+                req.flash('error', 'You are not authorized to perform this action.');
+                return res.redirect('/users/index');
+            }
+
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                req.flash('errors', errors.mapped());  // Store errors in flash
+                req.flash('formData', req.body); // Store old input values
+                return res.redirect(`/users/edit/${req.params.user_id}`); // Redirect back to edit page
+            }
+
+            const { user_id } = req.params;
+            const { name, email, contact_person, phone, status, role_id } = req.body;
+            let updatedFields = { name, email, contact_person, phone, status, role_id };
+
+            // Handle file upload if provided
+            if (req.files && req.files.logo) {
+                let file = req.files.logo;
+                let newFileName = file.name.split('.').join('-' + Date.now() + '.');
+                let uploadPath = path.join(__dirname, '../public/uploads/', newFileName);
+
+                await file.mv(uploadPath);
+                updatedFields.logo = "https://lms.khabriya.in/uploads/" + newFileName;
+            }
+
+            // Update user data
+            const rowsUpdated = await models.Users.update(updatedFields, { where: { id: user_id } });
+
+            if (rowsUpdated > 0) {
+                req.flash('success', 'User updated successfully.');
+            } else {
+                req.flash('error', 'No changes were made.');
             }
 
             return res.redirect('/users/index');
-        });
+        } catch (error) {
+            console.error('Error updating user:', error);
+            req.flash('error', 'Something went wrong. Please try again.');
+            return res.redirect(`/users/edit/${req.params.user_id}`);
+        }
     });
 
     /**

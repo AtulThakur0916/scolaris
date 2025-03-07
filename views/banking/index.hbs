@@ -41,33 +41,24 @@
               <th>#</th>
               <th>Bank Name</th>
               <th>Account Number</th>
-              <th>IBAN</th>
-              <th>Swift Code</th>
-              <th>Status</th>
+              <th>School</th>
+              {{!-- <th>Status</th> --}}
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {{#each banking}}
+            {{#each bankingDetails}}
             <tr>
               <td>{{@index}}</td>
               <td>{{this.bank_name}}</td>
               <td>{{this.account_number}}</td>
-              <td>{{this.iban}}</td>
-              <td>{{this.swift_code}}</td>
-              <td>
-                {{#ifEquals this.status 1}}
-                <span class="badge bg-success">Active</span>
-                {{else}}
-                <span class="badge bg-danger">Inactive</span>
-                {{/ifEquals}}
-              </td>
+              <td>{{this.school.name}}</td>
               <td>
                 <a href="/banking/edit/{{this.id}}">
                   <i class="menu-icon tf-icons bx bx-edit-alt text-primary"></i>
                 </a>
                 <a href="#" onclick="deleteItem('/banking/delete', '{{this.id}}')">
-                  <i class="menu-icon tf-icons bx bx-trash text-danger"></i>
+                  <i class="menu-icon tf-icons bx bx-box text-danger"></i>
                 </a>
               </td>
             </tr>

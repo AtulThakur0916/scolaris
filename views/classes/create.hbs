@@ -6,63 +6,83 @@
 
           <h5 class="card-header">
             {{#if class}}
-              Edit Class
+            Edit Class
             {{else}}
-              Create Class
+            Create Class
             {{/if}}
           </h5>
 
           <div class="card-body">
-            {{#if class}}
-              <form action="/classes/update/{{lookup classData 'id'}}" method="post">
-            {{else}}
-              <form action="/classes/create" method="post">
+
+            <!-- Display Error Messages -->
+
+            {{#if success}}
+            <div class="alert alert-success alert-dismissible" role="alert">
+              {{#each success}}
+              {{this}}
+              {{else}}
+              {{success}}
+              {{/each}}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
             {{/if}}
 
-              <!-- Class Name -->
-              <div class="row">
-                <div class="col-md-6">
-                  <label for="class_name" class="form-label">Class Name</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder="Enter Class Name"
-                    name="name"
-                    value="{{lookup classData 'name'}}"
-                    required
-                  />
+            {{#if error}}
+            <div class="alert alert-danger alert-dismissible" role="alert">
+              {{#each error}}
+              {{this}}
+              {{else}}
+              {{error}}
+              {{/each}}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {{/if}}
+
+            {{#if class}}
+            <form action="/classes/update/{{lookup classData 'id'}}" method="post">
+              {{else}}
+              <form action="/classes/create" method="post">
+                {{/if}}
+
+                <!-- Class Name -->
+                <div class="row">
+                  <div class="col-md-6">
+                    <label for="class_name" class="form-label">Class Name</label>
+                    <input type="text" class="form-control" placeholder="Enter Class Name" name="name"
+                      value="{{lookup classData 'name'}}" required />
+                  </div>
+
+                  <!-- School Selection -->
+                  <div class="col-md-6">
+                    <label for="school_id" class="form-label">School</label>
+                    <select class="form-control" name="school_id" required>
+                      <option value="" disabled selected>Select School</option>
+                      {{#each schools}}
+                      <option value="{{id}}" {{#ifEquals ../classData.school_id id}}selected{{/ifEquals}}>{{name}}
+                      </option>
+                      {{/each}}
+                    </select>
+                  </div>
                 </div>
 
-                <!-- School Selection -->
-                <div class="col-md-6">
-                  <label for="school_id" class="form-label">School</label>
-                  <select class="form-control" name="school_id" required>
-                    <option value="" disabled selected>Select School</option>
-                    {{#each schools}}
-                      <option value="{{id}}" {{#ifEquals ../classData.school_id id}}selected{{/ifEquals}}>{{name}}</option>
-                    {{/each}}
-                  </select>
+                <!-- Status -->
+                <div class="row mt-2">
+                  <div class="col-md-6">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-control" name="status">
+                      <option value="1" {{#if classData.status}}selected{{/if}}>Active</option>
+                      <option value="0" {{#unless classData.status}}selected{{/unless}}>Inactive</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
 
-              <!-- Status -->
-              <div class="row mt-2">
-                <div class="col-md-6">
-                  <label for="status" class="form-label">Status</label>
-                  <select class="form-control" name="status">
-                    <option value="1" {{#if classData.status}}selected{{/if}}>Active</option>
-                    <option value="0" {{#unless classData.status}}selected{{/unless}}>Inactive</option>
-                  </select>
-                </div>
-              </div>
+                <!-- Submit & Cancel Buttons -->
+                <button type="submit" class="mt-4 float-end btn btn-primary">
+                  {{#if class}}Update Class{{else}}Create Class{{/if}}
+                </button>
+                <a href="/classes/index" class="mt-4 float-end btn btn-secondary me-2">Cancel</a>
 
-              <!-- Submit & Cancel Buttons -->
-              <button type="submit" class="mt-4 float-end btn btn-primary">
-                {{#if class}}Update Class{{else}}Create Class{{/if}}
-              </button>
-              <a href="/classes/index" class="mt-4 float-end btn btn-secondary me-2">Cancel</a>
-
-            </form>
+              </form>
           </div>
         </div>
       </div>

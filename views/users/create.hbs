@@ -1,123 +1,79 @@
-{{!-- Debug information --}}
-<div style="display: none;">
-    Debug Info:
-    hasUser: {{debug.hasUser}}
-    userId: {{debug.userId}}
-    raw user: {{json user}}
-</div>
-
 <div class="content-wrapper">
   <div class="container-xxl flex-grow-1 container-p-y">
     <div class="row g-6">
       <div class="col-md-12">
         <div class="card">
-
-          <h5 class="card-header">
-            {{#if user}}
-              Edit User
-            {{else}}
-              Create User
-            {{/if}}
-          </h5>
-          
+          <h5 class="card-header">Create User</h5>
           <div class="card-body">
-            {{#if user}}
-              <form action="/users/update/{{lookup user 'id'}}" method="post">
-            {{else}}
-              <form action="/users/create" method="post">
-            {{/if}}
-              
-              {{!-- Rest of your form fields --}}
+            <form action="/users/create" method="post">
+
               <div class="row">
                 <div class="col-md-6">
-                  <label for="defaultFormControlInput" class="form-label">Name</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder="John Doe"
-                    name="name"
-                    value="{{lookup user 'name'}}"
-                    required
-                  />
+                  <label class="form-label">Name</label>
+                  <input type="text" class="form-control {{#if errors.name}}is-invalid{{/if}}" name="name"
+                    placeholder="John Doe" value="{{userData.name}}">
+                  {{#if errors.name}}
+                  <div class="invalid-feedback">{{errors.name.msg}}</div>
+                  {{/if}}
                 </div>
 
                 <div class="col-md-6">
-                  <label
-                    for="email"
-                    class="form-label"
-                  >Email address</label>
-                  <input
-                    type="email"
-                    class="form-control"
-                    id="email"
-                    placeholder="john.doe@example.com"
-                    name="email"
-                    value="{{#if user}}{{user.email}}{{/if}}"
-                    required
-                  />
+                  <label class="form-label">Email address</label>
+                  <input type="email" class="form-control {{#if errors.email}}is-invalid{{/if}}" name="email"
+                    placeholder="john.doe@example.com" value="{{userData.email}}">
+                  {{#if errors.email}}
+                  <div class="invalid-feedback">{{errors.email.msg}}</div>
+                  {{/if}}
                 </div>
               </div>
 
               <div class="row mt-2">
                 <div class="col-md-6">
-                  <label
-                    for="contact_person"
-                    class="form-label"
-                  >Contact Person</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    placeholder="Contact Person"
-                    name="contact_person"
-                    value="{{#if user}}{{user.contact_person}}{{/if}}"
-                    required
-                  />
+                  <label class="form-label">Contact Person</label>
+                  <input type="text" class="form-control {{#if errors.contact_person}}is-invalid{{/if}}"
+                    name="contact_person" placeholder="Contact Person" value="{{userData.contact_person}}">
+                  {{#if errors.contact_person}}
+                  <div class="invalid-feedback">{{errors.contact_person.msg}}</div>
+                  {{/if}}
                 </div>
 
                 <div class="col-md-6">
-                  <label
-                    for="phone"
-                    class="form-label"
-                  >Phone</label>
-                  <input
-                    type="tel"
-                    class="form-control"
-                    id="phone"
-                    placeholder="0123456789"
-                    aria-describedby="defaultFormControlHelp"
-                    name="phone"
-                    value="{{user.phone}}"
-                    required
-                  />
+                  <label class="form-label">Phone</label>
+                  <input type="tel" class="form-control {{#if errors.phone}}is-invalid{{/if}}" name="phone"
+                    placeholder="0123456789" value="{{userData.phone}}">
+                  {{#if errors.phone}}
+                  <div class="invalid-feedback">{{errors.phone.msg}}</div>
+                  {{/if}}
                 </div>
               </div>
 
               <div class="row mt-2">
                 <div class="col-md-6">
-                  <label
-                    for="role_id"
-                    class="form-label"
-                  >Role</label>
-                  <select class="form-control" name="role_id">
+                  <label class="form-label">Role</label>
+                  <select class="form-control {{#if errors.role_id}}is-invalid{{/if}}" name="role_id">
                     {{#each roles}}
-                      <option value="{{id}}" {{#ifEquals ../user.role_id id}}selected{{/ifEquals}}>{{name}}</option>
+                    <option value="{{id}}" {{#ifEquals ../userData.role_id id}}selected{{/ifEquals}}>{{name}}</option>
                     {{/each}}
                   </select>
+                  {{#if errors.role_id}}
+                  <div class="invalid-feedback">{{errors.role_id.msg}}</div>
+                  {{/if}}
                 </div>
-                    {{#unless user}}
-                        <div class="col-md-6">
-                        <label
-                            for="password"
-                            class="form-label"
-                        >Password</label>
-                        <input type="password" class="form-control" name="password" required>
-                        </div>
-                    {{/unless}}
-              </div>
-              
 
-              <button type="submit" class="mt-4 float-end btn btn-primary ">Create User</button>
+
+                <div class="col-md-6">
+                  <label class="form-label">Password</label>
+                  <input type="password" class="form-control {{#if errors.password}}is-invalid{{/if}}" name="password">
+                  {{#if errors.password}}
+                  <div class="invalid-feedback">{{errors.password.msg}}</div>
+                  {{/if}}
+                </div>
+
+              </div>
+
+              <button type="submit" class="mt-4 float-end btn btn-primary">Create User</button>
               <a href="/users/index" class="mt-4 float-end btn btn-secondary me-2">Cancel</a>
+
             </form>
           </div>
         </div>

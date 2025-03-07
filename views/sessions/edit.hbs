@@ -1,0 +1,185 @@
+{{!-- Flash Messages --}}
+{{#if messages.success}}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    {{messages.success}}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{{/if}}
+
+{{#if messages.error}}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    {{messages.error}}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{{/if}}
+{{!-- Flash Messages --}}
+{{#if messages.success}}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    {{messages.success}}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{{/if}}
+
+{{#if messages.error}}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    {{messages.error}}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{{/if}}
+
+{{!-- Display Validation Errors --}}
+{{#if errors}}
+<div class="alert alert-danger">
+    <ul>
+        {{#each errors}}
+        <li>{{this.msg}}</li>
+        {{/each}}
+    </ul>
+</div>
+{{/if}}
+
+
+<div class="content-wrapper">
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <div class="row g-6">
+            <div class="col-md-12">
+                <div class="card">
+                    <h5 class="card-header">Edit School Session</h5>
+                    <div class="card-body">
+                        <form action="/sessions/update/{{sessionData.id}}" method="post">
+
+                            {{!-- Select School --}}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="school_id" class="form-label">School</label>
+                                    <select class="form-control {{#if errors.school_id}}is-invalid{{/if}}"
+                                        name="school_id" required>
+                                        <option value="">Select School</option>
+                                        {{#each schools}}
+                                        <option value="{{this.id}}" {{#ifEquals this.id
+                                            ../sessionData.school_id}}selected{{/ifEquals}}>{{this.name}}</option>
+                                        {{/each}}
+                                    </select>
+                                    {{#if errors.school_id}}
+                                    <div class="invalid-feedback">{{errors.school_id.msg}}</div>
+                                    {{/if}}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="start_date" class="form-label">Start Date</label>
+                                    <input type="date" class="form-control {{#if errors.start_date}}is-invalid{{/if}}"
+                                        name="start_date" value="{{sessionData.start_date}}" required />
+                                    {{#if errors.start_date}}
+                                    <div class="invalid-feedback">{{errors.start_date.msg}}</div>
+                                    {{/if}}
+                                </div>
+                            </div>
+                            {{!-- Start & End Date --}}
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <label for="end_date" class="form-label">End Date</label>
+                                    <input type="date" class="form-control {{#if errors.end_date}}is-invalid{{/if}}"
+                                        name="end_date" value="{{sessionData.end_date}}" required />
+                                    {{#if errors.end_date}}
+                                    <div class="invalid-feedback">{{errors.end_date.msg}}</div>
+                                    {{/if}}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="status" class="form-label">Status</label>
+                                    <select class="form-control {{#if errors.status}}is-invalid{{/if}}" name="status"
+                                        required>
+                                        <option value="Active" {{#ifEquals sessionData.status "Active"
+                                            }}selected{{/ifEquals}}>
+                                            Active</option>
+                                        <option value="Completed" {{#ifEquals sessionData.status "Completed"
+                                            }}selected{{/ifEquals}}>Completed</option>
+                                    </select>
+                                    {{#if errors.status}}
+                                    <div class="invalid-feedback">{{errors.status.msg}}</div>
+                                    {{/if}}
+                                </div>
+                            </div>
+
+                            {{!-- Status --}}
+
+
+                            {{!-- Submit & Cancel Buttons --}}
+                            <div class="mt-4 text-end">
+                                <a href="/sessions/index" class="btn btn-secondary me-2">Cancel</a>
+                                <button type="submit" class="btn btn-primary">Update Session</button>
+                            </div>
+
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        let startDateInput = document.querySelector('input[name="start_date"]');
+        let endDateInput = document.querySelector('input[name="end_date"]');
+        let today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+
+        // Create error messages
+        let startDateError = document.createElement("div");
+        startDateError.className = "invalid-feedback";
+        startDateInput.insertAdjacentElement("afterend", startDateError);
+
+        let endDateError = document.createElement("div");
+        endDateError.className = "invalid-feedback";
+        endDateInput.insertAdjacentElement("afterend", endDateError);
+
+        // Set min attribute for Start Date (Cannot select past dates)
+        startDateInput.setAttribute("min", today);
+
+        // Ensure End Date is after Start Date
+        function validateDates() {
+            let startDate = startDateInput.value;
+            let endDate = endDateInput.value;
+            let isValid = true;
+
+            // Reset previous errors
+            startDateInput.classList.remove("is-invalid");
+            endDateInput.classList.remove("is-invalid");
+            startDateError.textContent = "";
+            endDateError.textContent = "";
+
+            if (!startDate) {
+                startDateInput.classList.add("is-invalid");
+                startDateError.textContent = "Start Date is required.";
+                isValid = false;
+            }
+
+            if (!endDate) {
+                endDateInput.classList.add("is-invalid");
+                endDateError.textContent = "End Date is required.";
+                isValid = false;
+            } else if (endDate <= startDate) {
+                endDateInput.classList.add("is-invalid");
+                endDateError.textContent = "End Date must be after Start Date.";
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        // Set min attribute for End Date based on Start Date
+        startDateInput.addEventListener("change", function () {
+            let startDateValue = startDateInput.value;
+            endDateInput.value = ""; // Reset end date when start date changes
+            endDateInput.setAttribute("min", startDateValue);
+            validateDates();
+        });
+
+        endDateInput.addEventListener("change", validateDates);
+
+        // Form Submission Validation
+        document.querySelector("form").addEventListener("submit", function (e) {
+            if (!validateDates()) {
+                e.preventDefault();
+            }
+        });
+    });
+</script>

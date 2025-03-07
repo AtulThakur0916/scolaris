@@ -1,7 +1,10 @@
 const models = require('../models');
+const async = require('async');  // ✅ Import the async module
 const waterfall = require('async-waterfall');
 const fs = require('fs');
 const path = require('path');
+const { body, validationResult } = require('express-validator');
+const { Op } = require("sequelize");  // Add this line at the top
 
 module.exports = function (app) {
 
@@ -28,8 +31,8 @@ module.exports = function (app) {
 
       res.render('schools/index', {
         schools,
-        success: req.flash('success'),
-        error: req.flash('error')
+        success: res.locals.success,
+        error: res.locals.error
       });
     } catch (error) {
       console.error("Error fetching schools:", error);
@@ -75,23 +78,70 @@ module.exports = function (app) {
         school = await models.Schools.findOne({ where: { id: school_id }, raw: true });
       }
 
-      res.render('schools/create', { school });
+      // res.render('schools/create', { school });
+      // Retrieve flash messages
+      const errors = req.flash('errors')[0] || {};
+      const formData = req.flash('school')[0] || {};
+
+      // Merge old input with existing school data
+      // const schoolData = { ...school, ...formData };
+      const schoolData = { ...school, ...formData };
+
+      res.render('schools/create', {
+        school: schoolData,
+        errors,
+        messages: {
+          success: req.flash('success'),
+          error: req.flash('error')
+        }
+      });
+
     } catch (error) {
       console.error('Error in /schools/create:', error);
       res.status(500).send('Error loading school data');
     }
   });
 
-  app.post('/schools/create', async (req, res) => {
+
+
+
+  app.post('/schools/create', [
+    body('name').notEmpty().withMessage('School name is required'),
+    body('location').notEmpty().withMessage('Location is required'),
+    body('phone_number')
+      .isMobilePhone().withMessage('Invalid phone number')
+      .custom(async (phone_number) => {
+        const existingSchool = await models.Schools.findOne({ where: { phone_number } });
+        if (existingSchool) {
+          throw new Error('A school with this phone number already exists.');
+        }
+      }),
+    body('email')
+      .isEmail().withMessage('Invalid email address')
+      .custom(async (email) => {
+        const existingSchool = await models.Schools.findOne({ where: { email } });
+        if (existingSchool) {
+          throw new Error('A school with this email already exists.');
+        }
+      }),
+    body('type').notEmpty().withMessage('School type is required'),
+  ], async (req, res) => {
     if (!req.isAuthenticated()) {
-      req.flash('error', 'Please login to continue');
+      req.flash('error', 'Please login to continue.');
       return res.redirect('/login');
     }
 
-    const { role } = req.user;
-    if (role.name !== "SuperAdmin") {
+    if (req.user.role.name !== "SuperAdmin") {
       req.flash('error', "You are not authorised to access this page.");
       return res.redirect('/schools/index');
+    }
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.render('schools/create', {
+        schoolData: req.body,
+        errors: errors.mapped()
+      });
     }
 
     const { name, location, phone_number, email, type } = req.body;
@@ -100,14 +150,29 @@ module.exports = function (app) {
       async function (done) {
         if (req.files && req.files.logo) {
           let file = req.files.logo;
-          let ext = path.extname(file.name); // Get file extension
-          let baseName = path.basename(file.name, ext); // Get filename without extension
-          let logoName = `${baseName}-${Date.now()}${ext}`; // Correct timestamped filename
-
-          let uploadDir = path.join(__dirname, '../public/uploads/schools/'); // Ensure correct path
+          let ext = path.extname(file.name).toLowerCase();
+          let baseName = path.basename(file.name, ext);
+          let logoName = `${baseName}-${Date.now()}${ext}`;
+          let uploadDir = path.join(__dirname, '../public/uploads/schools/');
           let uploadPath = path.join(uploadDir, logoName);
 
-          // Check if the directory exists, if not, create it
+          // Validate file type
+          const allowedExtensions = ['.png', '.jpg', '.jpeg', '.gif'];
+
+          if (!allowedExtensions.includes(ext)) {
+            req.flash('errors', { logo: { msg: 'Only PNG, JPG, JPEG, and GIF files are allowed.' } });
+            req.flash('schoolData', req.body);
+            return res.redirect(`/schools/create`);
+          }
+
+          // Validate file size (max 2MB)
+          if (file.size > 5 * 1024 * 1024) {
+            // return done(new Error('Logo size must be less than 2MB.'));
+            req.flash('errors', { logo: { msg: 'Logo size must be under 5MB.' } });
+            req.flash('schoolData', req.body);
+            return res.redirect(`/schools/create`);
+          }
+
           if (!fs.existsSync(uploadDir)) {
             fs.mkdirSync(uploadDir, { recursive: true });
           }
@@ -138,7 +203,7 @@ module.exports = function (app) {
     ], function (err) {
       if (err) {
         console.error('Error creating school:', err);
-        req.flash('error', 'School not created.');
+        req.flash('error', err.message || 'School not created.');
         return res.redirect('/schools/create');
       }
       res.redirect('/schools/index');
@@ -148,102 +213,150 @@ module.exports = function (app) {
 
 
 
+  /**
+  * Edit school details page
+  */
+  app.get('/schools/edit/:school_id?', async (req, res) => {
+    try {
+      const { school_id } = req.params;
+      let school = null;
+
+      if (school_id) {
+        school = await models.Schools.findOne({ where: { id: school_id }, raw: true });
+      }
+
+      // Retrieve flash messages
+      const errors = req.flash('errors')[0] || {};
+      const formData = req.flash('school')[0] || {};
+
+      // Merge old input with existing school data
+      const schoolData = { ...school, ...formData };
+
+      res.render('schools/edit', {
+        school: schoolData,
+        errors,
+        messages: {
+          success: req.flash('success'),
+          error: req.flash('error')
+        }
+      });
+    } catch (error) {
+      console.error('Error loading school edit page:', error);
+      res.status(500).send('Error loading school data');
+    }
+  });
 
   /**
-   * Update school details
-   */
-
-
-  app.post('/schools/update/:school_id', async (req, res) => {
+  * Update school details
+  */
+  app.post('/schools/update/:school_id', [
+    body('name').trim().notEmpty().withMessage('School name is required.'),
+    body('type').trim().notEmpty().withMessage('School type is required.'),
+    body('phone_number')
+      .isMobilePhone().withMessage('Invalid phone number')
+      .custom(async (value, { req }) => {
+        const existingSchool = await models.Schools.findOne({
+          where: { phone_number: value, id: { [Op.ne]: req.params.school_id } }
+        });
+        if (existingSchool) {
+          throw new Error('A school with this phone number already exists.');
+        }
+      }),
+    body('email')
+      .trim()
+      .notEmpty().withMessage('Email is required.')
+      .isEmail().withMessage('Invalid email format.')
+      .custom(async (value, { req }) => {
+        const existingSchool = await models.Schools.findOne({
+          where: { email: value, id: { [Op.ne]: req.params.school_id } }
+        });
+        if (existingSchool) {
+          throw new Error('Email is already in use.');
+        }
+        return true;
+      }),
+    body('location').trim().notEmpty().withMessage('Location is required.')
+  ], async (req, res) => {
     if (!req.isAuthenticated()) {
-      req.flash('error', 'Please login to continue');
+      req.flash('error', 'Please login to continue.');
       return res.redirect('/login');
     }
 
-    const { role } = req.user;
-    if (role.name !== "SuperAdmin") {
-      req.flash('error', "You are not authorised to access this page.");
+    if (req.user.role.name !== "SuperAdmin") {
+      req.flash('error', "You are not authorized to access this page.");
       return res.redirect('/schools/index');
     }
 
     const { school_id } = req.params;
-    const { name, location, phone_number, email, type } = req.body;
+    const errors = validationResult(req);
 
-    waterfall([
-      async function (done) {
-        try {
-          // Fetch the current school details to get the existing logo
-          let school = await models.Schools.findByPk(school_id);
-          if (!school) {
-            req.flash('error', 'School not found.');
-            return res.redirect('/schools/index');
-          }
+    if (!errors.isEmpty()) {
+      req.flash('errors', errors.mapped());
+      req.flash('school', { ...req.body, id: school_id });
+      return res.redirect(`/schools/edit/${school_id}`);
+    }
 
-          let oldLogo = school.logo; // Save old logo path for deletion
-          done(null, oldLogo);
-        } catch (err) {
-          done(err);
-        }
-      },
-      async function (oldLogo, done) {
-        if (req.files && req.files.logo) {
-          let file = req.files.logo;
-          let ext = path.extname(file.name);
-          let baseName = path.basename(file.name, ext);
-          let logoName = `${baseName}-${Date.now()}${ext}`;
+    try {
+      const { name, location, phone_number, email, type } = req.body;
+      const school = await models.Schools.findByPk(school_id);
 
-          let uploadDir = path.join(__dirname, '../public/uploads/schools/');
-          let uploadPath = path.join(uploadDir, logoName);
-
-          if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-          }
-
-          file.mv(uploadPath, function (err) {
-            if (err) return done(err);
-
-            // If an old logo exists, delete it
-            if (oldLogo && oldLogo !== '/uploads/schools/default-placeholder.png') {
-              let oldLogoPath = path.join(__dirname, '../public', oldLogo);
-              if (fs.existsSync(oldLogoPath)) {
-                fs.unlink(oldLogoPath, (err) => {
-                  if (err) console.error('Error deleting old logo:', err);
-                });
-              }
-            }
-
-            done(null, `/uploads/schools/${logoName}`);
-          });
-        } else {
-          done(null, null); // No new logo uploaded
-        }
-      },
-      async function (logoUrl, done) {
-        try {
-          let updateData = { name, location, phone_number, email, type };
-          if (logoUrl) updateData.logo = logoUrl; // Only update logo if a new file is uploaded
-
-          let rowsUpdated = await models.Schools.update(updateData, { where: { id: school_id } });
-
-          if (rowsUpdated)
-            req.flash('success', 'School updated successfully.');
-
-          done(null);
-        } catch (error) {
-          done(error);
-        }
+      if (!school) {
+        req.flash('error', 'School not found.');
+        return res.redirect('/schools/index');
       }
-    ], function (err) {
-      if (err) {
-        console.error('Error updating school:', err);
-        req.flash('error', 'Error updating school.');
-        return res.redirect('/schools/update/' + school_id);
+
+      let logoUrl = school.logo;
+
+      if (req.files && req.files.logo) {
+        const file = req.files.logo;
+        const ext = path.extname(file.name).toLowerCase();
+        const allowedExtensions = ['.png', '.jpg', '.jpeg', '.gif'];
+
+        if (!allowedExtensions.includes(ext)) {
+          req.flash('errors', { logo: { msg: 'Only PNG, JPG, JPEG, and GIF files are allowed.' } });
+          req.flash('school', req.body);
+          return res.redirect(`/schools/edit/${school_id}`);
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+          req.flash('errors', { logo: { msg: 'Logo size must be under 5MB.' } });
+          req.flash('school', req.body);
+          return res.redirect(`/schools/edit/${school_id}`);
+        }
+
+        const logoName = `school-${Date.now()}${ext}`;
+        const uploadDir = path.join(__dirname, '../public/uploads/schools/');
+        const uploadPath = path.join(uploadDir, logoName);
+
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+
+        await file.mv(uploadPath);
+
+        if (school.logo && school.logo !== '/uploads/schools/default-placeholder.png') {
+          const oldLogoPath = path.join(__dirname, '../public', school.logo);
+          if (fs.existsSync(oldLogoPath)) {
+            fs.unlinkSync(oldLogoPath);
+          }
+        }
+
+        logoUrl = `/uploads/schools/${logoName}`;
       }
-      res.redirect('/schools/index');
-    });
+
+      await models.Schools.update(
+        { name, location, phone_number, email, type, logo: logoUrl },
+        { where: { id: school_id } }
+      );
+
+      req.flash('success', 'School updated successfully.');
+      return res.redirect('/schools/index');
+    } catch (error) {
+      console.error('Error updating school:', error);
+      req.flash('error', 'Error updating school. Please try again.');
+      return res.redirect(`/schools/edit/${school_id}`);
+    }
   });
-
-
   /**
    * Delete school
    */

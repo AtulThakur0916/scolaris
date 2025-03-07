@@ -1,0 +1,86 @@
+<div class="content-wrapper">
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <div class="row g-6">
+            <div class="col-md-12">
+                <div class="card">
+                    <h5 class="card-header">Edit User</h5>
+                    <div class="card-body">
+                        <form action="/users/update/{{user.id}}" method="post">
+                            <input type="hidden" name="_method" value="PUT">
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Name</label>
+                                    <input type="text" class="form-control {{#if errors.name}}is-invalid{{/if}}"
+                                        name="name" placeholder="John Doe" value="{{user.name}}">
+                                    {{#if errors.name}}
+                                    <div class="invalid-feedback">{{errors.name.msg}}</div>
+                                    {{/if}}
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Email address</label>
+                                    <input type="email" class="form-control {{#if errors.email}}is-invalid{{/if}}"
+                                        name="email" placeholder="john.doe@example.com" value="{{user.email}}">
+                                    {{#if errors.email}}
+                                    <div class="invalid-feedback">{{errors.email.msg}}</div>
+                                    {{/if}}
+                                </div>
+                            </div>
+
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">Contact Person</label>
+                                    <input type="text"
+                                        class="form-control {{#if errors.contact_person}}is-invalid{{/if}}"
+                                        name="contact_person" placeholder="Contact Person"
+                                        value="{{user.contact_person}}">
+                                    {{#if errors.contact_person}}
+                                    <div class="invalid-feedback">{{errors.contact_person.msg}}</div>
+                                    {{/if}}
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Phone</label>
+                                    <input type="tel" class="form-control {{#if errors.phone}}is-invalid{{/if}}"
+                                        name="phone" placeholder="0123456789" value="{{user.phone}}">
+                                    {{#if errors.phone}}
+                                    <div class="invalid-feedback">{{errors.phone.msg}}</div>
+                                    {{/if}}
+                                </div>
+                            </div>
+
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">Role</label>
+                                    <select class="form-control {{#if errors.role_id}}is-invalid{{/if}}" name="role_id">
+                                        {{#each roles}}
+                                        <option value="{{id}}" {{#ifEquals ../user.role_id id}}selected{{/ifEquals}}>
+                                            {{name}}</option>
+                                        {{/each}}
+                                    </select>
+                                    {{#if errors.role_id}}
+                                    <div class="invalid-feedback">{{errors.role_id.msg}}</div>
+                                    {{/if}}
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Password (Leave blank to keep current password)</label>
+                                    <input type="password" class="form-control {{#if errors.password}}is-invalid{{/if}}"
+                                        name="password">
+                                    {{#if errors.password}}
+                                    <div class="invalid-feedback">{{errors.password.msg}}</div>
+                                    {{/if}}
+                                </div>
+                            </div>
+
+                            <button type="submit" class="mt-4 float-end btn btn-primary">Update User</button>
+                            <a href="/users/index" class="mt-4 float-end btn btn-secondary me-2">Cancel</a>
+
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -34,7 +34,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       iban_document: {
-        type: DataTypes.STRING(255), // Store file path
+        type: DataTypes.STRING,
         allowNull: true,
       },
       created_at: {

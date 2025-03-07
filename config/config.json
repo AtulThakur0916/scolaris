@@ -1,8 +1,8 @@
 {
-  "development": {
-    "username": "postgres",
-    "password": "Hariom@847103",
-    "database": "lms_staging",
+ "development": {
+    "username": "lms_user1",
+    "password": "763%*&%gshsks&^#$^#",
+    "database": "lms_db",
     "host": "localhost",
     "dialect": "postgres",
     "mail": {

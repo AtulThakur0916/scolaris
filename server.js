@@ -24,14 +24,14 @@ require('./passport/init')(passport);
 
 const app = express();
 
-// 🔹 Middleware Setup
+// Middleware Setup
 app.use(flash());
 app.use(methodOverride('_method'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// 🔹 Session Configuration
+// Session Configuration
 app.use(
   session({
     secret: 'P5&A%R3s1Z(3Ea!dN@n!T3R7A',
@@ -46,14 +46,14 @@ app.use(
 app.use(passport.initialize());
 app.use(passport.session()); // Persistent login sessions
 
-// 🔹 File Upload Middleware
+// File Upload Middleware
 app.use(fileUpload());
 
-// 🔹 Body Parsing Middleware
+// Body Parsing Middleware
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(bodyParser.json());
 
-// 🔹 Static Files & View Engine (Handlebars)
+// Static Files & View Engine (Handlebars)
 app.engine(
   'hbs',
   require('express-handlebars').engine({
@@ -73,7 +73,7 @@ app.set('view engine', 'hbs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 🔹 API Routes
+// API Routes
 app.use('/api', apiRoutes);
 
 app.use(async (req, res, next) => {
@@ -128,7 +128,7 @@ cron.schedule("*/10 * * * * *", async function () {
 });
 
 
-// 🔹 Flash Middleware (For Notifications)
+// Flash Middleware (For Notifications)
 app.use((req, res, next) => {
   res.locals.success = req.flash('success');
   res.locals.error = req.flash('error');
@@ -136,10 +136,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// 🔹 Global Alert Handling
+// Global Alert Handling
 alert.handle(sequelize, sendEmail, Op);
 
-// 🔹 Route Authentication Middleware
+// Route Authentication Middleware
 app.get('/*', (req, res, next) => {
   const publicRoutes = ['/login', '/register', '/forgot', '/notify'];
 
@@ -158,33 +158,19 @@ app.get('/*', (req, res, next) => {
   next();
 });
 
-// 🔹 Dynamically Load Controllers
+//Dynamically Load Controllers
 fs.readdirSync('./controllers').forEach((file) => {
   if (file.endsWith('.js')) {
     const route = require(`./controllers/${file}`);
     if (typeof route === 'function') {
       route(app, passport, sendEmail, Op, sequelize);
-      console.log(`✅ Loaded controller: ${file}`);
+      console.log(`Loaded controller: ${file}`);
     } else {
-      console.warn(`⚠️ Skipping invalid controller file: ${file}`);
+      console.warn(`Skipping invalid controller file: ${file}`);
     }
   }
 });
 
-// 🔹 Logging Middleware (Request Debugging)
-app.use((req, res, next) => {
-  console.log(`\n===== Incoming Request =====`);
-  console.log(`🔹 Method: ${req.method}`);
-  console.log(`🔹 URL: ${req.originalUrl}`);
-  console.log(`🔹 Headers:`, req.headers);
-  console.log(`🔹 Body:`, req.body);
-  console.log(`🔹 Query Params:`, req.query);
-  console.log(`🔹 Params:`, req.params);
-  console.log(`===========================\n`);
-  next();
-});
-
-// 🔹 Global Error Handler
 app.use(errorHandler);
 
 module.exports = { app, initializeRedisClient };

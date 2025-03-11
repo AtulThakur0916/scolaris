@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { body, validationResult } = require('express-validator');
 
-module.exports = function (app) {
+module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
     /**
      * Render view for managing classes

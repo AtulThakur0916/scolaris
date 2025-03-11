@@ -83,7 +83,8 @@
                     <div class="invalid-feedback">{{errors.school_id.msg}}</div>
                     {{/if}}
                   </div>
-
+                </div>
+                <div class="row mt-2">
                   <div class="col-md-6">
                     <label for="class_id" class="form-label">Class</label>
                     <select class="form-control {{#if errors.class_id}}is-invalid{{/if}}" name="class_id"
@@ -95,30 +96,39 @@
                     {{/if}}
                   </div>
 
-
+                  <div class="col-md-6">
+                    <label for="roll_number" class="form-label">Roll Number</label>
+                    <input type="text" class="form-control {{#if errors.roll_number}}is-invalid{{/if}}"
+                      name="roll_number" value="{{lookup studentData 'roll_number'}}" />
+                    {{#if errors.roll_number}}
+                    <div class="invalid-feedback">{{errors.roll_number.msg}}</div>
+                    {{/if}}
+                  </div>
+                </div>
+                <div class="row mt-2">
                   <div class="col-md-6">
                     <label for="status" class="form-label">Status</label>
                     <select class="form-control {{#if errors.status}}is-invalid{{/if}}" name="status">
-                      <option value="1" {{#ifEquals student.status 1}}selected{{/ifEquals}}>Active</option>
-                      <option value="0" {{#ifEquals student.status 0}}selected{{/ifEquals}}>Inactive</option>
+                      <option value="true" {{#ifEquals student.status true}}selected{{/ifEquals}}>Active</option>
+                      <option value="false" {{#ifEquals student.status false}}selected{{/ifEquals}}>Inactive</option>
                     </select>
                     {{#if errors.status}}
                     <div class="invalid-feedback">{{errors.status.msg}}</div>
                     {{/if}}
                   </div>
                 </div>
-
-
-                <div class="mt-4">
-                  <button type="submit" class="btn btn-primary float-end">Save Student</button>
-                  <a href="/students/index" class="btn btn-secondary float-end me-2">Cancel</a>
-                </div>
-              </form>
           </div>
+
+          <div class="m-4">
+            <button type="submit" class="btn btn-primary float-end">Save Student</button>
+            <a href="/students/index" class="btn btn-secondary float-end me-2">Cancel</a>
+          </div>
+          </form>
         </div>
       </div>
     </div>
   </div>
+</div>
 </div>
 <script>
   document.addEventListener("DOMContentLoaded", function () {

@@ -1,4 +1,5 @@
 'use strict';
+
 module.exports = (sequelize, DataTypes) => {
     const Students = sequelize.define('Students', {
         id: {
@@ -12,18 +13,14 @@ module.exports = (sequelize, DataTypes) => {
         },
         email: {
             type: DataTypes.STRING,
-            allowNull: false,
-            // unique: true,
+            allowNull: true,
             validate: {
                 isEmail: true
             }
         },
         age: {
-            type: DataTypes.INTEGER,
-            allowNull: false,
-            validate: {
-                min: 3 // Ensuring a reasonable age limit
-            }
+            type: DataTypes.STRING,  // ✅ Changed from INTEGER to STRING
+            allowNull: true
         },
         school_id: {
             type: DataTypes.UUID,
@@ -31,7 +28,9 @@ module.exports = (sequelize, DataTypes) => {
             references: {
                 model: 'schools',
                 key: 'id'
-            }
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE'
         },
         class_id: {
             type: DataTypes.UUID,
@@ -39,12 +38,19 @@ module.exports = (sequelize, DataTypes) => {
             references: {
                 model: 'classes',
                 key: 'id'
-            }
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE'
+        },
+        roll_number: {
+            type: DataTypes.STRING,  // ✅ Changed from INTEGER to STRING
+            allowNull: true,         // ✅ Allow NULL values
+            unique: false
         },
         status: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: true,
-            comment: '0 = Inactive, 1 = Active'
+            type: DataTypes.BOOLEAN, // ✅ Changed from INTEGER to BOOLEAN
+            defaultValue: true,      // ✅ Default is true (active)
+            comment: 'false = Inactive, true = Active'
         }
     }, {
         freezeTableName: true,
@@ -52,6 +58,7 @@ module.exports = (sequelize, DataTypes) => {
         underscored: true
     });
 
+    // 🔹 Define associations
     Students.associate = function (models) {
         Students.belongsTo(models.Schools, { foreignKey: 'school_id', as: 'school' });
         Students.belongsTo(models.Classes, { foreignKey: 'class_id', as: 'class' });

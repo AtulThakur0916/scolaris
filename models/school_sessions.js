@@ -30,10 +30,7 @@ module.exports = (sequelize, DataTypes) => {
     });
 
     SchoolSessions.associate = function (models) {
-        SchoolSessions.belongsTo(models.Schools, {
-            foreignKey: 'school_id',
-            as: 'school'
-        });
+        SchoolSessions.belongsTo(models.Schools, {foreignKey: 'school_id', as: 'school'});
     };
 
     return SchoolSessions;

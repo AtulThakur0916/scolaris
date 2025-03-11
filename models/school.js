@@ -29,6 +29,13 @@ module.exports = (sequelize, DataTypes) => {
   Schools.associate = function (models) {
     Schools.hasMany(models.Classes, { foreignKey: 'school_id', as: 'classes' });
     Schools.hasMany(models.Students, { foreignKey: 'school_id', as: 'students' });
+    Schools.hasMany(models.SchoolSessions, { foreignKey: 'school_id', as: 'sessions' });
+    Schools.belongsToMany(models.Parents, {
+      through: 'ParentSchools',
+      foreignKey: 'school_id',
+      otherKey: 'parent_id',
+      as: 'parents'
+    });
   };
 
   return Schools;

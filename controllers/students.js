@@ -4,7 +4,7 @@ const dd = require('../helpers/dd');
 const { body, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 
-module.exports = function (app) {
+module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
     /**
      * Render view for managing students
@@ -136,9 +136,13 @@ module.exports = function (app) {
     /**
      * Create student with validation
      */
+    const { body, validationResult } = require('express-validator');
+    const models = require('../models'); // Adjust path if needed
+
     app.post('/students/create', [
         body('name').notEmpty().withMessage('Name is required'),
         body('email')
+            .optional({ checkFalsy: true }) // Email is optional
             .isEmail().withMessage('Invalid email address')
             .custom(async (value) => {
                 const existingStudent = await models.Students.findOne({ where: { email: value } });
@@ -147,10 +151,11 @@ module.exports = function (app) {
                 }
                 return true;
             }),
-        body('age').isInt({ min: 5, max: 100 }).withMessage('Age must be between 5 and 100'),
+        body('age').optional({ checkFalsy: true }).isString().withMessage('Age must be a string'),
         body('class_id').notEmpty().withMessage('Class is required'),
         body('school_id').notEmpty().withMessage('School is required'),
-        body('status').isIn(['0', '1']).withMessage('Invalid status'),
+        body('roll_number').optional({ checkFalsy: true }).isString().withMessage('Roll number must be a string'),
+        body('status').isIn(['true', 'false']).withMessage('Invalid status (must be "true" or "false")')
     ], async (req, res) => {
         if (!req.isAuthenticated()) {
             req.flash('error', 'Please login to continue');
@@ -172,10 +177,18 @@ module.exports = function (app) {
             });
         }
 
-        const { name, email, age, class_id, school_id, status } = req.body;
+        const { name, email, age, class_id, school_id, roll_number, status } = req.body;
 
         try {
-            await models.Students.create({ name, email, age, class_id, school_id, status });
+            await models.Students.create({
+                name,
+                email,
+                age,
+                class_id,
+                school_id,
+                roll_number,
+                status: status === 'true' // Convert status to boolean
+            });
 
             req.flash('success', 'Student created successfully.');
             res.redirect('/students/index');
@@ -185,6 +198,7 @@ module.exports = function (app) {
             res.redirect('/students/create');
         }
     });
+
 
 
 

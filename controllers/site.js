@@ -8,7 +8,7 @@ const config = require('../config/config.json');
 
 const { body, validationResult } = require('express-validator');
 
-module.exports = function (app, passport, sendEmail, Op, sequelize) {
+module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
     /**
      * Render view for dashboard
@@ -458,11 +458,19 @@ module.exports = function (app, passport, sendEmail, Op, sequelize) {
     /**
      * Logout user
      */
+    // app.get('/logout', (req, res) => {
+    //     console.log("szcxv");
+    //     res.clearCookie('remember_me');
+    //     req.logout();
+    //     res.redirect('/login');
+    // });
     app.get('/logout', (req, res) => {
-        res.clearCookie('remember_me');
-        req.logout();
-        res.redirect('/login');
+        console.log("Logging out...");
+        res.clearCookie('remember_me'); // Clear the cookie
+        req.logout(); // No callback needed in passport@0.7.0
+        res.redirect('/login'); // Redirect to login page
     });
+
 
     /**
      * Sync Revenue

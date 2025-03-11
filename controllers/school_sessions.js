@@ -3,7 +3,7 @@ const { body, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const moment = require('moment');
 
-module.exports = function (app) {
+module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
     /**
      * List all school sessions

@@ -4,7 +4,7 @@ const waterfall = require('async-waterfall');
 const fs = require('fs');
 const path = require('path');
 
-module.exports = function (app) {
+module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
     /**
      * List all banking details

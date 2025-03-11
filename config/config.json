@@ -1,8 +1,8 @@
 {
- "development": {
-    "username": "lms_user1",
+  "development": {
+    "username": "spay_user1",
     "password": "763%*&%gshsks&^#$^#",
-    "database": "lms_db",
+    "database": "spay_db",
     "host": "localhost",
     "dialect": "postgres",
     "mail": {
@@ -10,7 +10,7 @@
         "username": "9f798c435b0365",
         "password": "7e8d5fea21ae3d",
         "port": 587
-    }
+    } 
   },
   "test": {
     "username": "lms_staging",
@@ -37,8 +37,8 @@
         "port": 587
     }
   },
-  "secret": "AJT_Lbim_0f6bd8a808ea3e9996b3aee1900aa2e8",
   "jwt_secret": "topTV_sq2d1yYfSetXXnmOb7HzKQNk0WwvdK36",
+  "secret": "AJT_Lbim_0f6bd8a808ea3e9996b3aee1900aa2e8",
   "accountSid": "",
   "authToken": "",
   "authorApiURL": "https://news.khabriya.in/wp-json/wp/v2/users/"

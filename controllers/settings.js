@@ -3,7 +3,7 @@ const waterfall = require('async-waterfall');
 const path = require('path');
 const moment = require('moment');
 
-module.exports = function (app) {
+module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
     /*
      * Create a new setting, get

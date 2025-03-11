@@ -6,7 +6,7 @@ const path = require('path');
 const { body, validationResult } = require('express-validator');
 const { Op } = require("sequelize");  // Add this line at the top
 
-module.exports = function (app) {
+module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
   /**
    * Render view for managing schools

@@ -5,7 +5,7 @@ const path = require('path');
 const moment = require('moment');
 const { body, validationResult } = require('express-validator');
 
-module.exports = function (app, Op, sequelize) {
+module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
     /**
      * Render view for manage user

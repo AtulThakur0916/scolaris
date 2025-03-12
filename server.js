@@ -119,6 +119,10 @@ app.get('/*', (req, res, next) => {
         publicRoutes.push(req.path);
     }
 
+    if (req.path.startsWith('/api/')) {
+        return next();
+    }
+
     if (!req.isAuthenticated() && !publicRoutes.includes(req.path)) {
         return res.redirect('/login');
     }

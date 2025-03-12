@@ -22,6 +22,11 @@ module.exports = (sequelize, DataTypes) => {
         tableName: "parent_students",
         timestamps: false,
     });
-
+    ParentStudents.associate = (models) => {
+        ParentStudents.belongsTo(models.Students, {
+            foreignKey: 'student_id',
+            as: 'Student' // Alias for fetching school details
+        });
+    };
     return ParentStudents;
 };

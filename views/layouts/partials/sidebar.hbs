@@ -162,6 +162,44 @@
         </li>
       </ul>
     </li>
+    <li class="menu-item {{#if (startsWith currentPath '/cms')}}active open{{/if}}">
+      <a href="javascript:void(0);" class="menu-link menu-toggle">
+        <i class="menu-icon tf-icons bx bx-help-circle"></i>
+        <div class="text-truncate" data-i18n="Layouts">Cms Management</div>
+      </a>
+
+      <ul class="menu-sub">
+        <li class="menu-item {{#if (eq currentPath '/cms/index')}}active{{/if}}">
+          <a href="/cms/index" class="menu-link">
+            <div class="text-truncate" data-i18n="Without menu">Cms List</div>
+          </a>
+        </li>
+        <li class="menu-item {{#if (eq currentPath '/cms/create')}}active{{/if}}">
+          <a href="/cms/create" class="menu-link">
+            <div class="text-truncate" data-i18n="Without menu">Cms Fees</div>
+          </a>
+        </li>
+      </ul>
+    </li>
+    <li class="menu-item {{#if (startsWith currentPath '/faqs')}}active open{{/if}}">
+      <a href="javascript:void(0);" class="menu-link menu-toggle">
+        <i class="menu-icon tf-icons bx bx-help-circle"></i>
+        <div class="text-truncate" data-i18n="Layouts">FAQ Management</div>
+      </a>
+
+      <ul class="menu-sub">
+        <li class="menu-item {{#if (eq currentPath '/faqs/index')}}active{{/if}}">
+          <a href="/faqs/index" class="menu-link">
+            <div class="text-truncate" data-i18n="Without menu">FAQ List</div>
+          </a>
+        </li>
+        <li class="menu-item {{#if (eq currentPath '/faqs/create')}}active{{/if}}">
+          <a href="/faqs/create" class="menu-link">
+            <div class="text-truncate" data-i18n="Without menu">Create FAQ</div>
+          </a>
+        </li>
+      </ul>
+    </li>
     {{!-- <!-- Layouts -->
     <li class="menu-item">
       <a href="javascript:void(0);" class="menu-link menu-toggle">

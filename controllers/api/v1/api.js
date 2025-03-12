@@ -1,11 +1,10 @@
 const models = require('../../../models');
-const moment = require('moment');
 const path = require('path');
 const fs = require('fs');
 const { body, validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { ParentSchools, Parents, Schools, ParentStudents, Students, Classes } = require('../../../models');
+const { ParentSchools, Parents, Schools, FAQ, ParentStudents, Students, CMSPage, Classes } = require('../../../models');
 const configPath = path.join(__dirname, '../../../config/config.json');
 const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
 const { Op } = require('sequelize');
@@ -367,6 +366,147 @@ module.exports.controller = function (app, verifyJwt, sendEmail, Op, config, seq
             res.status(500).json({ success: false, message: "Internal Server Error" });
         }
     });
+    app.get('/api/v1/parents/students', verifyJwt(), async (req, res) => {
+        try {
+            const parentId = req.user.id;
+
+            const parentStudents = await ParentStudents.findAll({
+                where: { parent_id: parentId },
+                include: [
+                    {
+                        model: Students,
+                        as: 'Student',
+                        attributes: ['id', 'name', 'roll_number', 'status'],
+                        include: [
+                            {
+                                model: Schools,
+                                as: 'school',  // ✅ Fixed alias
+                                attributes: ['name']
+                            },
+                            {
+                                model: Classes,
+                                as: 'class',  // ✅ Fixed alias
+                                attributes: ['name']
+                            }
+                        ]
+                    }
+                ]
+            });
+
+
+
+            if (!parentStudents.length) {
+                return res.status(404).json({
+                    success: false,
+                    message: "No students found for this parent",
+                    data: []
+                });
+            }
+
+            const students = parentStudents.map(entry => ({
+                id: entry.Student.id,
+                name: entry.Student.name,
+                roll_number: entry.Student.roll_number,
+                status: entry.Student.status,
+                school_name: entry.Student.school ? entry.Student.school.name : null,
+                class_name: entry.Student.class ? entry.Student.class.name : null
+            }));
+
+
+            res.json({
+                success: true,
+                message: "Students fetched successfully",
+                data: students
+            });
+
+        } catch (err) {
+            console.error("Fetch Students Error:", err.message);
+            res.status(500).json({ success: false, message: "Internal Server Error" });
+        }
+    });
+
+    app.post('/api/v1/parents/edit-student', [
+        body('student_id')
+            .notEmpty().withMessage('Student ID is required')
+            .isUUID().withMessage('Invalid Student ID format'),
+        body('name').optional().notEmpty().withMessage('Name cannot be empty'),
+        body('relations').optional().notEmpty().withMessage('Relation cannot be empty'),
+        body('school_id').optional().isUUID().withMessage('Invalid School ID format'),
+        body('class_id').optional().isUUID().withMessage('Invalid Class ID format'),
+        body('roll_number').optional().notEmpty().isAlphanumeric().withMessage('Roll number must be alphanumeric')
+            .isLength({ min: 1, max: 10 }).withMessage('Roll number must be between 1 and 10 characters long'),
+    ], verifyJwt(), async (req, res) => {
+        try {
+            // ✅ Validation Check
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ success: false, message: errors.array()[0].msg });
+            }
+
+            const parentId = req.user.id;
+            const { student_id, name, relations, school_id, class_id, roll_number } = req.body;
+
+            const parentStudent = await ParentStudents.findOne({
+                where: { parent_id: parentId, student_id: student_id }
+            });
+
+            if (!parentStudent) {
+                return res.status(403).json({ success: false, message: 'You are not authorized to edit this student' });
+            }
+
+            const student = await Students.findByPk(student_id);
+            if (!student) {
+                return res.status(404).json({ success: false, message: 'Student not found' });
+            }
+
+            if (roll_number && class_id && school_id) {
+                const existingStudent = await Students.findOne({
+                    where: {
+                        school_id,
+                        class_id,
+                        roll_number,
+                        id: { [Op.ne]: student_id }  // Exclude the current student
+                    }
+                });
+
+                if (existingStudent) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Another student with the same roll number, class, and school already exists'
+                    });
+                }
+            }
+
+            // ✅ Update only fields that exist in the request body
+            const updatedFields = {};
+            if (name) updatedFields.name = name;
+            if (school_id) updatedFields.school_id = school_id;
+            if (class_id) updatedFields.class_id = class_id;
+            if (roll_number) updatedFields.roll_number = roll_number;
+
+            // ✅ Perform the update
+            if (Object.keys(updatedFields).length > 0) {
+                await student.update(updatedFields);
+            }
+
+            // ✅ Update relations if provided
+            if (relations) {
+                await parentStudent.update({ relations });
+            }
+
+            res.json({ success: true, message: 'Student information updated successfully', student });
+
+        } catch (err) {
+            console.error('Edit Student Error:', err);
+            if (err.name === 'SequelizeValidationError') {
+                res.status(400).json({ success: false, message: err.errors[0].message });
+            } else {
+                res.status(500).json({ success: false, message: 'Internal Server Error' });
+            }
+        }
+    });
+
+
 
 
     app.post('/api/v1/classes/list',
@@ -406,7 +546,7 @@ module.exports.controller = function (app, verifyJwt, sendEmail, Op, config, seq
             }
         }
     );
-    app.post('/api/v1/parents/my-schools', verifyJwt(), async (req, res) => {
+    app.get('/api/v1/parents/my-schools', verifyJwt(), async (req, res) => {
         try {
             if (!req.user) {
                 return res.status(401).json({ success: false, message: "Unauthorized: Invalid token" });
@@ -517,7 +657,48 @@ module.exports.controller = function (app, verifyJwt, sendEmail, Op, config, seq
         }
     });
 
+    //cms
+    app.get('/api/v1/cms/:slug', async (req, res) => {
+        try {
+            const page = await CMSPage.findOne({
+                where: { slug: req.params.slug, status: '1' },
+                attributes: ['id', 'title', 'content']
+            });
+            if (!page) return res.status(404).json({ error: 'Page not found' });
+            res.json({
+                status: true,
+                msg: 'Page fetched successfully',
+                data: page
+            });
+        } catch (error) {
+            res.status(500).json({
+                status: false,
+                msg: 'Internal server error',
+                data: null
+            });
+        }
+    });
+    app.get('/api/v1/faqs', async (req, res) => {
+        try {
+            const activeFaqs = await FAQ.findAll({
+                where: { status: '1' },
+                attributes: ['id', 'question', 'answer'],
+                order: [['created_at', 'DESC']],
+            });
 
+            res.json({
+                status: true,
+                msg: 'FAQs fetched successfully',
+                data: activeFaqs
+            });
+        } catch (error) {
+            res.status(500).json({
+                status: false,
+                msg: 'Internal server error',
+                data: null
+            });
+        }
+    });
     /**
      * Post view count API
      */

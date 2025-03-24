@@ -7,16 +7,28 @@ module.exports = (sequelize, DataTypes) => {
         },
         name: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: true
         },
         mobile: {
             type: DataTypes.STRING,
-            allowNull: false,
+            allowNull: true,
             unique: true
+        },
+        provider: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        provider_id: {
+            type: DataTypes.STRING,
+            allowNull: true,
         },
         password: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: true
+        },
+        email: {
+            type: DataTypes.STRING,
+            allowNull: true
         },
         otp: {
             type: DataTypes.STRING,
@@ -25,6 +37,26 @@ module.exports = (sequelize, DataTypes) => {
         otp_verified: {
             type: DataTypes.BOOLEAN,
             defaultValue: false
+        },
+        fcm_token: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        country: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        state: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        city: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        address: {
+            type: DataTypes.STRING,
+            allowNull: true
         }
     }, {
         freezeTableName: true,
@@ -33,7 +65,6 @@ module.exports = (sequelize, DataTypes) => {
     });
 
     Parents.associate = function (models) {
-        // console.log(models); // Debugging: Check if models.School and models.Student exist
 
         if (models.Schools) {
             Parents.belongsToMany(models.Schools, {

@@ -55,7 +55,7 @@
                   <!-- School Selection -->
                   <div class="col-md-6">
                     <label for="school_id" class="form-label">School</label>
-                    <select class="form-control" name="school_id" required>
+                    <select class="form-control" id="schoolSelect" name="school_id" required>
                       <option value="" disabled selected>Select School</option>
                       {{#each schools}}
                       <option value="{{id}}" {{#ifEquals ../classData.school_id id}}selected{{/ifEquals}}>{{name}}
@@ -68,10 +68,20 @@
                 <!-- Status -->
                 <div class="row mt-2">
                   <div class="col-md-6">
+                    <label for="session_id" class="form-label">School Session</label>
+                    <select class="form-control {{#if errors.school_sessions_id}}is-invalid{{/if}}"
+                      name="school_sessions_id" id="sessionSelect">
+                      <option value="" disabled selected>Select Session</option>
+                    </select>
+                    {{#if errors.school_sessions_id}}
+                    <div class="invalid-feedback">{{errors.school_sessions_id.msg}}</div>
+                    {{/if}}
+                  </div>
+                  <div class="col-md-6">
                     <label for="status" class="form-label">Status</label>
                     <select class="form-control" name="status">
-                      <option value="1" {{#if classData.status}}selected{{/if}}>Active</option>
-                      <option value="0" {{#unless classData.status}}selected{{/unless}}>Inactive</option>
+                      <option value="1" {{#unless classData.status}}selected{{/unless}}>Active</option>
+                      <option value="0" {{#if classData.status}}selected{{/if}}>Inactive</option>
                     </select>
                   </div>
                 </div>
@@ -89,3 +99,45 @@
     </div>
   </div>
 </div>
+<script>
+  // session
+  document.addEventListener("DOMContentLoaded", function () {
+    const schoolSelect = document.getElementById("schoolSelect");
+    const sessionSelect = document.getElementById("sessionSelect");
+
+    schoolSelect.addEventListener("change", async function () {
+      const schoolId = this.value;
+
+      // Clear previous classes
+      sessionSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
+
+      if (schoolId) {
+        try {
+          const response = await fetch(`/school/session/${schoolId}`);
+          const data = await response.json();
+
+          if (data.session && data.session.length > 0) {
+            sessionSelect.innerHTML = `<option value="" disabled selected>Select Session</option>`;
+
+            data.session.forEach(cls => {
+              const startDate = new Date(cls.start_date);
+              const endDate = new Date(cls.end_date);
+
+              const formattedStart = startDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+              const formattedEnd = endDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+
+              sessionSelect.innerHTML += `<option value="${cls.id}">${formattedStart} - ${formattedEnd}</option>`;
+            });
+          } else {
+            sessionSelect.innerHTML = `<option value="" disabled>No sessions available</option>`;
+          }
+        } catch (error) {
+          console.error("Error fetching sessions:", error);
+          sessionSelect.innerHTML = `<option value="" disabled>Error loading sessions</option>`;
+        }
+      } else {
+        sessionSelect.innerHTML = `<option value="" disabled selected>Select Session</option>`;
+      }
+    });
+  });
+</script>

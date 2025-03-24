@@ -19,7 +19,7 @@ module.exports = (sequelize, DataTypes) => {
             }
         },
         age: {
-            type: DataTypes.STRING,  // ✅ Changed from INTEGER to STRING
+            type: DataTypes.STRING,
             allowNull: true
         },
         school_id: {
@@ -42,14 +42,39 @@ module.exports = (sequelize, DataTypes) => {
             onUpdate: 'CASCADE',
             onDelete: 'CASCADE'
         },
+        school_sessions_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            references: {
+                model: 'school_sessions',
+                key: 'id'
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE'
+        },
         roll_number: {
-            type: DataTypes.STRING,  // ✅ Changed from INTEGER to STRING
-            allowNull: true,         // ✅ Allow NULL values
-            unique: false
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        state: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        city: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        country: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        address: {
+            type: DataTypes.STRING,
+            allowNull: true
         },
         status: {
-            type: DataTypes.BOOLEAN, // ✅ Changed from INTEGER to BOOLEAN
-            defaultValue: true,      // ✅ Default is true (active)
+            type: DataTypes.BOOLEAN,
+            defaultValue: true,
             comment: 'false = Inactive, true = Active'
         }
     }, {

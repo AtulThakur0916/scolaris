@@ -1,0 +1,54 @@
+<div class="content-wrapper">
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <div class="row g-6">
+            <div class="col-md-12">
+                <div class="card">
+                    <!-- Flash Messages -->
+                    {{#if error}}
+                    <div class="alert alert-danger">
+                        {{error}}
+                    </div>
+                    {{/if}}
+
+                    {{#if success}}
+                    <div class="alert alert-success">
+                        {{success}}
+                    </div>
+                    {{/if}}
+
+                    <h5 class="card-header">Edit Top School</h5>
+
+                    <div class="card-body">
+                        <form action="/top-schools/update/{{topSchool.id}}" method="POST">
+                            <div class="row">
+                                <!-- School Dropdown -->
+                                <div class="col-md-6">
+                                    <label for="school_id" class="form-label">School</label>
+                                    <select class="form-control {{#if errors.school_id}}is-invalid{{/if}}"
+                                        name="school_id" required>
+                                        <option value="" disabled>Select School</option>
+                                        {{#each schools}}
+                                        <option value="{{this.id}}" {{#if (eq ../topSchool.school_id
+                                            this.id)}}selected{{/if}}>
+                                            {{this.name}}
+                                        </option>
+                                        {{/each}}
+                                    </select>
+                                    {{#if errors.school_id}}
+                                    <div class="invalid-feedback">{{errors.school_id.msg}}</div>
+                                    {{/if}}
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="mt-4">
+                                <button type="submit" class="btn btn-primary float-end">Update</button>
+                                <a href="/top-schools" class="btn btn-secondary float-end me-2">Cancel</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

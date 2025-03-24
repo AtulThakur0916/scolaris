@@ -15,6 +15,19 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false
     },
+    city: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    country: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    state: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+
     location: DataTypes.TEXT,
     phone_number: DataTypes.STRING,
     email: DataTypes.STRING,
@@ -30,6 +43,8 @@ module.exports = (sequelize, DataTypes) => {
     Schools.hasMany(models.Classes, { foreignKey: 'school_id', as: 'classes' });
     Schools.hasMany(models.Students, { foreignKey: 'school_id', as: 'students' });
     Schools.hasMany(models.SchoolSessions, { foreignKey: 'school_id', as: 'sessions' });
+    Schools.hasMany(models.Activity, { foreignKey: 'school_id', as: 'activities' });
+
     Schools.belongsToMany(models.Parents, {
       through: 'ParentSchools',
       foreignKey: 'school_id',

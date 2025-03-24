@@ -45,47 +45,24 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     });
 
 
-    /**
-     * View fee details
-     */
-    app.get('/fees/view/:fee_id', async (req, res) => {
-        const { fee_id } = req.params;
-
-        if (!req.isAuthenticated()) {
-            req.flash('error', 'Please login to continue');
-            return res.redirect('/login');
-        }
-
-        if (req.user.role.name !== "SuperAdmin") {
-            req.flash('error', 'You are not authorised to access this page.');
-            return res.redirect('/');
-        }
-
-        const feeData = await models.Fees.findOne({
-            where: { id: fee_id },
-            include: [
-                { model: models.Classes, as: 'class', attributes: ['name'] },
-                { model: models.Schools, as: 'school', attributes: ['name'] }
-            ]
-        });
-
-        if (!feeData) {
-            req.flash('error', 'Fee not found');
-            return res.redirect('/fees/index');
-        }
-
-        res.render('fees/view', { feeData });
-    });
 
     /**
      * Create or edit fee
      */
-    app.get('/fees/create/:fee_id?', async (req, res) => {
+    app.get('/fees/create', async (req, res) => {
         try {
             const { fee_id } = req.params;
             let feeData = null;
-            const classes = await models.Classes.findAll({ attributes: ['id', 'name'], raw: true });
-            const schools = await models.Schools.findAll({ attributes: ['id', 'name'], raw: true });
+            const classes = await models.Classes.findAll({
+                attributes: ['id', 'name'], where: {
+                    status: '1'
+                }, raw: true
+            });
+            const schools = await models.Schools.findAll({
+                attributes: ['id', 'name'], where: {
+                    status: 'Approve'
+                }, raw: true
+            });
 
             if (fee_id) {
                 feeData = await models.Fees.findOne({ where: { id: fee_id }, raw: true });
@@ -103,6 +80,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
      */
     app.post('/fees/create', [
         body('fee_type').notEmpty().withMessage('Fee type is required'),
+        body('school_sessions_id')
+            .notEmpty().withMessage('School session is required'),
         body('amount').isFloat({ min: 0 }).withMessage('Amount must be a positive number'),
         body('frequency').notEmpty().withMessage('Frequency is required'),
         body('school_id').notEmpty().withMessage('School is required'),
@@ -123,15 +102,23 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             return res.render('fees/create', {
                 feeData: req.body,
                 errors: errors.mapped(),
-                classes: await models.Classes.findAll({ attributes: ['id', 'name'], raw: true }),
-                schools: await models.Schools.findAll({ attributes: ['id', 'name'], raw: true })
+                classes: await models.Classes.findAll({
+                    attributes: ['id', 'name'], where: {
+                        status: '1'
+                    }, raw: true
+                }),
+                schools: await models.Schools.findAll({
+                    attributes: ['id', 'name'], where: {
+                        status: 'Approve'
+                    }, raw: true
+                })
             });
         }
 
-        const { fee_type, custom_fee_name, amount, frequency, description, school_id, class_id, status } = req.body;
+        const { fee_type, school_sessions_id, custom_fee_name, amount, frequency, description, school_id, class_id, status } = req.body;
 
         try {
-            await models.Fees.create({ fee_type, custom_fee_name, amount, frequency, description, school_id, class_id, status });
+            await models.Fees.create({ fee_type, school_sessions_id, custom_fee_name, amount, frequency, description, school_id, class_id, status });
 
             req.flash('success', 'Fee created successfully.');
             res.redirect('/fees/index');
@@ -145,11 +132,11 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         try {
             console.log('fee_id:', req.params.fee_id);
             const { fee_id } = req.params;
-
-            // Fetch all schools
-            const schools = await models.Schools.findAll({ attributes: ['id', 'name'], raw: true });
-
-            // Fetch fee details with related class & school
+            const schools = await models.Schools.findAll({
+                attributes: ['id', 'name'],
+                where: { status: 'Approve' },
+                raw: true
+            });
             let feeData = await models.Fees.findOne({
                 where: { id: fee_id },
                 include: [
@@ -158,20 +145,47 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 ],
                 nest: true
             });
-
-            // Ensure feeData is converted into a plain object
             if (feeData) {
                 feeData = feeData.get({ plain: true });
             }
+            const sessions = feeData
+                ? await models.SchoolSessions.findAll({
+                    where: { school_id: feeData.school_id },
+                    attributes: ['id', 'start_date', 'end_date'],
+                    raw: true
+                })
+                : [];
+            const monthNames = [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            ];
 
-            // Fetch classes for the selected school
+            const formattedSessions = sessions.map(session => {
+                const startDate = new Date(session.start_date);
+                const endDate = new Date(session.end_date);
+                const formattedStart = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
+                const formattedEnd = `${monthNames[endDate.getMonth()]} ${endDate.getFullYear()}`;
+
+                return {
+                    ...session,
+                    start_date: formattedStart,
+                    end_date: formattedEnd
+                };
+            });
             const classes = feeData
-                ? await models.Classes.findAll({ where: { school_id: feeData.school_id }, attributes: ['id', 'name'], raw: true })
+                ? await models.Classes.findAll({
+                    where: {
+                        school_id: feeData.school_id,
+                        school_sessions_id: feeData.school_sessions_id
+                    },
+                    attributes: ['id', 'name'],
+                    raw: true
+                })
                 : [];
 
             // Preserve input data after validation errors
             const storedFeeData = req.flash('feeData')[0] || {};
-            storedFeeData.id = storedFeeData.id || fee_id; // Ensure ID is preserved
+            storedFeeData.id = storedFeeData.id || fee_id;
 
             res.render('fees/edit', {
                 feeData: storedFeeData.name ? storedFeeData : feeData,
@@ -182,6 +196,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 },
                 classes,
                 schools,
+                formattedSessions,
                 debug: {
                     hasFee: !!feeData,
                     feeId: fee_id,
@@ -192,11 +207,15 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             res.status(500).send('Error loading fee data');
         }
     });
+
+
     /**
      * Update fee with validation
      */
     app.post('/fees/update/:fee_id', [
         body('fee_type').notEmpty().withMessage('Fee type is required'),
+        body('school_sessions_id')
+            .notEmpty().withMessage('School session is required'),
         body('amount').isFloat({ min: 0 }).withMessage('Amount must be a positive number'),
         body('frequency').notEmpty().withMessage('Frequency is required'),
         body('school_id').notEmpty().withMessage('School is required'),
@@ -222,9 +241,9 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         }
 
         try {
-            const { fee_type, custom_fee_name, amount, frequency, description, school_id, class_id, status } = req.body;
+            const { fee_type, school_sessions_id, custom_fee_name, amount, frequency, description, school_id, class_id, status } = req.body;
             const [rowsUpdated] = await models.Fees.update(
-                { fee_type, custom_fee_name, amount, frequency, description, school_id, class_id, status },
+                { fee_type, school_sessions_id, custom_fee_name, amount, frequency, description, school_id, class_id, status },
                 { where: { id: fee_id } }
             );
 
@@ -233,7 +252,6 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             } else {
                 req.flash('error', 'No changes were made or fee not found.');
             }
-            // console.log("Flash messages:", req.flash());
 
             res.redirect('/fees/index');
         } catch (error) {

@@ -79,10 +79,76 @@
                                     {{/if}}
                                 </div>
                             </div>
-
-                            {{!-- Location & Logo --}}
                             <div class="row mt-2">
                                 <div class="col-md-6">
+                                    <label for="country" class="form-label">Country</label>
+                                    <div class="dropdown">
+                                        <!-- Dropdown Button -->
+                                        <button class="btn btn-light dropdown-toggle w-100" type="button"
+                                            id="countryDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <img id="selectedCountryFlag" src="" alt="Flag"
+                                                style="width: 20px; height: auto; margin-right: 5px; display: none;">
+                                            <span id="selectedCountryName">Select Country</span>
+                                        </button>
+
+                                        <!-- Dropdown Menu -->
+                                        <ul class="dropdown-menu w-100" aria-labelledby="countryDropdown"
+                                            id="countryDropdownMenu" style="max-height: 200px; overflow-y: auto;">
+
+                                            <!-- Search Input -->
+                                            <li class="p-2">
+                                                <input type="text" class="form-control" id="countrySearch"
+                                                    placeholder="Search Country...">
+                                            </li>
+
+                                            <!-- Country List -->
+                                            {{#each countries}}
+                                            <li>
+                                                <a class="dropdown-item d-flex align-items-center country-option"
+                                                    href="#" data-code="{{code}}" data-flag="{{flag}}">
+                                                    <img src="{{flag}}" alt="{{name}}"
+                                                        style="width: 20px; height: auto; margin-right: 10px;">
+                                                    {{name}}
+                                                </a>
+                                            </li>
+                                            {{/each}}
+                                        </ul>
+                                    </div>
+                                    <input type="hidden" name="country" id="countryInput" required>
+
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="state" class="form-label">State</label>
+                                    <input type="text" class="form-control {{#if errors.state}}is-invalid{{/if}}"
+                                        name="state" value="{{lookup school 'state'}}" />
+                                    {{#if errors.state}}
+                                    <div class="invalid-feedback">{{errors.state.msg}}</div>
+                                    {{/if}}
+                                </div>
+
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <label for="city" class="form-label">City</label>
+                                    <input type="text" class="form-control {{#if errors.city}}is-invalid{{/if}}"
+                                        name="city" value="{{lookup school 'city'}}" />
+                                    {{#if errors.city}}
+                                    <div class="invalid-feedback">{{errors.city.msg}}</div>
+                                    {{/if}}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="location" class="form-label">Address</label>
+                                    <input type="text" class="form-control {{#if errors.location}}is-invalid{{/if}}"
+                                        name="location" value="{{lookup school 'location'}}" />
+                                    {{#if errors.location}}
+                                    <div class="invalid-feedback">{{errors.location.msg}}</div>
+                                    {{/if}}
+                                </div>
+
+                            </div>
+                            {{!-- Location & Logo --}}
+                            <div class="row mt-2">
+                                {{!-- <div class="col-md-6">
                                     <label for="location" class="form-label">Location</label>
                                     <textarea class="form-control {{#if errors.location}}is-invalid{{/if}}"
                                         placeholder="Enter school location" name="location"
@@ -90,7 +156,7 @@
                                     {{#if errors.location}}
                                     <div class="invalid-feedback">{{errors.location.msg}}</div>
                                     {{/if}}
-                                </div>
+                                </div> --}}
 
                                 <div class="col-md-6">
                                     <label for="logo" class="form-label">School Logo</label>
@@ -119,3 +185,53 @@
         </div>
     </div>
 </div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const dropdownButton = document.getElementById("countryDropdown");
+        const dropdownMenu = document.getElementById("countryDropdownMenu");
+        const selectedCountryName = document.getElementById("selectedCountryName");
+        const selectedCountryFlag = document.getElementById("selectedCountryFlag");
+        const countryInput = document.getElementById("countryInput");
+        const countrySearch = document.getElementById("countrySearch");
+
+        // Set default country on load if already selected
+        const preselectedCountry = "{{school.country}}";
+        if (preselectedCountry) {
+            const selectedOption = dropdownMenu.querySelector(`[data-code="${preselectedCountry}"]`);
+            if (selectedOption) {
+                selectedCountryName.textContent = selectedOption.textContent.trim();
+                selectedCountryFlag.src = selectedOption.getAttribute("data-flag");
+                selectedCountryFlag.style.display = "inline";
+                countryInput.value = preselectedCountry;
+            }
+        }
+
+        // Handle click on dropdown options
+        dropdownMenu.addEventListener("click", (e) => {
+            e.preventDefault();
+            const clickedOption = e.target.closest(".country-option");
+
+            if (clickedOption) {
+                const countryCode = clickedOption.getAttribute("data-code");
+                const countryFlag = clickedOption.getAttribute("data-flag");
+                const countryName = clickedOption.textContent.trim();
+
+                selectedCountryName.textContent = countryName;
+                selectedCountryFlag.src = countryFlag;
+                selectedCountryFlag.style.display = "inline";
+                countryInput.value = countryCode;
+            }
+        });
+
+        // Search countries in dropdown
+        countrySearch.addEventListener("input", () => {
+            const searchValue = countrySearch.value.toLowerCase();
+            const options = dropdownMenu.querySelectorAll(".country-option");
+
+            options.forEach((option) => {
+                const countryName = option.textContent.trim().toLowerCase();
+                option.closest("li").style.display = countryName.includes(searchValue) ? "" : "none";
+            });
+        });
+    });
+</script>

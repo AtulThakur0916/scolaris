@@ -1,5 +1,8 @@
 const models = require('../models');
+const fs = require('fs');
+const path = require('path');
 const { body, validationResult } = require('express-validator');
+const xlsx = require('xlsx');
 const { Op } = require('sequelize');
 const moment = require('moment');
 
@@ -77,7 +80,13 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         try {
             const { session_id } = req.params;
             let sessionData = null;
-            const schools = await models.Schools.findAll({ attributes: ['id', 'name'], raw: true });
+            const schools = await models.Schools.findAll({
+                attributes: ['id', 'name'],
+                where: {
+                    status: 'Approve'
+                },
+                raw: true
+            });
 
             if (session_id) {
                 sessionData = await models.SchoolSessions.findOne({ where: { id: session_id }, raw: true });
@@ -93,14 +102,27 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     /**
      * Create session with validation
      */
+
     app.post('/sessions/create', [
         body('school_id')
             .notEmpty().withMessage('School is required')
             .isUUID().withMessage('Invalid school ID format')
-            .custom(async (value) => {
-                const existingSchool = await models.SchoolSessions.findOne({ where: { school_id: value } });
-                if (existingSchool) {
-                    throw new Error('School already exists.');
+            .custom(async (value, { req }) => {
+                const startYear = new Date(req.body.start_date).getFullYear();
+                const existingSession = await models.SchoolSessions.findOne({
+                    where: {
+                        school_id: value,
+                        [models.Sequelize.Op.and]: [
+                            models.Sequelize.where(
+                                models.Sequelize.fn('EXTRACT', models.Sequelize.literal('YEAR FROM "start_date"')),
+                                startYear
+                            )
+                        ]
+                    }
+                });
+
+                if (existingSession) {
+                    throw new Error(`School session already exists for the year ${startYear}.`);
                 }
             }),
         body('start_date').notEmpty().withMessage('Start date is required').isDate().withMessage('Invalid date format'),
@@ -142,11 +164,18 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
 
 
+
     app.get('/sessions/edit/:session_id?', async (req, res) => {
         try {
             const { session_id } = req.params;
             let sessionData = null;
-            const schools = await models.Schools.findAll({ attributes: ['id', 'name'], raw: true });
+            const schools = await models.Schools.findAll({
+                attributes: ['id', 'name'],
+                where: {
+                    status: 'Approve'
+                },
+                raw: true
+            });
 
             if (session_id) {
                 let session = await models.SchoolSessions.findOne({ where: { id: session_id }, raw: true });
@@ -174,9 +203,22 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         body('status').isIn(['Active', 'Completed']).withMessage('Invalid status'),
         body('school_id').notEmpty().withMessage('School is required')
             .custom(async (value, { req }) => {
-                const existing = await models.SchoolSessions.findOne({ where: { school_id: value, id: { [models.Sequelize.Op.ne]: req.params.session_id } } });
-                if (existing) {
-                    throw new Error('School must be unique');
+                const startYear = new Date(req.body.start_date).getFullYear();
+                const existingSession = await models.SchoolSessions.findOne({
+                    where: {
+                        school_id: value,
+                        id: { [models.Sequelize.Op.ne]: req.params.session_id },
+                        [models.Sequelize.Op.and]: [
+                            models.Sequelize.where(
+                                models.Sequelize.fn('EXTRACT', models.Sequelize.literal('YEAR FROM "start_date"')),
+                                startYear
+                            )
+                        ]
+                    }
+                });
+
+                if (existingSession) {
+                    throw new Error(`School session already exists for the year ${startYear}.`);
                 }
                 return true;
             }),
@@ -284,6 +326,118 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             return res.status(500).json({ message: "Internal Server Error." });
         }
     });
+    app.post('/sessions/import', async (req, res) => {
+        if (!req.isAuthenticated()) {
+            return res.status(403).json({ message: 'Unauthorized. Please log in.' });
+        }
 
+        if (req.user.role.name !== "SuperAdmin") {
+            return res.status(403).json({ message: 'Permission denied.' });
+        }
+
+        if (!req.files || !req.files.excelFile) {
+            req.flash('error', 'No file uploaded. Please upload an Excel file.');
+            return res.redirect('/sessions/index');
+        }
+
+        const excelFile = req.files.excelFile;
+        const ext = path.extname(excelFile.name).toLowerCase();
+        const allowedExtensions = ['.xlsx', '.xls'];
+
+        if (!allowedExtensions.includes(ext)) {
+            req.flash('error', 'Only Excel files (.xlsx, .xls) are allowed.');
+            return res.redirect('/sessions/index');
+        }
+
+        const uploadDir = path.join(__dirname, '../uploads/');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+
+        const filePath = path.join(uploadDir, `sessions-import-${Date.now()}${ext}`);
+        await excelFile.mv(filePath);
+
+        const workbook = xlsx.readFile(filePath);
+        const sheetName = workbook.SheetNames[0];
+        const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+        if (sheetData.length === 0) {
+            req.flash('error', 'Excel file is empty.');
+            return res.redirect('/sessions/index');
+        }
+
+        let skippedRecords = 0;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        try {
+            const parseDate = (date) => {
+                if (date instanceof Date) {
+                    return date;
+                } else if (typeof date === 'string') {
+                    const [day, month, year] = date.split('-');
+                    return new Date(`${year}-${month}-${day}`);
+                } else if (typeof date === 'number') {
+                    return new Date((date - (25567 + 2)) * 86400 * 1000);
+                }
+                return NaN;
+            };
+
+            for (const row of sheetData) {
+                const { 'School Name': schoolName, 'Start Date': start_date, 'End Date': end_date } = row;
+
+                const school = await models.Schools.findOne({
+                    where: models.sequelize.where(models.sequelize.fn('LOWER', models.sequelize.col('name')), '=', schoolName.toLowerCase())
+                });
+
+                if (!school) {
+                    skippedRecords++;
+                    continue;
+                }
+
+                const startDate = parseDate(start_date);
+                const endDate = parseDate(end_date);
+
+                if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate < today || endDate < today || startDate > endDate) {
+                    skippedRecords++;
+                    continue;
+                }
+
+                const startYear = startDate.getFullYear();
+                const existingSession = await models.SchoolSessions.findOne({
+                    where: {
+                        school_id: school.id,
+                        [models.Sequelize.Op.and]: [
+                            models.Sequelize.where(
+                                models.Sequelize.fn('EXTRACT', models.Sequelize.literal('YEAR FROM "start_date"')),
+                                startYear
+                            )
+                        ]
+                    }
+                });
+
+                if (existingSession) {
+                    skippedRecords++;
+                    continue;
+                }
+
+                await models.SchoolSessions.create({
+                    school_id: school.id,
+                    start_date: startDate,
+                    end_date: endDate,
+                    status: 'Active'
+                });
+            }
+
+            req.flash('success', `Sessions imported successfully. Skipped ${skippedRecords} duplicate records, invalid schools, or invalid dates.`);
+            res.redirect('/sessions/index');
+        } catch (error) {
+            console.error('Error importing sessions:', error);
+            req.flash('error', 'Error importing sessions. Please check the file format.');
+            res.redirect('/sessions/index');
+        } finally {
+            fs.unlinkSync(filePath);
+        }
+    });
 
 };

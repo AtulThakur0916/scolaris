@@ -1,0 +1,103 @@
+<div class="content-wrapper">
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <div class="row g-6">
+            <div class="col-md-12">
+                <div class="card">
+                    <h5 class="card-header">Edit Notification</h5>
+                    <div class="card-body">
+                        <form action="/notifications/update/{{notify.id}}" method="POST">
+                            <div class="row">
+                                {{!-- Title --}}
+                                <div class="col-md-12 mb-3">
+                                    <label for="title" class="form-label">Title</label>
+                                    <input type="text" class="form-control" name="title" value="{{notify.title}}"
+                                        required />
+                                </div>
+
+                                {{!-- Message --}}
+                                <div class="col-md-12 mb-3">
+                                    <label for="message" class="form-label">Message</label>
+                                    <textarea class="form-control" name="message" required>{{notify.message}}</textarea>
+                                </div>
+
+                                {{!-- Notify Type --}}
+                                <div class="col-md-6 mb-3">
+                                    <label for="notify_type" class="form-label">Notification Type</label>
+                                    <select class="form-control" name="notify_type">
+                                        <option value="info" {{#if (eq notify.notify_type 'info' )}}selected{{/if}}>Info
+                                        </option>
+                                        <option value="warning" {{#if (eq notify.notify_type 'warning'
+                                            )}}selected{{/if}}>Warning</option>
+                                        <option value="alert" {{#if (eq notify.notify_type 'alert' )}}selected{{/if}}>
+                                            Alert</option>
+                                    </select>
+                                </div>
+
+                                {{!-- Notify For --}}
+                                <div class="col-md-6 mb-3">
+                                    <label for="notify_for" class="form-label">Notify For</label>
+                                    <select class="form-control" name="notify_for" id="notify-for">
+                                        <option value="all" {{#if (eq notify.notify_for 'all' )}}selected{{/if}}>All
+                                        </option>
+                                        <option value="specific" {{#if (eq notify.notify_for 'specific'
+                                            )}}selected{{/if}}>Specific</option>
+                                    </select>
+                                </div>
+
+                                {{!-- Parents Selection --}}
+                                <div class="col-md-12 mb-3" id="parent-selection">
+                                    <label for="parent_ids" class="form-label">Select Parents</label>
+                                    <select class="form-control" name="parent_ids" multiple>
+                                        {{#each parents}}
+                                        <option value="{{this.id}}" {{#each ../parentIds}} {{#if (eq this
+                                            ../this.id)}}selected{{/if}} {{/each}}>
+                                            {{this.name}}
+                                        </option>
+                                        {{/each}}
+                                    </select>
+
+                                </div>
+
+                                {{!-- Sort Value --}}
+                                <div class="col-md-6 mb-3">
+                                    <label for="sort_value" class="form-label">Sort Value</label>
+                                    <input type="number" min="0" class="form-control" name="sort_value"
+                                        value="{{notify.sort_value}}" />
+                                </div>
+                            </div>
+
+                            {{!-- Submit Button --}}
+                            <div class="mt-4">
+                                <button type="submit" class="btn btn-primary float-end">Update Notification</button>
+                                <a href="/notifications/index" class="btn btn-secondary float-end me-2">Cancel</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const notifyFor = document.getElementById('notify-for');
+        const parentSelection = document.getElementById('parent-selection');
+
+        // Show/hide parent selection based on initial value
+        toggleParentSelection(notifyFor.value);
+
+        // Add change event listener
+        notifyFor.addEventListener('change', function () {
+            toggleParentSelection(this.value);
+        });
+
+        function toggleParentSelection(value) {
+            if (value === 'specific') {
+                parentSelection.style.display = 'block';
+            } else {
+                parentSelection.style.display = 'none';
+            }
+        }
+    });
+</script>

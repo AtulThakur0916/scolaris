@@ -1,0 +1,65 @@
+<!-- Content wrapper -->
+<div class="content-wrapper">
+  <div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="py-3 mb-4">
+      <span class="text-muted fw-light">Top Schools /</span>
+      List
+    </h4>
+
+    <!-- Flash Messages -->
+    {{#if success}}
+    <div class="alert alert-success alert-dismissible" role="alert">
+      {{success}}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {{/if}}
+
+    {{#if error}}
+    <div class="alert alert-danger alert-dismissible" role="alert">
+      {{error}}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {{/if}}
+
+    <!-- Top Schools List Table -->
+    <div class="card">
+      <div class="card-header border-bottom d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-3">Top Schools List</h5>
+        {{!-- <a href="/top-schools/create" class="btn btn-primary">Add Top School</a> --}}
+      </div>
+      <div class="card-datatable table-responsive p-4">
+        <table class="table border-top" id="dataTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>School Name</th>
+              <th>Phone Number</th>
+              <th>Email</th>
+              <th>Location</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each topSchools}}
+            <tr>
+              <td>{{@index}}</td>
+              <td>{{this.school.name}}</td>
+              <td>{{this.school.phone_number}}</td>
+              <td>{{this.school.email}}</td>
+              <td>{{this.school.location}}</td>
+              <td>
+                <a href="/top-schools/edit/{{this.id}}">
+                  <i class="menu-icon tf-icons bx bx-edit-alt text-primary"></i>
+                </a>
+                <a href="#" onclick="deleteItem('/top-schools/delete', '{{this.id}}')">
+                  <i class="menu-icon tf-icons bx bx-box text-danger"></i>
+                </a>
+              </td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

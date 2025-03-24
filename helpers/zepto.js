@@ -8,20 +8,20 @@ const sendEmail = (email, subject, text, options) => {
     const url = "api.zeptomail.in/";
     const token = "Zoho-enczapikey PHtE6r1cFrvqiGUt8BcF4f+8EpbxPdh/qbsxJAQWt4cXW/YEGk0Bqtt4lmCyqkguAPlGFfSYno9r5ezP5+mHIWq5ZzsdWmqyqK3sx/VYSPOZsbq6x00ctl0ZckHdV4DuddVs0CLWvd3cNA==";
 
-    let client = new SendMailClient({url, token});
-//    const { host, username, password, port } = config.mail;
+    let client = new SendMailClient({ url, token });
+    //    const { host, username, password, port } = config.mail;
 
-    
+
     return new Promise((resolve, reject) => {
 
         client.sendMail({
             "from": {
                 "address": "noreply@khabriya.in",
-                "name": "Live TV Khabriya"
+                "name": "Scolaris Pay"
             }, "to": [{
                 "email_address": {
                     "address": email,
-//                    "name": "Apps"
+                    //                    "name": "Apps"
                 }
             }],
             "subject": subject,
@@ -35,14 +35,14 @@ const paymentSuccess = (email, variables) => {
     const url = "api.zeptomail.in/v1.1/email/template";
     const token = "Zoho-enczapikey PHtE6r1cFrvqiGUt8BcF4f+8EpbxPdh/qbsxJAQWt4cXW/YEGk0Bqtt4lmCyqkguAPlGFfSYno9r5ezP5+mHIWq5ZzsdWmqyqK3sx/VYSPOZsbq6x00ctl0ZckHdV4DuddVs0CLWvd3cNA==";
 
-    let client = new SendMailClient({url, token});
+    let client = new SendMailClient({ url, token });
 
     return new Promise((resolve, reject) => {
         client.sendMail({
             "mail_template_key": "2518b.1c74ee1eb79b1b91.k1.34e1b170-ee98-11ee-b53a-525400ab18e6.18e8f845607",
             "from": {
                 "address": "noreply@khabriya.in",
-                "name": "Live Tv Khabriya"
+                "name": "Scolaris Pay"
             },
             "to": [{
                 "email_address": {
@@ -50,7 +50,7 @@ const paymentSuccess = (email, variables) => {
                 }
             }],
             "merge_info": variables,
-            "subject": "Payment Successful Live Tv Khabriya"
+            "subject": "Payment Successful Scolaris Pay"
         }).then((resp) => resolve(resp)).catch((error) => reject(error));
     });
 }
@@ -60,14 +60,14 @@ const planExpiry = (email, variables) => {
     const url = "api.zeptomail.in/v1.1/email/template";
     const token = "Zoho-enczapikey PHtE6r1cFrvqiGUt8BcF4f+8EpbxPdh/qbsxJAQWt4cXW/YEGk0Bqtt4lmCyqkguAPlGFfSYno9r5ezP5+mHIWq5ZzsdWmqyqK3sx/VYSPOZsbq6x00ctl0ZckHdV4DuddVs0CLWvd3cNA==";
 
-    let client = new SendMailClient({url, token});
+    let client = new SendMailClient({ url, token });
 
     return new Promise((resolve, reject) => {
         client.sendMail({
             "mail_template_key": "2518b.1c74ee1eb79b1b91.k1.511e6170-5b0e-11ef-950f-525400674725.19156545107",
             "from": {
                 "address": "noreply@khabriya.in",
-                "name": "Live Tv Khabriya"
+                "name": "Scolaris Pay"
             },
             "to": [{
                 "email_address": {
@@ -75,7 +75,7 @@ const planExpiry = (email, variables) => {
                 }
             }],
             "merge_info": variables,
-            "subject": "Plan Expiry - Live Tv Khabriya"
+            "subject": "Plan Expiry - Scolaris Pay"
         }).then((resp) => resolve(resp)).catch((error) => reject(error));
     });
 }
@@ -85,7 +85,7 @@ const planExpiryNeo = (email, variables) => {
     const url = "api.zeptomail.in/v1.1/email/template";
     const token = "Zoho-enczapikey PHtE6r1cFrvqiGUt8BcF4f+8EpbxPdh/qbsxJAQWt4cXW/YEGk0Bqtt4lmCyqkguAPlGFfSYno9r5ezP5+mHIWq5ZzsdWmqyqK3sx/VYSPOZsbq6x00ctl0ZckHdV4DuddVs0CLWvd3cNA==";
 
-    let client = new SendMailClient({url, token});
+    let client = new SendMailClient({ url, token });
 
     return new Promise((resolve, reject) => {
         client.sendMail({

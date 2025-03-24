@@ -83,6 +83,18 @@
 
                             <div class="row mt-2">
                                 <div class="col-md-6">
+                                    <label for="school_sessions_id" class="form-label">School Session</label>
+                                    <select class="form-control" name="school_sessions_id" id="sessionSelect">
+                                        <option value="" disabled>Select School Session</option>
+                                        {{#each formattedSessions}}
+                                        <option value="{{id}}" {{#ifEquals ../studentData.school_sessions_id
+                                            id}}selected{{/ifEquals}}>
+                                            {{start_date}} - {{end_date}}
+                                        </option>
+                                        {{/each}}
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
                                     <label for="class_id" class="form-label">Class</label>
                                     <select class="form-control" name="class_id" id="classSelect">
                                         <option value="" disabled>Select Class</option>
@@ -91,6 +103,84 @@
                                             id}}selected{{/ifEquals}}>{{name}}</option>
                                         {{/each}}
                                     </select>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <label for="country" class="form-label">Country</label>
+                                    <div class="dropdown">
+                                        <!-- Dropdown Button -->
+                                        <button class="btn btn-light dropdown-toggle w-100" type="button"
+                                            id="countryDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <img id="selectedCountryFlag" src="" alt="Flag"
+                                                style="width: 20px; height: auto; margin-right: 5px; display: none;">
+                                            <span id="selectedCountryName">Select Country</span>
+                                        </button>
+
+                                        <!-- Dropdown Menu -->
+                                        <ul class="dropdown-menu w-100" aria-labelledby="countryDropdown"
+                                            id="countryDropdownMenu" style="max-height: 200px; overflow-y: auto;">
+
+                                            <!-- Search Input -->
+                                            <li class="p-2">
+                                                <input type="text" class="form-control" id="countrySearch"
+                                                    placeholder="Search Country...">
+                                            </li>
+
+                                            <!-- Country List -->
+                                            {{#each countries}}
+                                            <li>
+                                                <a class="dropdown-item d-flex align-items-center country-option"
+                                                    href="#" data-code="{{code}}" data-flag="{{flag}}">
+                                                    <img src="{{flag}}" alt="{{name}}"
+                                                        style="width: 20px; height: auto; margin-right: 10px;">
+                                                    {{name}}
+                                                </a>
+                                            </li>
+                                            {{/each}}
+                                        </ul>
+                                    </div>
+                                    <input type="hidden" name="country" id="countryInput" required>
+
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="state" class="form-label">State</label>
+                                    <input type="text" class="form-control {{#if errors.state}}is-invalid{{/if}}"
+                                        name="state" value="{{lookup studentData 'state'}}" />
+                                    {{#if errors.state}}
+                                    <div class="invalid-feedback">{{errors.state.msg}}</div>
+                                    {{/if}}
+                                </div>
+
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <label for="city" class="form-label">City</label>
+                                    <input type="text" class="form-control {{#if errors.city}}is-invalid{{/if}}"
+                                        name="city" value="{{lookup studentData 'city'}}" />
+                                    {{#if errors.city}}
+                                    <div class="invalid-feedback">{{errors.city.msg}}</div>
+                                    {{/if}}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="address" class="form-label">Address</label>
+                                    <input type="text" class="form-control {{#if errors.address}}is-invalid{{/if}}"
+                                        name="address" value="{{lookup studentData 'address'}}" />
+                                    {{#if errors.address}}
+                                    <div class="invalid-feedback">{{errors.address.msg}}</div>
+                                    {{/if}}
+                                </div>
+
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <label for="roll_number" class="form-label">Roll Number</label>
+                                    <input type="number"
+                                        class="form-control {{#if errors.roll_number}}is-invalid{{/if}}"
+                                        name="roll_number" value="{{lookup studentData 'roll_number'}}" />
+                                    {{#if errors.roll_number}}
+                                    <div class="invalid-feedback">{{errors.roll_number.msg}}</div>
+                                    {{/if}}
                                 </div>
 
                                 <div class="col-md-6">
@@ -106,7 +196,6 @@
                                     {{/if}}
                                 </div>
                             </div>
-
                             <div class="mt-4">
                                 <button type="submit" class="btn btn-primary float-end">Update Student</button>
                                 <a href="/students/index" class="btn btn-secondary float-end me-2">Cancel</a>
@@ -122,17 +211,17 @@
 </div>
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        const schoolSelect = document.getElementById("schoolSelect");
+        const sessionSelect = document.getElementById("sessionSelect");
         const classSelect = document.getElementById("classSelect");
 
-        schoolSelect.addEventListener("change", async function () {
-            const schoolId = this.value;
+        sessionSelect.addEventListener("change", async function () {
+            const schoolSessionsId = this.value;
 
             classSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
 
-            if (schoolId) {
+            if (schoolSessionsId) {
                 try {
-                    const response = await fetch(`/school/class/${schoolId}`);
+                    const response = await fetch(`/school/class/${schoolSessionsId}`);
                     const data = await response.json();
 
                     if (data.classes && data.classes.length > 0) {
@@ -152,5 +241,94 @@
             }
         });
     });
+    document.addEventListener("DOMContentLoaded", function () {
+        const schoolSelect = document.getElementById("schoolSelect");
+        const sessionSelect = document.getElementById("sessionSelect");
 
+        schoolSelect.addEventListener("change", async function () {
+            const schoolId = this.value;
+            sessionSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
+
+            if (schoolId) {
+                try {
+                    const response = await fetch(`/school/session/${schoolId}`);
+                    const data = await response.json();
+
+                    if (data.session && data.session.length > 0) {
+                        sessionSelect.innerHTML = `<option value="" disabled selected>Select Session</option>`;
+                        data.session.forEach(session => {
+                            const startDate = new Date(session.start_date);
+                            const endDate = new Date(session.end_date);
+
+                            const monthNames = [
+                                "January", "February", "March", "April", "May", "June",
+                                "July", "August", "September", "October", "November", "December"
+                            ];
+
+                            const formattedStart = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
+                            const formattedEnd = `${monthNames[endDate.getMonth()]} ${endDate.getFullYear()}`;
+
+                            sessionSelect.innerHTML += `<option value="${session.id}">${formattedStart} - ${formattedEnd}</option>`;
+                        });
+                    } else {
+                        sessionSelect.innerHTML = `<option value="" disabled>No sessions available</option>`;
+                    }
+                } catch (error) {
+                    console.error("Error fetching sessions:", error);
+                    sessionSelect.innerHTML = `<option value="" disabled>Error loading sessions</option>`;
+                }
+            } else {
+                sessionSelect.innerHTML = `<option value="" disabled selected>Select Session</option>`;
+            }
+        });
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const dropdownButton = document.getElementById("countryDropdown");
+        const dropdownMenu = document.getElementById("countryDropdownMenu");
+        const selectedCountryName = document.getElementById("selectedCountryName");
+        const selectedCountryFlag = document.getElementById("selectedCountryFlag");
+        const countryInput = document.getElementById("countryInput");
+        const countrySearch = document.getElementById("countrySearch");
+
+        // Set default country on load if already selected
+        const preselectedCountry = "{{studentData.country}}";
+        if (preselectedCountry) {
+            const selectedOption = dropdownMenu.querySelector(`[data-code="${preselectedCountry}"]`);
+            if (selectedOption) {
+                selectedCountryName.textContent = selectedOption.textContent.trim();
+                selectedCountryFlag.src = selectedOption.getAttribute("data-flag");
+                selectedCountryFlag.style.display = "inline";
+                countryInput.value = preselectedCountry;
+            }
+        }
+
+        // Handle click on dropdown options
+        dropdownMenu.addEventListener("click", (e) => {
+            e.preventDefault();
+            const clickedOption = e.target.closest(".country-option");
+
+            if (clickedOption) {
+                const countryCode = clickedOption.getAttribute("data-code");
+                const countryFlag = clickedOption.getAttribute("data-flag");
+                const countryName = clickedOption.textContent.trim();
+
+                selectedCountryName.textContent = countryName;
+                selectedCountryFlag.src = countryFlag;
+                selectedCountryFlag.style.display = "inline";
+                countryInput.value = countryCode;
+            }
+        });
+
+        // Search countries in dropdown
+        countrySearch.addEventListener("input", () => {
+            const searchValue = countrySearch.value.toLowerCase();
+            const options = dropdownMenu.querySelectorAll(".country-option");
+
+            options.forEach((option) => {
+                const countryName = option.textContent.trim().toLowerCase();
+                option.closest("li").style.display = countryName.includes(searchValue) ? "" : "none";
+            });
+        });
+    });
 </script>

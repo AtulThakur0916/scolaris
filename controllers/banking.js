@@ -47,38 +47,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         }
     });
 
-    /**
-     * View banking detail
-     */
-    app.get('/banking/view/:id', async (req, res) => {
-        if (!req.isAuthenticated()) {
-            req.flash('error', 'Please login to continue');
-            return res.redirect('/login');
-        }
 
-        if (req.user.role.name !== "SuperAdmin") {
-            req.flash('error', 'You are not authorized to access this page.');
-            return res.redirect('/');
-        }
-
-        try {
-            const bankingDetail = await models.BankingDetails.findOne({
-                where: { id: req.params.id },
-                include: [{ model: models.Schools, as: 'school', attributes: ['name'] }],
-            });
-
-            if (!bankingDetail) {
-                req.flash('error', 'Banking detail not found.');
-                return res.redirect('/banking/index');
-            }
-
-            res.render('banking/view', { bankingDetail });
-        } catch (error) {
-            console.error("Error fetching banking detail:", error);
-            req.flash('error', 'Failed to load banking detail.');
-            res.redirect('/banking/index');
-        }
-    });
 
     /**
      * Create banking detail form
@@ -87,7 +56,11 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         try {
             const { id } = req.params;
             let bankingDetail = null;
-            const schools = await models.Schools.findAll({ attributes: ['id', 'name'], raw: true });
+            const schools = await models.Schools.findAll({
+                attributes: ['id', 'name'], where: {
+                    status: 'Approve'
+                }, raw: true
+            });
 
             if (id) {
                 bankingDetail = await models.BankingDetails.findOne({ where: { id }, raw: true });
@@ -231,7 +204,11 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             }
             const errors = req.flash('errors')[0] || {};
             const formData = req.flash('school')[0] || {};
-            const schools = await models.Schools.findAll({ attributes: ['id', 'name'], raw: true });
+            const schools = await models.Schools.findAll({
+                attributes: ['id', 'name'], where: {
+                    status: 'Approve'
+                }, raw: true
+            });
 
             res.render('banking/edit', {
                 bankingDetail, schools, errors,

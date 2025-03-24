@@ -35,8 +35,8 @@
 
                                 <!-- School Selection -->
                                 <div class="col-md-6">
-                                    <label for="school_id" class="form-label">School</label>
-                                    <select class="form-control" name="school_id" required>
+                                    <label for="schoolSelect" class="form-label">School</label>
+                                    <select class="form-control" id="schoolSelect" name="school_id" required>
                                         <option value="" disabled>Select School</option>
                                         {{#each schools}}
                                         <option value="{{id}}" {{#ifEquals ../classData.school_id
@@ -50,6 +50,18 @@
 
                             <!-- Status -->
                             <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <label for="school_sessions_id" class="form-label">School Session</label>
+                                    <select class="form-control" name="school_sessions_id" id="sessionSelect">
+                                        <option value="" disabled>Select School Session</option>
+                                        {{#each formattedSessions}}
+                                        <option value="{{id}}" {{#ifEquals ../classData.school_sessions_id
+                                            id}}selected{{/ifEquals}}>
+                                            {{start_date}} - {{end_date}}
+                                        </option>
+                                        {{/each}}
+                                    </select>
+                                </div>
                                 <div class="col-md-6">
                                     <label for="status" class="form-label">Status</label>
                                     <select class="form-control" name="status">
@@ -74,3 +86,77 @@
         </div>
     </div>
 </div>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const schoolSelect = document.getElementById("schoolSelect");
+        const classSelect = document.getElementById("classSelect");
+
+        schoolSelect.addEventListener("change", async function () {
+            const schoolId = this.value;
+
+            classSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
+
+            if (schoolId) {
+                try {
+                    const response = await fetch(`/school/class/${schoolId}`);
+                    const data = await response.json();
+
+                    if (data.classes && data.classes.length > 0) {
+                        classSelect.innerHTML = `<option value="" disabled selected>Select Class</option>`;
+                        data.classes.forEach(cls => {
+                            classSelect.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
+                        });
+                    } else {
+                        classSelect.innerHTML = `<option value="" disabled>No classes available</option>`;
+                    }
+                } catch (error) {
+                    console.error("Error fetching classes:", error);
+                    classSelect.innerHTML = `<option value="" disabled>Error loading classes</option>`;
+                }
+            } else {
+                classSelect.innerHTML = `<option value="" disabled selected>Select Class</option>`;
+            }
+        });
+    });
+    document.addEventListener("DOMContentLoaded", function () {
+        const schoolSelect = document.getElementById("schoolSelect");
+        const sessionSelect = document.getElementById("sessionSelect");
+
+        schoolSelect.addEventListener("change", async function () {
+            const schoolId = this.value;
+            sessionSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
+
+            if (schoolId) {
+                try {
+                    const response = await fetch(`/school/session/${schoolId}`);
+                    const data = await response.json();
+
+                    if (data.session && data.session.length > 0) {
+                        sessionSelect.innerHTML = `<option value="" disabled selected>Select Session</option>`;
+                        data.session.forEach(session => {
+                            const startDate = new Date(session.start_date);
+                            const endDate = new Date(session.end_date);
+
+                            const monthNames = [
+                                "January", "February", "March", "April", "May", "June",
+                                "July", "August", "September", "October", "November", "December"
+                            ];
+
+                            const formattedStart = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
+                            const formattedEnd = `${monthNames[endDate.getMonth()]} ${endDate.getFullYear()}`;
+
+                            sessionSelect.innerHTML += `<option value="${session.id}">${formattedStart} - ${formattedEnd}</option>`;
+                        });
+                    } else {
+                        sessionSelect.innerHTML = `<option value="" disabled>No sessions available</option>`;
+                    }
+                } catch (error) {
+                    console.error("Error fetching sessions:", error);
+                    sessionSelect.innerHTML = `<option value="" disabled>Error loading sessions</option>`;
+                }
+            } else {
+                sessionSelect.innerHTML = `<option value="" disabled selected>Select Session</option>`;
+            }
+        });
+    });
+</script>

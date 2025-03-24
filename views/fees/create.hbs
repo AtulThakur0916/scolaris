@@ -40,7 +40,20 @@
                   <div class="invalid-feedback">{{errors.school_id.msg}}</div>
                   {{/if}}
                 </div>
+                <div class="col-md-6">
+                  <label for="session_id" class="form-label">School Session</label>
+                  <select class="form-control {{#if errors.school_sessions_id}}is-invalid{{/if}}"
+                    name="school_sessions_id" id="sessionSelect">
+                    <option value="" disabled selected>Select Session</option>
+                  </select>
+                  {{#if errors.school_sessions_id}}
+                  <div class="invalid-feedback">{{errors.school_sessions_id.msg}}</div>
+                  {{/if}}
+                </div>
 
+              </div>
+
+              <div class="row mt-2">
                 <div class="col-md-6">
                   <label for="class_id" class="form-label">Class</label>
                   <select class="form-control {{#if errors.class_id}}is-invalid{{/if}}" name="class_id"
@@ -51,9 +64,6 @@
                   <div class="invalid-feedback">{{errors.class_id.msg}}</div>
                   {{/if}}
                 </div>
-              </div>
-
-              <div class="row mt-2">
                 <div class="col-md-6">
                   <label for="fee_type" class="form-label">Fee Type</label>
                   <select class="form-control {{#if errors.fee_type}}is-invalid{{/if}}" name="fee_type" id="feeType">
@@ -71,6 +81,10 @@
                   {{/if}}
                 </div>
 
+
+              </div>
+
+              <div class="row mt-2">
                 <div class="col-md-6" id="customFeeContainer" style="display: none;">
                   <label for="custom_fee_name" class="form-label">Custom Fee Name</label>
                   <input type="text" class="form-control {{#if errors.custom_fee_name}}is-invalid{{/if}}"
@@ -79,9 +93,6 @@
                   <div class="invalid-feedback">{{errors.custom_fee_name.msg}}</div>
                   {{/if}}
                 </div>
-              </div>
-
-              <div class="row mt-2">
                 <div class="col-md-6">
                   <label for="amount" class="form-label">Amount</label>
                   <input type="number" class="form-control {{#if errors.amount}}is-invalid{{/if}}" name="amount"
@@ -91,6 +102,10 @@
                   {{/if}}
                 </div>
 
+
+              </div>
+
+              <div class="row mt-2">
                 <div class="col-md-6">
                   <label for="frequency" class="form-label">Frequency</label>
                   <select class="form-control {{#if errors.frequency}}is-invalid{{/if}}" name="frequency">
@@ -104,10 +119,7 @@
                   <div class="invalid-feedback">{{errors.frequency.msg}}</div>
                   {{/if}}
                 </div>
-              </div>
-
-              <div class="row mt-2">
-                <div class="col-md-12">
+                <div class="col-md-6">
                   <label for="description" class="form-label">Description (Optional)</label>
                   <textarea class="form-control {{#if errors.description}}is-invalid{{/if}}"
                     name="description"></textarea>
@@ -144,20 +156,62 @@
 
 
 <script>
+  // session
   document.addEventListener("DOMContentLoaded", function () {
     const schoolSelect = document.getElementById("schoolSelect");
+    const sessionSelect = document.getElementById("sessionSelect");
+
+    schoolSelect.addEventListener("change", async function () {
+      const schoolId = this.value;
+
+      // Clear previous classes
+      sessionSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
+
+      if (schoolId) {
+        try {
+          const response = await fetch(`/school/session/${schoolId}`);
+          const data = await response.json();
+
+          if (data.session && data.session.length > 0) {
+            sessionSelect.innerHTML = `<option value="" disabled selected>Select Session</option>`;
+
+            data.session.forEach(cls => {
+              const startDate = new Date(cls.start_date);
+              const endDate = new Date(cls.end_date);
+
+              const formattedStart = startDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+              const formattedEnd = endDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+
+              sessionSelect.innerHTML += `<option value="${cls.id}">${formattedStart} - ${formattedEnd}</option>`;
+            });
+          } else {
+            sessionSelect.innerHTML = `<option value="" disabled>No sessions available</option>`;
+          }
+        } catch (error) {
+          console.error("Error fetching sessions:", error);
+          sessionSelect.innerHTML = `<option value="" disabled>Error loading sessions</option>`;
+        }
+      } else {
+        sessionSelect.innerHTML = `<option value="" disabled selected>Select Session</option>`;
+      }
+    });
+  });
+
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const sessionSelect = document.getElementById("sessionSelect");
     const classSelect = document.getElementById("classSelect");
     const feeType = document.getElementById("feeType");
     const customFeeContainer = document.getElementById("customFeeContainer");
 
     // Fetch classes based on selected school
-    schoolSelect.addEventListener("change", async function () {
-      const schoolId = this.value;
+    sessionSelect.addEventListener("change", async function () {
+      const schoolSessionsId = this.value;
       classSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
 
-      if (schoolId) {
+      if (schoolSessionsId) {
         try {
-          const response = await fetch(`/school/class/${schoolId}`);
+          const response = await fetch(`/school/class/${schoolSessionsId}`);
           const data = await response.json();
 
           if (data.classes.length > 0) {

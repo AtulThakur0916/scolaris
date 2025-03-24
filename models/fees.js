@@ -47,7 +47,17 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: 1,
             comment: '1 = Active, 0 = Inactive'
-        }
+        },
+        school_sessions_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            references: {
+                model: 'school_sessions',
+                key: 'id'
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE'
+        },
     }, {
         freezeTableName: true,
         tableName: 'fees',

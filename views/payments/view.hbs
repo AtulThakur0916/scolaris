@@ -1,0 +1,104 @@
+{{!-- Flash Messages --}}
+{{#if messages.success}}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    {{messages.success}}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{{/if}}
+
+{{#if messages.error}}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    {{messages.error}}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{{/if}}
+
+<div class="content-wrapper">
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <div class="row g-6">
+            <div class="col-md-12">
+                <div class="card">
+                    <h5 class="card-header">Payment Details</h5>
+
+                    <div class="card-body">
+                        {{!-- Payment Information --}}
+                        <h5 class="card-title">Payment Information</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p><strong>Payment ID:</strong> {{payment.id}}</p>
+                                <p><strong>Amount:</strong> {{payment.amount}}</p>
+                                <p><strong>Status:</strong> {{payment.status}}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Description:</strong> {{payment.description}}</p>
+                                <p><strong>Date:</strong> {{payment.createdAt}}</p>
+
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        {{!-- Student Information --}}
+                        <h5 class="card-title mt-3">Student Information</h5>
+                        {{#if payment.student}}
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p><strong>Name:</strong> {{payment.student.name}}</p>
+                                <p><strong>School:</strong> {{payment.student.school.name}}</p>
+                            </div>
+                        </div>
+                        {{else}}
+                        <p>No student associated with this payment.</p>
+                        {{/if}}
+
+                        <hr>
+
+                        {{!-- Parent Information --}}
+                        <h5 class="card-title mt-3">Parent Information</h5>
+                        {{#if payment.parent}}
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p><strong>Name:</strong> {{payment.parent.name}}</p>
+                                <p><strong>Phone:</strong> {{payment.parent.mobile}}</p>
+                            </div>
+                        </div>
+                        {{else}}
+                        <p>No parent associated with this payment.</p>
+                        {{/if}}
+
+                        <hr>
+
+                        {{!-- School Information --}}
+                        <h5 class="card-title mt-3">School Information</h5>
+                        {{#if payment.student.school}}
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p><strong>School Name:</strong> {{payment.student.school.name}}</p>
+                                <p><strong>School Type:</strong> {{payment.student.school.type}}</p>
+                                <p><strong>Phone:</strong> {{payment.student.school.phone_number}}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Email:</strong> {{payment.student.school.email}}</p>
+                                <p><strong>Location:</strong> {{payment.student.school.location}}</p>
+                                {{#if payment.student.school.logo}}
+                                <img src="{{payment.student.school.logo}}" alt="School Logo" class="mt-2 img-thumbnail"
+                                    width="100">
+                                {{/if}}
+                            </div>
+                        </div>
+                        {{else}}
+                        <p>No school associated with this student.</p>
+                        {{/if}}
+
+                        {{!-- Back Button --}}
+                        <div class="mt-4 text-end">
+                            <a href="/payments/index" class="btn btn-secondary">Back to Payments</a>
+                        </div>
+
+                    </div> <!-- card-body -->
+
+                </div> <!-- card -->
+            </div>
+        </div>
+    </div>
+</div>

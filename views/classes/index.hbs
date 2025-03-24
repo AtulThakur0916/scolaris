@@ -31,10 +31,17 @@
 
     <!-- Classes List Table -->
     <div class="card">
-      {{!-- <div class="card-header border-bottom d-flex justify-content-between align-items-center">
+      <div class="card-header border-bottom d-flex justify-content-between align-items-center">
         <h5 class="card-title mb-0">Classes List</h5>
-        <a href="/classes/create" class="btn btn-primary">Add New Class</a>
-      </div> --}}
+        <form action="/classes/import" method="POST" enctype="multipart/form-data"
+          class="d-flex align-items-center gap-2">
+          <input type="file" id="excelFile" class="form-control form-control-sm" name="excelFile" accept=".xlsx, .xls"
+            required>
+          <button type="submit" class="btn btn-primary btn-sm">
+            <i class="bx bx-upload"></i> Import
+          </button>
+        </form>
+      </div>
       <div class="card-datatable table-responsive p-4">
         <table class="table border-top" id="dataTable">
           <thead>
@@ -52,11 +59,6 @@
               <td>{{@index}}</td>
               <td>{{this.name}}</td>
               <td>{{this.school.name}}</td>
-              {{!-- <td>
-                <span class="badge {{#if this.status}}bg-success{{else}}bg-danger{{/if}}">
-                  {{#if this.status}}Active{{else}}Inactive{{/if}}
-                </span>
-              </td> --}}
               <td>
                 <a href="/classes/edit/{{this.id}}" class="me-2">
                   <i class="menu-icon tf-icons bx bx-edit-alt text-primary"></i>

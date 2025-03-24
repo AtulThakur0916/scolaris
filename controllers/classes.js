@@ -3,6 +3,7 @@ const waterfall = require('async-waterfall');
 const fs = require('fs');
 const path = require('path');
 const { body, validationResult } = require('express-validator');
+const xlsx = require('xlsx');
 
 module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
@@ -78,7 +79,11 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         try {
             const { class_id } = req.params;
             let classData = null;
-            const schools = await models.Schools.findAll({ attributes: ['id', 'name'], raw: true });
+            const schools = await models.Schools.findAll({
+                attributes: ['id', 'name'], where: {
+                    status: 'Approve'
+                }, raw: true
+            });
 
             if (class_id) {
                 classData = await models.Classes.findOne({ where: { id: class_id }, raw: true });
@@ -99,6 +104,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     app.post('/classes/create', [
         body('name').notEmpty().withMessage('Class name is required'),
         body('school_id').notEmpty().withMessage('Please select a school'),
+        body('school_sessions_id').notEmpty().withMessage('School session is required'),
         body('status').isIn(['0', '1']).withMessage('Invalid status')
     ], async (req, res) => {
         try {
@@ -123,10 +129,10 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 });
             }
 
-            const { name, school_id, status } = req.body;
+            const { name, school_id, status, school_sessions_id } = req.body;
 
             // Check for duplicate class name in the same school
-            const existingClass = await models.Classes.findOne({ where: { name, school_id } });
+            const existingClass = await models.Classes.findOne({ where: { name, school_id, school_sessions_id } });
             if (existingClass) {
                 req.flash('error', ['A class with this name already exists for the selected school.']);
                 return res.render('classes/create', {
@@ -137,7 +143,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             }
 
             // Create new class
-            await models.Classes.create({ name, school_id, status });
+            await models.Classes.create({ name, school_id, school_sessions_id, status });
             req.flash('success', 'Class created successfully.');
             return res.redirect('/classes/index');
 
@@ -149,15 +155,47 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     });
 
 
+    // Define month names at the top
+    const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+
     app.get('/classes/edit/:class_id?', async (req, res) => {
         try {
             const { class_id } = req.params;
             let classData = null;
-            const schools = await models.Schools.findAll({ attributes: ['id', 'name'], raw: true });
+
+            const schools = await models.Schools.findAll({
+                attributes: ['id', 'name'],
+                where: { status: 'Approve' },
+                raw: true
+            });
 
             if (class_id) {
                 classData = await models.Classes.findOne({ where: { id: class_id }, raw: true });
             }
+
+            const schoolSessions = await models.SchoolSessions.findAll({
+                where: { school_id: classData.school_id },
+                attributes: ['id', 'start_date', 'end_date'],
+                raw: true
+            });
+
+            // Format dates
+            const formattedSessions = schoolSessions.map(session => {
+                const startDate = new Date(session.start_date);
+                const endDate = new Date(session.end_date);
+
+                const formattedStart = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
+                const formattedEnd = `${monthNames[endDate.getMonth()]} ${endDate.getFullYear()}`;
+
+                return {
+                    ...session,
+                    start_date: formattedStart,
+                    end_date: formattedEnd
+                };
+            });
 
             // Retrieve old input and errors from flash messages
             const oldData = req.flash('oldData')[0] || {};
@@ -167,6 +205,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 classData: { ...classData, ...oldData }, // Merge old input with class data
                 schools,
                 errors,
+                formattedSessions,
                 messages: {
                     success: res.locals.success,
                     error: res.locals.error
@@ -180,6 +219,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     });
 
 
+
     /**
      * Update class details
      */
@@ -187,6 +227,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
     app.post('/classes/update/:class_id', [
         body('name').notEmpty().withMessage('Class name is required'),
+        body('school_sessions_id').notEmpty().withMessage('School session is required'),
         body('school_id').notEmpty().withMessage('Please select a school')
     ], async (req, res) => {
         try {
@@ -201,7 +242,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             }
 
             const { class_id } = req.params;
-            const { name, school_id, status } = req.body;
+            const { name, school_id, status, school_sessions_id } = req.body;
 
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
@@ -214,7 +255,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
             // Check if class name already exists in the same school, excluding the current class
             const existingClass = await models.Classes.findOne({
-                where: { name, school_id, id: { [models.Sequelize.Op.ne]: class_id } }
+                where: { name, school_id, school_sessions_id, id: { [models.Sequelize.Op.ne]: class_id } }
             });
 
             if (existingClass) {
@@ -225,7 +266,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             }
 
             // Update the class
-            const [rowsUpdated] = await models.Classes.update({ name, school_id, status }, { where: { id: class_id } });
+            const [rowsUpdated] = await models.Classes.update({ name, school_sessions_id, school_id, status }, { where: { id: class_id } });
 
             if (rowsUpdated) {
                 req.flash('success', 'Class updated successfully.');
@@ -303,4 +344,91 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         }
     });
 
+
+    app.post('/classes/import', async (req, res) => {
+        if (!req.isAuthenticated()) {
+            return res.status(403).json({ message: 'Unauthorized. Please log in.' });
+        }
+
+        if (req.user.role.name !== "SuperAdmin") {
+            return res.status(403).json({ message: 'Permission denied.' });
+        }
+
+        if (!req.files || !req.files.excelFile) {
+            req.flash('error', 'No file uploaded. Please upload an Excel file.');
+            return res.redirect('/classes/index');
+        }
+
+        const excelFile = req.files.excelFile;
+        const ext = path.extname(excelFile.name).toLowerCase();
+        const allowedExtensions = ['.xlsx', '.xls'];
+
+        if (!allowedExtensions.includes(ext)) {
+            req.flash('error', 'Only Excel files (.xlsx, .xls) are allowed.');
+            return res.redirect('/classes/index');
+        }
+
+        const uploadDir = path.join(__dirname, '../uploads/');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+
+        const filePath = path.join(uploadDir, `classes-import-${Date.now()}${ext}`);
+        await excelFile.mv(filePath);
+
+        const workbook = xlsx.readFile(filePath);
+        const sheetName = workbook.SheetNames[0];
+        const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+        if (sheetData.length === 0) {
+            req.flash('error', 'Excel file is empty.');
+            return res.redirect('/classes/index');
+        }
+
+        let skippedRecords = 0;
+
+        try {
+            for (const row of sheetData) {
+                const { 'Class Name': name, 'School Name': schoolName } = row;
+
+                // Find school ID (case-insensitive)
+                const school = await models.Schools.findOne({
+                    where: models.sequelize.where(models.sequelize.fn('LOWER', models.sequelize.col('name')), '=', schoolName.toLowerCase())
+                });
+
+                if (!school) {
+                    skippedRecords++;
+                    continue;
+                }
+
+                // Check if the class already exists in the same school
+                const existingClass = await models.Classes.findOne({
+                    where: {
+                        name,
+                        school_id: school.id
+                    }
+                });
+
+                if (existingClass) {
+                    skippedRecords++;
+                    continue;
+                }
+                await models.Classes.create({
+                    name,
+                    school_id: school.id
+                });
+
+
+            }
+
+            req.flash('success', `Classes imported successfully. Skipped ${skippedRecords} duplicate records or invalid schools.`);
+            res.redirect('/classes/index');
+        } catch (error) {
+            console.error('Error importing classes:', error);
+            req.flash('error', 'Error importing classes. Please check the file format.');
+            res.redirect('/classes/index');
+        } finally {
+            fs.unlinkSync(filePath);
+        }
+    });
 };

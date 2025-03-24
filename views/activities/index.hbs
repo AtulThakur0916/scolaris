@@ -1,0 +1,69 @@
+<!-- Content wrapper -->
+<div class="content-wrapper">
+  <div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="py-3 mb-4">
+      <span class="text-muted fw-light">Activities /</span>
+      List
+    </h4>
+
+    {{#if success}}
+    <div class="alert alert-success alert-dismissible" role="alert">
+      {{#each success}}
+      {{this}}
+      {{else}}
+      {{success}}
+      {{/each}}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {{/if}}
+
+    {{#if error}}
+    <div class="alert alert-danger alert-dismissible" role="alert">
+      {{#each error}}
+      {{this}}
+      {{else}}
+      {{error}}
+      {{/each}}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {{/if}}
+
+    <!-- Activities List Table -->
+    <div class="card">
+      <div class="card-header border-bottom d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-3">Activities List</h5>
+      </div>
+      <div class="card-datatable table-responsive p-4">
+        <table class="table border-top" id="dataTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Title</th>
+              <th>School</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each activityDetails}}
+            <tr>
+              <td>{{@index}}</td>
+              <td>{{this.title}}</td>
+              <td>{{this.school.name}}</td>
+              <td>{{#if (eq this.status "1")}}Active{{else}}Inactive{{/if}}</td>
+              <td>
+                <a href="/activities/edit/{{this.id}}">
+                  <i class="menu-icon tf-icons bx bx-edit-alt text-primary"></i>
+                </a>
+                <a href="#" onclick="deleteItem('/activities/delete', '{{this.id}}')">
+                  <i class="menu-icon tf-icons bx bx-box text-danger"></i>
+                </a>
+              </td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

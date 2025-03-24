@@ -459,16 +459,22 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
      * Logout user
      */
     // app.get('/logout', (req, res) => {
-    //     console.log("szcxv");
     //     res.clearCookie('remember_me');
     //     req.logout();
     //     res.redirect('/login');
     // });
-    app.get('/logout', (req, res) => {
+
+    app.get('/logout', (req, res, next) => {
         console.log("Logging out...");
         res.clearCookie('remember_me'); // Clear the cookie
-        req.logout(); // No callback needed in passport@0.7.0
-        res.redirect('/login'); // Redirect to login page
+
+        req.logout((err) => {
+            if (err) {
+                console.error("Error during logout:", err);
+                return next(err);
+            }
+            res.redirect('/login'); // Redirect to login page
+        });
     });
 
 

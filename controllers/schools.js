@@ -1,10 +1,10 @@
 const models = require('../models');
-const async = require('async');  // ✅ Import the async module
+const { countries } = require('countries-list');
 const waterfall = require('async-waterfall');
 const fs = require('fs');
 const path = require('path');
 const { body, validationResult } = require('express-validator');
-const { Op } = require("sequelize");  // Add this line at the top
+const xlsx = require('xlsx');
 
 module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
@@ -82,7 +82,11 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
       // Retrieve flash messages
       const errors = req.flash('errors')[0] || {};
       const formData = req.flash('school')[0] || {};
-
+      const countryList = Object.entries(countries).map(([code, country]) => ({
+        code,
+        name: country.name,
+        flag: `https://flagcdn.com/w40/${code.toLowerCase()}.png`
+      }));
       // Merge old input with existing school data
       // const schoolData = { ...school, ...formData };
       const schoolData = { ...school, ...formData };
@@ -90,6 +94,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
       res.render('schools/create', {
         school: schoolData,
         errors,
+        countries: countryList,
         messages: {
           success: req.flash('success'),
           error: req.flash('error')
@@ -102,12 +107,12 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     }
   });
 
-
-
-
   app.post('/schools/create', [
     body('name').notEmpty().withMessage('School name is required'),
-    body('location').notEmpty().withMessage('Location is required'),
+    body('location').notEmpty().withMessage('Address is required'),
+    body('city').notEmpty().withMessage('City is required'),
+    body('country').notEmpty().withMessage('Country is required'),
+    body('state').notEmpty().withMessage('State is required'),
     body('phone_number')
       .isMobilePhone().withMessage('Invalid phone number')
       .custom(async (phone_number) => {
@@ -144,7 +149,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
       });
     }
 
-    const { name, location, phone_number, email, type } = req.body;
+    const { name, location, phone_number, email, type, city, state, country } = req.body;
 
     waterfall([
       async function (done) {
@@ -190,8 +195,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
       async function (logoUrl, done) {
         try {
           let schoolData = logoUrl
-            ? { name, location, phone_number, email, type, logo: logoUrl }
-            : { name, location, phone_number, email, type };
+            ? { name, location, phone_number, email, city, state, country, type, logo: logoUrl }
+            : { name, location, phone_number, email, type, city, state, country };
 
           await models.Schools.create(schoolData);
           req.flash('success', 'School created successfully.');
@@ -231,10 +236,15 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
       // Merge old input with existing school data
       const schoolData = { ...school, ...formData };
-
+      const countryList = Object.entries(countries).map(([code, country]) => ({
+        code,
+        name: country.name,
+        flag: `https://flagcdn.com/w40/${code.toLowerCase()}.png`
+      }));
       res.render('schools/edit', {
         school: schoolData,
         errors,
+        countries: countryList,
         messages: {
           success: req.flash('success'),
           error: req.flash('error')
@@ -297,7 +307,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     }
 
     try {
-      const { name, location, phone_number, email, type } = req.body;
+      const { name, location, phone_number, email, city, state, country, type } = req.body;
       const school = await models.Schools.findByPk(school_id);
 
       if (!school) {
@@ -345,7 +355,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
       }
 
       await models.Schools.update(
-        { name, location, phone_number, email, type, logo: logoUrl },
+        { name, location, city, state, country, phone_number, email, type, logo: logoUrl },
         { where: { id: school_id } }
       );
 
@@ -417,6 +427,101 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
       return res.status(500).json({ message: 'Internal server error.' });
     }
   });
+
+
+
+
+  app.post('/schools/import', async (req, res) => {
+
+    if (!req.isAuthenticated()) {
+      return res.status(403).json({ message: 'Unauthorized. Please log in.' });
+    }
+
+    if (req.user.role.name !== "SuperAdmin") {
+      return res.status(403).json({ message: 'Permission denied.' });
+    }
+
+    if (!req.files || !req.files.excelFile) {
+      req.flash('error', 'No file uploaded. Please upload an Excel file.');
+      return res.redirect('/schools/index');
+    }
+
+    const excelFile = req.files.excelFile;
+    const ext = path.extname(excelFile.name).toLowerCase();
+    const allowedExtensions = ['.xlsx', '.xls'];
+
+    if (!allowedExtensions.includes(ext)) {
+      req.flash('error', 'Only Excel files (.xlsx, .xls) are allowed.');
+      return res.redirect('/schools/index');
+    }
+
+    // Save file temporarily
+    const uploadDir = path.join(__dirname, '../uploads/');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    const filePath = path.join(uploadDir, `schools-import-${Date.now()}${ext}`);
+    await excelFile.mv(filePath);
+
+    // Read Excel file
+    const workbook = xlsx.readFile(filePath);
+    const sheetName = workbook.SheetNames[0];
+    const sheetData = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+    if (sheetData.length === 0) {
+      req.flash('error', 'Excel file is empty.');
+      return res.redirect('/schools/index');
+    }
+
+    let skippedRecords = 0;
+
+    try {
+      for (const row of sheetData) {
+        const { 'School Name': name, 'School Type': type, 'Phone Number': phone_number, Email: email, Location: location } = row;
+
+        // Check if the school already exists
+        // const existingSchool = await models.Schools.findOne({
+        //   where: { [Op.or]: [{ phone_number }, { email }, { name }] },
+        // });
+        const existingSchool = await models.Schools.findOne({
+          where: {
+            [Op.or]: [
+              { phone_number: String(phone_number) }, // Convert to string
+              { email },
+              { name }
+            ]
+          },
+        });
+
+
+        if (existingSchool) {
+          skippedRecords++;
+          continue;
+        }
+
+        // Create new school
+        await models.Schools.create({
+          name,
+          location,
+          phone_number,
+          email,
+          type
+        });
+      }
+
+      req.flash('success', `Schools imported successfully. Skipped ${skippedRecords} duplicate records.`);
+      res.redirect('/schools/index');
+    } catch (error) {
+      console.error('Error importing schools:', error);
+      req.flash('error', 'Error importing schools. Please check the file format.');
+      res.redirect('/schools/index');
+    } finally {
+      // Clean up uploaded file
+      fs.unlinkSync(filePath);
+    }
+  });
+
 
 
 };

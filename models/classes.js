@@ -14,9 +14,20 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.UUID,
             allowNull: false
         },
+        school_sessions_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+            references: {
+                model: 'school_sessions',
+                key: 'id'
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE'
+        },
         status: {
-            type: DataTypes.BOOLEAN,
-            defaultValue: true,
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 1,
             comment: '0 = Inactive, 1 = Active'
         }
     }, {

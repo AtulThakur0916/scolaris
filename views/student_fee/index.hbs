@@ -1,0 +1,79 @@
+<!-- Content wrapper -->
+<div class="content-wrapper">
+    <!-- Content -->
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <h4 class="py-3 mb-4">
+            <span class="text-muted fw-light">Student Fees /</span>
+            List
+        </h4>
+
+        {{#if success}}
+        <div class="alert alert-success alert-dismissible" role="alert">
+            {{#each success}}
+            {{this}}
+            {{else}}
+            {{success}}
+            {{/each}}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {{/if}}
+
+        {{#if error}}
+        <div class="alert alert-danger alert-dismissible" role="alert">
+            {{#each error}}
+            {{this}}
+            {{else}}
+            {{error}}
+            {{/each}}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {{/if}}
+
+        <div class="card">
+            <div class="card-header border-bottom d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Student Fee List</h5>
+                <a href="/student-fees/create" class="btn btn-primary btn-sm">
+                    <i class="bx bx-plus"></i> Add Student Fee
+                </a>
+            </div>
+            <div class="card-datatable table-responsive p-4">
+                <table class="table border-top" id="dataTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Student Name</th>
+                            <th>Fee Name</th>
+                            <th>Custom Amount</th>
+                            <th>Assigned Date</th>
+                            <th>Due Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {{#each studentFees}}
+                        <tr>
+                            <td class="row-index" data-index="{{@index}}"></td>
+                            <td>{{this.student.name}}</td>
+                            <td>{{this.fee.feesType.name}} - F CFA{{this.fee.amount}} ({{this.fee.frequency}})</td>
+                            <td>F CFA{{this.custom_amount}}</td>
+                            <td>{{this.assigned_date}}</td>
+                            <td>{{this.due_date}}</td>
+
+                            <td>
+                                {{!-- <a href="/student-fees/edit/{{this.id}}">
+                                    <i class="menu-icon tf-icons bx bx-edit-alt text-primary"></i>
+                                </a> --}}
+                                <a href="#" onclick="deleteItem('/student-fees/delete', '{{this.id}}')"
+                                    class="text-danger">
+                                    <i class="menu-icon tf-icons bx bx-box text-danger"></i>
+                                </a>
+                            </td>
+
+                            {{/each}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

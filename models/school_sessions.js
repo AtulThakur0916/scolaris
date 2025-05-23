@@ -19,7 +19,7 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false
         },
         status: {
-            type: DataTypes.ENUM('Active', 'Completed'),
+            type: DataTypes.ENUM('Active', 'Completed', 'Inactive'),
             allowNull: false,
             defaultValue: 'Active'
         }
@@ -30,7 +30,7 @@ module.exports = (sequelize, DataTypes) => {
     });
 
     SchoolSessions.associate = function (models) {
-        SchoolSessions.belongsTo(models.Schools, {foreignKey: 'school_id', as: 'school'});
+        SchoolSessions.belongsTo(models.Schools, { foreignKey: 'school_id', as: 'school' });
     };
 
     return SchoolSessions;

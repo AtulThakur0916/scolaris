@@ -11,28 +11,80 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     /**
      * List all school sessions
      */
+
+    // Define this helper at the top
+    function formatDate(date) {
+        const d = new Date(date);
+        const day = String(d.getDate()).padStart(2, '0');         // 2-digit day
+        const month = String(d.getMonth() + 1).padStart(2, '0');  // 2-digit month
+        const year = String(d.getFullYear()).slice(-2);           // last 2 digits of year
+        return `${year}-${month}-${day}`;
+    }
+
+
+
     app.get('/sessions/index', async (req, res) => {
         if (!req.isAuthenticated()) {
             req.flash('error', 'Please login to continue');
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
 
         try {
+            let whereCondition = {};
+
+            // Filter by school_id if provided in query
+            if (req.query.school_id) {
+                whereCondition.school_id = req.query.school_id;
+            } else if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+                whereCondition.school_id = req.user.school_id;
+            }
+
+            // Fetch sessions
             const sessions = await models.SchoolSessions.findAll({
+                where: whereCondition,
                 attributes: ['id', 'start_date', 'end_date', 'status'],
-                include: [{ model: models.Schools, as: 'school', attributes: ['name'] }],
+                include: [{
+                    model: models.Schools,
+                    as: 'school',
+                    attributes: ['id', 'name']
+                }],
                 order: [['start_date', 'DESC']],
                 raw: true,
                 nest: true
             });
 
+            // Format dates
+            const formattedSessions = sessions.map(session => {
+                const formattedStart = formatDate(session.start_date);
+                const formattedEnd = formatDate(session.end_date);
+                return {
+                    ...session,
+                    formattedStart,
+                    formattedEnd,
+                    formattedDateRange: `${formattedStart} - ${formattedEnd}`
+                };
+            });
+
+            // Get all schools for filter dropdown (only for SuperAdmin)
+            let schools = [];
+            if (req.user.role.name === "SuperAdmin") {
+                schools = await models.Schools.findAll({
+                    attributes: ['id', 'name'],
+                    where: { status: 'Approve' },
+                    raw: true
+                });
+            }
+
+            // Render the view
             res.render('sessions/index', {
-                sessions,
+                sessions: formattedSessions,
+                schools,
+                selectedSchool: req.query.school_id,
                 success: res.locals.success,
                 error: res.locals.error
             });
@@ -44,34 +96,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         }
     });
 
-    /**
-     * View session details
-     */
-    app.get('/sessions/view/:session_id', async (req, res) => {
-        const { session_id } = req.params;
 
-        if (!req.isAuthenticated()) {
-            req.flash('error', 'Please login to continue');
-            return res.redirect('/login');
-        }
-
-        if (req.user.role.name !== "SuperAdmin") {
-            req.flash('error', 'You are not authorised to access this page.');
-            return res.redirect('/');
-        }
-
-        const sessionData = await models.SchoolSessions.findOne({
-            where: { id: session_id },
-            include: [{ model: models.Schools, as: 'school', attributes: ['name'] }]
-        });
-
-        if (!sessionData) {
-            req.flash('error', 'School session not found');
-            return res.redirect('/sessions/index');
-        }
-
-        res.render('sessions/view', { sessionData });
-    });
 
     /**
      * Create or edit session
@@ -80,13 +105,34 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         try {
             const { session_id } = req.params;
             let sessionData = null;
-            const schools = await models.Schools.findAll({
-                attributes: ['id', 'name'],
-                where: {
-                    status: 'Approve'
-                },
-                raw: true
-            });
+
+            // Check if the user is authorized
+            if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+                req.flash('error', 'You are not authorised to access this page.');
+                return res.redirect('/');
+            }
+
+            let schools;
+            if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+                // For School and SubAdmin roles, only show the assigned school
+                schools = await models.Schools.findAll({
+                    attributes: ['id', 'name'],
+                    where: {
+                        status: 'Approve',
+                        id: req.user.school_id
+                    },
+                    raw: true
+                });
+            } else {
+                // SuperAdmin can see all approved schools
+                schools = await models.Schools.findAll({
+                    attributes: ['id', 'name'],
+                    where: {
+                        status: 'Approve'
+                    },
+                    raw: true
+                });
+            }
 
             if (session_id) {
                 sessionData = await models.SchoolSessions.findOne({ where: { id: session_id }, raw: true });
@@ -98,6 +144,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             res.status(500).send('Error loading session data');
         }
     });
+
 
     /**
      * Create session with validation
@@ -127,16 +174,36 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             }),
         body('start_date').notEmpty().withMessage('Start date is required').isDate().withMessage('Invalid date format'),
         body('end_date').notEmpty().withMessage('End date is required').isDate().withMessage('Invalid date format'),
-        body('status').isIn(['Active', 'Completed']).withMessage('Invalid status')
+        body('status').isIn(['Active', 'Completed', 'Inactive']).withMessage('Invalid status')
     ], async (req, res) => {
         if (!req.isAuthenticated()) {
             req.flash('error', 'Please login to continue');
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin") {
-            req.flash('error', "You are not authorised to access this page.");
-            return res.redirect('/sessions/index');
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+            req.flash('error', 'You are not authorised to access this page.');
+            return res.redirect('/');
+        }
+
+        let schools;
+        if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+            schools = await models.Schools.findAll({
+                attributes: ['id', 'name'],
+                where: {
+                    status: 'Approve',
+                    id: req.user.school_id
+                },
+                raw: true
+            });
+        } else {
+            schools = await models.Schools.findAll({
+                attributes: ['id', 'name'],
+                where: {
+                    status: 'Approve'
+                },
+                raw: true
+            });
         }
 
         const errors = validationResult(req);
@@ -144,7 +211,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             return res.render('sessions/create', {
                 sessionData: req.body,
                 errors: errors.mapped(),
-                schools: await models.Schools.findAll({ attributes: ['id', 'name'], raw: true })
+                schools: schools
             });
         }
 
@@ -165,17 +232,39 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
 
 
+
     app.get('/sessions/edit/:session_id?', async (req, res) => {
         try {
             const { session_id } = req.params;
             let sessionData = null;
-            const schools = await models.Schools.findAll({
-                attributes: ['id', 'name'],
-                where: {
-                    status: 'Approve'
-                },
-                raw: true
-            });
+
+            // Check if the user is authorized (SuperAdmin, School, or SubAdmin)
+            if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+                req.flash('error', 'You are not authorised to access this page.');
+                return res.redirect('/');
+            }
+
+            let schools;
+            if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+                // For School and SubAdmin, only show the assigned school
+                schools = await models.Schools.findAll({
+                    attributes: ['id', 'name'],
+                    where: {
+                        status: 'Approve',
+                        id: req.user.school_id
+                    },
+                    raw: true
+                });
+            } else {
+                // SuperAdmin can see all approved schools
+                schools = await models.Schools.findAll({
+                    attributes: ['id', 'name'],
+                    where: {
+                        status: 'Approve'
+                    },
+                    raw: true
+                });
+            }
 
             if (session_id) {
                 let session = await models.SchoolSessions.findOne({ where: { id: session_id }, raw: true });
@@ -187,21 +276,35 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 }
             }
 
-            res.render('sessions/edit', { sessionData, schools });
+            // Retrieve flash messages
+            const errors = req.flash('errors')[0] || {};
+            res.render('sessions/edit', {
+                sessionData, schools, errors, messages: {
+                    success: req.flash('success'),
+                    error: req.flash('error')
+                }
+            });
         } catch (error) {
             console.error('Error in /sessions/edit:', error);
             res.status(500).send('Error loading session data');
         }
     });
 
+
     /**
      * Update session with validation
      */
     app.post('/sessions/update/:session_id', [
-        body('start_date').notEmpty().withMessage('Start date is required').isDate().withMessage('Invalid date format'),
-        body('end_date').notEmpty().withMessage('End date is required').isDate().withMessage('Invalid date format'),
-        body('status').isIn(['Active', 'Completed']).withMessage('Invalid status'),
-        body('school_id').notEmpty().withMessage('School is required')
+        body('start_date')
+            .notEmpty().withMessage('Start date is required')
+            .isDate().withMessage('Invalid date format'),
+        body('end_date')
+            .notEmpty().withMessage('End date is required')
+            .isDate().withMessage('Invalid date format'),
+        body('status')
+            .isIn(['Active', 'Completed', 'Inactive']).withMessage('Invalid status'),
+        body('school_id')
+            .notEmpty().withMessage('School is required')
             .custom(async (value, { req }) => {
                 const startYear = new Date(req.body.start_date).getFullYear();
                 const existingSession = await models.SchoolSessions.findOne({
@@ -221,7 +324,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     throw new Error(`School session already exists for the year ${startYear}.`);
                 }
                 return true;
-            }),
+            })
     ], async (req, res) => {
         const { session_id } = req.params;
 
@@ -230,7 +333,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
             req.flash('error', "You are not authorised to access this page.");
             return res.redirect('/sessions/index');
         }
@@ -244,9 +347,16 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
         try {
             const { school_id, start_date, end_date, status } = req.body;
+
+            // Restrict "School" and "SubAdmin" roles to updating only their own sessions
+            let whereCondition = { id: session_id };
+            if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+                whereCondition.school_id = req.user.school_id;
+            }
+
             const [rowsUpdated] = await models.SchoolSessions.update(
                 { school_id, start_date, end_date, status },
-                { where: { id: session_id } }
+                { where: whereCondition }
             );
 
             if (rowsUpdated > 0) {
@@ -263,33 +373,39 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         }
     });
 
+
+
     /**
      * Delete session
      */
     app.delete('/sessions/delete/:id', async (req, res) => {
         try {
+            // Authentication check
             if (!req.isAuthenticated()) {
                 return res.json({ success: false, message: 'Please login to continue' });
             }
-
-            if (req.user.role.name !== "SuperAdmin") {
+            if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School") {
                 return res.json({ success: false, message: 'You are not authorised to access this page.' });
             }
 
             const { id } = req.params;
+
             const sessionData = await models.SchoolSessions.findOne({ where: { id } });
 
             if (!sessionData) {
                 return res.json({ success: false, message: 'School session not found.' });
             }
-
+            if (req.user.role.name === "School" && sessionData.school_id !== req.user.school_id) {
+                return res.json({ success: false, message: 'You can only delete your own school sessions.' });
+            }
             await models.SchoolSessions.destroy({ where: { id } });
             return res.json({ success: true, message: 'School session deleted successfully.' });
+
         } catch (error) {
-            return res.json({ success: false, message: error.message });
+            console.error('Error deleting session:', error);
+            return res.json({ success: false, message: 'Failed to delete session. Please try again.' });
         }
     });
-
 
     app.post('/sessions/status/:sessionId', async (req, res) => {
         try {
@@ -300,7 +416,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             console.log("Received status:", status);
 
             // Validate input
-            if (!["Active", "Completed"].includes(status)) {
+            if (!["Active", "Completed", "Inactive"].includes(status)) {
                 console.log("Invalid status received.");
                 return res.status(400).json({ message: "Invalid status value." });
             }
@@ -372,19 +488,21 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
         try {
             const parseDate = (date) => {
-                if (date instanceof Date) {
+                if (typeof date === 'number') {
+                    // Excel date number to JS Date
+                    return new Date((date - 25569) * 86400 * 1000);
+                } else if (date instanceof Date) {
                     return date;
                 } else if (typeof date === 'string') {
                     const [day, month, year] = date.split('-');
                     return new Date(`${year}-${month}-${day}`);
-                } else if (typeof date === 'number') {
-                    return new Date((date - (25567 + 2)) * 86400 * 1000);
                 }
                 return NaN;
             };
 
             for (const row of sheetData) {
                 const { 'School Name': schoolName, 'Start Date': start_date, 'End Date': end_date } = row;
+                console.log('School Name:', schoolName, 'Start Date:', start_date, 'End Date:', end_date);
 
                 const school = await models.Schools.findOne({
                     where: models.sequelize.where(models.sequelize.fn('LOWER', models.sequelize.col('name')), '=', schoolName.toLowerCase())
@@ -397,8 +515,11 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
                 const startDate = parseDate(start_date);
                 const endDate = parseDate(end_date);
+                console.log('Parsed Start Date:', startDate, 'Parsed End Date:', endDate);
 
-                if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate < today || endDate < today || startDate > endDate) {
+                // Remove the past date validation since we want to allow past dates
+                if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || startDate > endDate) {
+                    console.log('Invalid date format or end date is before start date');
                     skippedRecords++;
                     continue;
                 }
@@ -417,6 +538,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 });
 
                 if (existingSession) {
+                    console.log('Session already exists for the year:', startYear);
                     skippedRecords++;
                     continue;
                 }
@@ -439,5 +561,25 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             fs.unlinkSync(filePath);
         }
     });
+    // Route to download session format
+    app.get('/sessions/download-format', (req, res) => {
+        const filePath = path.join(__dirname, '../public/uploads/session.xlsx');
+        res.download(filePath, 'session-format.xlsx', (err) => {
+            if (err) {
+                console.error('Error sending file:', err);
+                res.status(500).send('Could not download file.');
+            }
+        });
+    });
+    app.get('/class/download-format', (req, res) => {
+        const filePath = path.join(__dirname, '../public/uploads/class.xlsx');
+        res.download(filePath, 'class-format.xlsx', (err) => {
+            if (err) {
+                console.error('Error sending file:', err);
+                res.status(500).send('Could not download file.');
+            }
+        });
+    });
+
 
 };

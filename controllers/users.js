@@ -4,7 +4,10 @@ const bcrypt = require('bcryptjs');
 const path = require('path');
 const moment = require('moment');
 const { body, validationResult } = require('express-validator');
-
+const fs = require('fs');
+const crypto = require('crypto');
+const { forgotPassword } = require('../helpers/zepto');
+const { Op } = require('sequelize');
 module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
     /**
@@ -23,18 +26,26 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
         const { id, logo, role, name } = req.user;
 
-        if (role.name !== "SuperAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
 
-        // Fetch users
+        const whereCondition = req.user.role.name === "School"
+            ? { school_id: req.user.school_id }
+            : {};
+
+        // Fetch users excluding SuperAdmin
         var users = await models.Users.findAll({
             raw: true,
+            where: whereCondition,
             include: [{
                 model: models.Roles,
                 as: 'role',
-                attributes: ['name']
+                attributes: ['name'],
+                where: {
+                    name: { [Op.ne]: 'SuperAdmin' } // Exclude SuperAdmin
+                }
             }],
             order: [['name', 'ASC']],
             nest: true
@@ -349,6 +360,15 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
      * Create a new user, get
      */
     app.get('/users/create/:user_id?', async (req, res) => {
+        // if (req.user.role.name !== "SuperAdmin") {
+        //     req.flash('error', 'You are not authorised to access this page.');
+        //     return res.redirect('/');
+        // }
+        // Authorization check
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School") {
+            req.flash('error', 'You are not authorised to access this page.');
+            return res.redirect('/');
+        }
         try {
             const { user_id } = req.params;
             let user = null;
@@ -364,14 +384,33 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     user = userData;
                 }
             }
-
-            const roles = await models.Roles.findAll({
+            const roles = req.user.role.name == "SuperAdmin" ? await models.Roles.findAll({
+                where: {
+                    name: ['School', 'SubAdmin']
+                },
                 raw: true
-            });
+            }) : await models.Roles.findAll({
+                where: {
+                    name: ['SubAdmin']
+                },
+                raw: true
+            })
 
+            const schools = req.user.role.name === "SuperAdmin"
+                ? await models.Schools.findAll({
+                    attributes: ['id', 'name'],
+                    where: { status: 'Approve' },
+                    raw: true
+                })
+                : await models.Schools.findAll({
+                    attributes: ['id', 'name'],
+                    where: { id: req.user.school_id },
+                    raw: true
+                });
             res.render('users/create', {
                 user: user,
-                roles: roles
+                roles: roles,
+                schools: schools
             });
         } catch (error) {
             console.error('Error in /users/create:', error);
@@ -410,19 +449,42 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             try {
-                const roles = await models.Roles.findAll({ raw: true });
+                const roles = req.user.role.name == "SuperAdmin" ? await models.Roles.findAll({
+                    where: {
+                        name: ['School', 'SubAdmin']
+                    },
+                    raw: true
+                }) : await models.Roles.findAll({
+                    where: {
+                        name: ['SubAdmin']
+                    },
+                    raw: true
+                })
+
+                const schools = req.user.role.name === "SuperAdmin"
+                    ? await models.Schools.findAll({
+                        attributes: ['id', 'name'],
+                        where: { status: 'Approve' },
+                        raw: true
+                    })
+                    : await models.Schools.findAll({
+                        attributes: ['id', 'name'],
+                        where: { id: req.user.school_id },
+                        raw: true
+                    });
                 return res.render('users/create', {
                     userData: req.body,
                     errors: errors.mapped(),
-                    roles
+                    roles,
+                    schools
                 });
             } catch (err) {
                 req.flash('error', 'Error loading roles');
                 return res.redirect('/users/create');
             }
         }
-        const { name, email, contact_person, phone, status, role_id } = req.body;
-
+        const { name, school_id, email, contact_person, phone, status, role_id } = req.body;
+        console.log(req.body);
         // Check if user with same email already exists
         const existingUser = await models.Users.findOne({
             where: { email: email }
@@ -432,9 +494,54 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             req.flash('error', 'A user with this email already exists');
             return res.redirect('/users/create');
         }
+        // Handle admin ID file upload
+        let admin_idUrl = null;
+        if (req.files && req.files.admin_id) {
+            console.log(req.files.admin_id)
+            const file = req.files.admin_id;
+            const ext = path.extname(file.name).toLowerCase();
+            const allowed = ['.png', '.jpg', '.jpeg', '.pdf'];
+            if (!allowed.includes(ext)) throw new Error('Invalid Admin ID file type. Allowed types: PNG, JPG, JPEG, PDF');
+            if (file.size > 5 * 1024 * 1024) throw new Error('Admin ID must be under 5MB');
 
+            const fileName = `${path.basename(file.name, ext)}-${Date.now()}${ext}`;
+            const uploadDir = path.join(__dirname, '../public/uploads/schools/');
+            if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+            const filePath = path.join(uploadDir, fileName);
+            await file.mv(filePath);
+
+            admin_idUrl = `/uploads/schools/${fileName}`;
+        }
+        console.log(admin_idUrl);
         var password = bcrypt.hashSync(req.body.password, bcrypt.genSaltSync(10), null);
-        await models.Users.create({ name, email, contact_person, phone, status, password, role_id });
+        await models.Users.create({ name, school_id, email, contact_person, phone, status, password, role_id, logo: admin_idUrl });
+        const role = await models.Roles.findOne({ where: { id: role_id } });
+
+        if (role && role.name === 'SubAdmin') {
+            const plainPassword = req.body.password; // only if you're not generating random passwords
+
+            await sendEmail(
+                email,
+                'Your SubAdmin Account Details',
+                `
+    Dear ${name},
+
+    Your SubAdmin account has been created successfully.
+
+    Here are your login details:
+    Email: ${email}
+    Password: ${plainPassword}
+    Contact Person: ${contact_person}
+    Phone: ${phone}
+
+    Please log in and change your password as soon as possible.
+
+    Best regards,
+    The Scolaris Pay Admin Team
+    `
+            );
+        }
 
         req.flash('success', 'User Created successfully.');
 
@@ -459,8 +566,29 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 }
             }
 
-            const roles = await models.Roles.findAll({ raw: true });
+            const roles = req.user.role.name == "SuperAdmin" ? await models.Roles.findAll({
+                where: {
+                    name: ['School', 'SubAdmin']
+                },
+                raw: true
+            }) : await models.Roles.findAll({
+                where: {
+                    name: ['SubAdmin']
+                },
+                raw: true
+            })
 
+            const schools = req.user.role.name === "SuperAdmin"
+                ? await models.Schools.findAll({
+                    attributes: ['id', 'name'],
+                    where: { status: 'Approve' },
+                    raw: true
+                })
+                : await models.Schools.findAll({
+                    attributes: ['id', 'name'],
+                    where: { id: req.user.school_id },
+                    raw: true
+                });
             // Retrieve flash messages
             const errors = req.flash('errors')[0] || {};  // Retrieve validation errors
             const formData = req.flash('formData')[0] || {}; // Retrieve old input values
@@ -471,6 +599,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             res.render('users/edit', {
                 user: userDataMerged, // Send merged data
                 roles,
+                schools,
                 errors,
                 messages: {
                     success: res.locals.success,
@@ -516,9 +645,9 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 return res.redirect('/login');
             }
 
-            if (req.user.role.name !== "SuperAdmin") {
-                req.flash('error', 'You are not authorized to perform this action.');
-                return res.redirect('/users/index');
+            if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School") {
+                req.flash('error', 'You are not authorised to access this page.');
+                return res.redirect('/');
             }
 
             const errors = validationResult(req);
@@ -529,19 +658,33 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             }
 
             const { user_id } = req.params;
-            const { name, email, contact_person, phone, status, role_id } = req.body;
-            let updatedFields = { name, email, contact_person, phone, status, role_id };
+            const { name, school_id, email, contact_person, phone, status, role_id } = req.body;
+            // let updatedFields = { name, school_id, email, contact_person, phone, status, role_id };
+            let updatedFields = { name, school_id, email, contact_person, phone, status, role_id };
+
 
             // Handle file upload if provided
-            if (req.files && req.files.logo) {
-                let file = req.files.logo;
-                let newFileName = file.name.split('.').join('-' + Date.now() + '.');
-                let uploadPath = path.join(__dirname, '../public/uploads/', newFileName);
+            let admin_idUrl = null;
+            if (req.files && req.files.admin_id) {
+                console.log(req.files.admin_id)
+                const file = req.files.admin_id;
+                const ext = path.extname(file.name).toLowerCase();
+                const allowed = ['.png', '.jpg', '.jpeg', '.pdf'];
+                if (!allowed.includes(ext)) throw new Error('Invalid Admin ID file type. Allowed types: PNG, JPG, JPEG, PDF');
+                if (file.size > 5 * 1024 * 1024) throw new Error('Admin ID must be under 5MB');
 
-                await file.mv(uploadPath);
-                updatedFields.logo = "https://lms.khabriya.in/uploads/" + newFileName;
+                const fileName = `${path.basename(file.name, ext)}-${Date.now()}${ext}`;
+                const uploadDir = path.join(__dirname, '../public/uploads/schools/');
+                if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+                const filePath = path.join(uploadDir, fileName);
+                await file.mv(filePath);
+
+                admin_idUrl = `/uploads/schools/${fileName}`;
             }
-
+            if (admin_idUrl) {
+                updatedFields.logo = admin_idUrl;
+            }
             // Update user data
             const rowsUpdated = await models.Users.update(updatedFields, { where: { id: user_id } });
 
@@ -573,12 +716,12 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             }
 
             const { role } = req.user;
-            if (role.name !== "SuperAdmin") {
-                return res.json({
-                    success: false,
-                    message: 'You are not authorised to access this page.'
-                });
-            }
+            // if (role.name !== "SuperAdmin") {
+            //     return res.json({
+            //         success: false,
+            //         message: 'You are not authorised to access this page.'
+            //     });
+            // }
             //
             const { id } = req.params;
             if (!id) {
@@ -665,4 +808,129 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             });
         }
     };
+
+    //forget
+
+    app.get('/forgot-password', (req, res) => {
+        res.render('auth/forgot-password', {
+            layout: 'auth',
+            messages: {
+                error: req.flash('error'),
+                success: req.flash('success')
+            }
+        });
+    });
+
+    // POST: Send reset link
+    app.post('/forgot-password', async (req, res) => {
+        const { email } = req.body;
+
+        try {
+            const user = await models.Users.findOne({ where: { email } });
+
+            if (!user) {
+                req.flash('error', 'No account found with that email.');
+                return res.redirect('/forgot-password');
+            }
+
+            const token = crypto.randomBytes(32).toString('hex');
+            const expiry = new Date(Date.now() + 3600000); // 1 hour
+
+            await models.Users.update(
+                {
+                    reset_password_token: token,
+                    reset_password_expires: expiry
+                },
+                { where: { email } }
+            );
+
+            const resetLink = `http://${req.headers.host}/reset-password/${token}`;
+
+            // Use forgotPassword helper instead of sendEmail
+            await forgotPassword(email, {
+                userName: user.name,
+                resetLink: resetLink,
+                expiryTime: '1 hour'
+            });
+
+            return res.render('auth/forgot-password', {
+                layout: 'auth',
+                messages: {
+                    success: 'Reset link sent. Check your email.',
+                    error: null
+                }
+            });
+        } catch (err) {
+            console.error(err);
+            req.flash('error', 'Something went wrong.');
+            return res.redirect('/forgot-password');
+        }
+    });
+
+    app.get('/reset-password/:token', async (req, res) => {
+        const { token } = req.params;
+
+        try {
+            const user = await models.Users.findOne({
+                where: {
+                    reset_password_token: token,
+                    reset_password_expires: { [Op.gt]: new Date() }
+                }
+            });
+
+            if (!user) {
+                req.flash('error', 'Invalid or expired token.');
+                console.log("Invalid or expired token.");
+                return res.redirect('/forgot-password');
+            }
+
+            res.render('auth/reset-password', { token, layout: 'auth', error: req.flash('error') });
+        } catch (error) {
+            console.error(error);
+            req.flash('error', 'Something went wrong.');
+            res.redirect('/forgot-password');
+        }
+    });
+
+    app.post('/reset-password/:token', async (req, res) => {
+        const { token } = req.params;
+        const { password, confirm_password } = req.body;
+
+        if (password !== confirm_password) {
+            req.flash('error', 'Passwords do not match.');
+            return res.redirect(`/reset-password/${token}`);
+        }
+
+        try {
+            const user = await models.Users.findOne({
+                where: {
+                    reset_password_token: token,
+                    reset_password_expires: { [Op.gt]: new Date() }
+                }
+            });
+
+            if (!user) {
+                req.flash('error', 'Token invalid or expired.');
+                return res.redirect('/forgot-password');
+            }
+
+            const hashedPassword = bcrypt.hashSync(password, bcrypt.genSaltSync(10), null);
+            await models.Users.update(
+                {
+                    password: hashedPassword,
+                    reset_password_token: null,
+                    reset_password_expires: null
+                },
+                { where: { reset_password_token: token } }
+            );
+
+            req.flash('success', 'Password updated successfully.');
+            res.redirect('/login');
+        } catch (err) {
+            console.error(err);
+            req.flash('error', 'Something went wrong.');
+            res.redirect(`/reset-password/${token}`);
+        }
+    });
+
 };

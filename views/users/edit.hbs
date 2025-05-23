@@ -5,7 +5,7 @@
                 <div class="card">
                     <h5 class="card-header">Edit User</h5>
                     <div class="card-body">
-                        <form action="/users/update/{{user.id}}" method="post">
+                        <form action="/users/update/{{user.id}}" method="post" enctype="multipart/form-data">
                             <input type="hidden" name="_method" value="PUT">
 
                             <div class="row">
@@ -73,7 +73,31 @@
                                     {{/if}}
                                 </div>
                             </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">Select School</label>
+                                    <select class="form-control {{#if errors.school_id}}is-invalid{{/if}}"
+                                        name="school_id">
+                                        {{#each schools}}
+                                        <option value="{{id}}" {{#ifEquals ../user.school_id id}}selected{{/ifEquals}}>
+                                            {{name}}</option>
+                                        {{/each}}
+                                    </select>
+                                    {{#if errors.school_id}}
+                                    <div class="invalid-feedback">{{errors.school_id.msg}}</div>
+                                    {{/if}}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Administrator ID (National ID, Passport, or Driver’s
+                                        License)</label>
+                                    <input type="file" class="form-control {{#if errors.admin_id}}is-invalid{{/if}}"
+                                        name="admin_id" value="{{userData.admin_id}}">
+                                    {{#if errors.admin_id}}
+                                    <div class="invalid-feedback">{{errors.admin_id.msg}}</div>
+                                    {{/if}}
 
+                                </div>
+                            </div>
                             <button type="submit" class="mt-4 float-end btn btn-primary">Update User</button>
                             <a href="/users/index" class="mt-4 float-end btn btn-secondary me-2">Cancel</a>
 

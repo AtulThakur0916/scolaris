@@ -1,0 +1,82 @@
+<!-- Content wrapper -->
+<div class="content-wrapper">
+  <!-- Content -->
+  <div class="container-xxl flex-grow-1 container-p-y">
+    <h4 class="py-3 mb-4">
+      <span class="text-muted fw-light">Parents /</span>
+      List
+    </h4>
+
+    {{#if success}}
+    <div class="alert alert-success alert-dismissible" role="alert">
+      {{#each success}}
+      {{this}}
+      {{else}}
+      {{success}}
+      {{/each}}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {{/if}}
+
+    {{#if error}}
+    <div class="alert alert-danger alert-dismissible" role="alert">
+      {{#each error}}
+      {{this}}
+      {{else}}
+      {{error}}
+      {{/each}}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {{/if}}
+
+    <!-- Parents List Table -->
+    <div class="card">
+      <div class="card-header border-bottom">
+        <h5 class="card-title mb-3">Parents List</h5>
+      </div>
+      <div class="card-datatable table-responsive p-4">
+        <table class="table border-top" id="dataTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              {{!-- <th>Email</th> --}}
+              <th>Mobile</th>
+              <th>Associated Schools</th>
+              <th>Associated Students</th>
+              {{!-- <th>Actions</th> --}}
+            </tr>
+          </thead>
+          <tbody>
+            {{#each parents}}
+            <tr>
+              <td class="row-index" data-index="{{@index}}"></td>
+              <td>{{this.name}}</td>
+              {{!-- <td>{{this.email}}</td> --}}
+              <td>{{this.mobile}}</td>
+              <td>
+                {{#each this.schools}}
+                {{this.name}}<br>
+                {{/each}}
+              </td>
+              <td>
+                {{#each this.students}}
+                {{this.name}}<br>
+                {{/each}}
+              </td>
+              {{!-- <td>
+                <a href="/parents/edit/{{this.id}}">
+                  <i class="menu-icon tf-icons bx bx-edit-alt text-primary"></i>
+                </a>
+                <a href="#" onclick="deleteItem('/parents/delete', '{{this.id}}')">
+                  <i class="menu-icon tf-icons bx bx-box text-danger"></i>
+                </a>
+              </td> --}}
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

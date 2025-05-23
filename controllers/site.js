@@ -5,7 +5,6 @@ const crypto = require('crypto');
 const path = require('path');
 const moment = require('moment');
 const config = require('../config/config.json');
-
 const { body, validationResult } = require('express-validator');
 
 module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
@@ -14,10 +13,34 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
      * Render view for dashboard
      */
     app.get('/', async (req, res) => {
+        const isSuperAdmin = req.user && req.user.role && req.user.role.name === "SuperAdmin";
+        
+        // Set conditions based on user role
+        const whereCondition = {};
+        if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+            whereCondition.school_id = req.user.school_id;
+        }
+
+        const schoolCount = await models.Schools.count();
+        const pendingSchools = await models.Schools.count({ where: { status: 'Pending' } });
+        const approvedSchools = await models.Schools.count({ where: { status: 'Approve' } });
+        const rejectedSchools = await models.Schools.count({ where: { status: 'Reject' } });
+        const paymentCount = await models.SchoolSubscriptions.sum('amount');
+        const schoolFeeSum = await models.Payments.sum('amount', { where: whereCondition });
+        const studentsCount = await models.Students.count({ where: whereCondition });
+
         res.render('dashboard', {
             title: 'Dashboard',
             layout_style: 'light',
-            use_apex_charts: true
+            use_apex_charts: true,
+            schoolCount,
+            pendingSchools,
+            approvedSchools,
+            rejectedSchools,
+            paymentCount,
+            isSuperAdmin,
+            schoolFeeSum,
+            studentsCount
         });
     });
 

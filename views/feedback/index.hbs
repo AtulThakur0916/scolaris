@@ -1,0 +1,60 @@
+{{!-- Feedback List --}}
+<div class="content-wrapper">
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <h4 class="py-3 mb-4">
+            <span class="text-muted fw-light">Feedback /</span>
+            List
+        </h4>
+
+        {{#if messages.success}}
+        <div class="alert alert-success alert-dismissible" role="alert">
+            {{messages.success}}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {{/if}}
+
+        {{#if messages.error}}
+        <div class="alert alert-danger alert-dismissible" role="alert">
+            {{messages.error}}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {{/if}}
+
+        <div class="card">
+            <div class="card-header border-bottom">
+                <h5 class="card-title mb-3">Feedback List</h5>
+            </div>
+            <div class="card-datatable table-responsive p-4">
+                <table class="table border-top" id="dataTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Parent Name</th>
+                            <th>loving_point</th>
+                            <th>Experience</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{#each feedbacks}}
+                        <tr>
+                            <td class="row-index" data-index="{{@index}}"></td>
+                            <td>{{#if this.parent}}{{this.parent.name}}{{else}}No Parent{{/if}}</td>
+
+                            <td>{{this.loving_point}}</td>
+                            <td>{{this.experience}}</td>
+                            <td>{{this.created_at}}</td>
+                            <td>
+                                <a href="#" onclick="deleteItem('/feedback/delete', '{{this.id}}')">
+                                    <i class="menu-icon tf-icons bx bx-box text-danger"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {{/each}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

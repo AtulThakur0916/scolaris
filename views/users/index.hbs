@@ -41,16 +41,25 @@
               <th>Name</th>
               <th>Email</th>
               <th>Role</th>
+              <th>Administrator ID</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {{#each users}}
             <tr>
-              <td>{{@index}}</td>
+              <td class="row-index" data-index="{{@index}}"></td>
               <td>{{this.name}}</td>
               <td>{{this.email}}</td>
               <td>{{this.role.name}}</td>
+              <td>
+                {{#if logo}}
+                <a href="{{logo}}" target="_blank">View ID</a>
+                {{else}}
+                <span>Doc not uploaded</span>
+                {{/if}}
+              </td>
+
               <td>
                 <a href="/users/edit/{{this.id}}"> <i class="menu-icon tf-icons bx bx-edit-alt text-primary"></i></a>
                 <a href="#" onclick="deleteItem('/users/delete', '{{this.id}}')">

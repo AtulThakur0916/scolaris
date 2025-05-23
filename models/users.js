@@ -5,6 +5,15 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true
+    }, school_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'schools',
+        key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE'
     },
     name: DataTypes.STRING,
     email: { type: DataTypes.STRING, unique: true },

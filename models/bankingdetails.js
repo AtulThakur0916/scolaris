@@ -24,10 +24,25 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING(255),
         allowNull: false,
       },
+      business_name: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+      },
+      settlement_bank: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+      },
+      subaccount_code: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+      },
+      paystack_id: {
+        type: DataTypes.STRING(255),
+        allowNull: false,
+      },
       account_number: {
         type: DataTypes.STRING(50),
         allowNull: false,
-        unique: true,
       },
       account_holder: {
         type: DataTypes.STRING(255),

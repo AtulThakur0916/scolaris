@@ -1,0 +1,494 @@
+<style>
+    :root {
+        --primary-color: #6C5CE7;
+        --secondary-color: #5A4ED1;
+        --text-color: #2D3436;
+        --border-radius: 12px;
+    }
+
+    body {
+        background-color: #f8f9fa;
+        color: var(--text-color);
+    }
+
+    .content-wrapper {
+        padding: 40px 0;
+        min-height: calc(100vh - 70px);
+    }
+
+    .form-section {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 30px;
+        margin-bottom: 25px;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+    }
+
+    .form-section h5 {
+        color: var(--primary-color);
+        border-bottom: 2px solid #eee;
+        padding-bottom: 15px;
+        margin-bottom: 25px;
+    }
+
+    .form-section h5 i {
+        margin-right: 10px;
+    }
+
+    .form-label {
+        font-weight: 500;
+        color: #4a5568;
+        margin-bottom: 8px;
+    }
+
+    .form-check-input:checked {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .form-check-input:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.25rem rgba(108, 92, 231, 0.25);
+    }
+
+    .form-control {
+        border: 1px solid #e2e8f0;
+        padding: 10px 15px;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+    }
+
+    .btn {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+    }
+
+    .btn-secondary {
+        background-color: #718096;
+        border-color: #718096;
+    }
+
+    .dropdown-toggle {
+        background: white;
+        border: 1px solid #e2e8f0;
+        text-align: left;
+        padding: 10px 15px;
+    }
+
+
+    .card-title {
+        color: var(--primary-color);
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin-bottom: 30px;
+    }
+
+    .alert {
+        border-radius: var(--border-radius);
+        margin-bottom: 20px;
+    }
+
+    /* File input styling */
+    input[type="file"] {
+        padding: 8px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .form-section {
+            padding: 20px;
+        }
+
+        .content-wrapper {
+            padding: 20px 0;
+        }
+    }
+
+    .content-wrapper {
+        padding-top: 30px;
+    }
+
+    .card {
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .dropdown-menu {
+        z-index: 1050;
+    }
+
+    #logoPreview {
+        max-height: 80px;
+    }
+
+    .navbar {
+        padding: 15px 0;
+        background: white;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .navbar-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .navbar-brand img {
+        height: 35px;
+    }
+
+    .nav-link {
+        color: #333 !important;
+        font-weight: 500;
+        padding: 0.5rem 1rem !important;
+    }
+
+    .nav-link:hover {
+        color: #6C5CE7 !important;
+    }
+
+    .register-btn {
+        background: #6C5CE7;
+        color: white !important;
+        border-radius: 8px;
+        padding: 8px 20px !important;
+    }
+
+    .language-selector {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: 15px;
+    }
+
+    .language-selector img {
+        height: 20px;
+        width: auto;
+    }
+
+    /* Page Specific Styles */
+    .content-wrapper {
+        background: #f8f9fa;
+        padding: 40px 0;
+        min-height: calc(100vh - 70px);
+    }
+
+    .form-section {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        margin-bottom: 20px;
+    }
+</style>
+<div class="container mt-3">
+
+    {{#if error}}
+    <div class="alert alert-danger">{{error}}</div>
+    {{/if}}
+    {{#if success}}
+    <div class="alert alert-success">{{success}}</div>
+    {{/if}}
+</div>
+
+<div class="content-wrapper">
+    <div class="container">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h4 class="card-title text-center mb-4">School Registration</h4>
+            </div>
+        </div>
+        <div class="form-section">
+            <h5 class="mb-4"><i class="bi bi-building"></i> School Information</h5>
+            <form action="/super/school/save" method="post" enctype="multipart/form-data">
+                <!-- School Info -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">School Name</label>
+                        <input type="text" max="20" name="name" placeholder="Enter school name"
+                            class="form-control {{#if errors.name}}is-invalid{{/if}}"
+                            value="{{lookup schoolData 'name'}}" required />
+                        {{#if errors.name}}<div class="invalid-feedback">{{errors.name.msg}}</div>
+                        {{/if}}
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">School Type</label>
+                        <select name="type" class="form-control {{#if errors.type}}is-invalid{{/if}}" required>
+                            <option value="">Select Type</option>
+                            <option value="Primary" {{#ifEquals schoolData.type "Primary" }}selected{{/ifEquals}}>
+                                Primary</option>
+                            <option value="Secondary" {{#ifEquals schoolData.type "Secondary" }}selected{{/ifEquals}}>
+                                Secondary</option>
+                            <option value="High School" {{#ifEquals schoolData.type "High School"
+                                }}selected{{/ifEquals}}>High School</option>
+                            <option value="University" {{#ifEquals schoolData.type "University" }}selected{{/ifEquals}}>
+                                University</option>
+                        </select>
+                        {{#if errors.type}}<div class="invalid-feedback">{{errors.type.msg}}</div>
+                        {{/if}}
+                    </div>
+                </div>
+
+                <!-- Contact Info -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Phone Number</label>
+                        <input type="tel" name="phone_number"
+                            class="form-control {{#if errors.phone_number}}is-invalid{{/if}}"
+                            placeholder="Enter phone number" value="{{lookup schoolData 'phone_number'}}" required />
+                        {{#if errors.phone_number}}<div class="invalid-feedback">
+                            {{errors.phone_number.msg}}</div>{{/if}}
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control {{#if errors.email}}is-invalid{{/if}}"
+                            placeholder="Enter school email" value="{{lookup schoolData 'email'}}" required />
+                        {{#if errors.email}}<div class="invalid-feedback">{{errors.email.msg}}</div>
+                        {{/if}}
+                    </div>
+                </div>
+
+                <!-- Address Info -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Country</label>
+                        <input type="text" name="country" class="form-control {{#if errors.country}}is-invalid{{/if}}"
+                            value="côte d'Ivoire" readonly />
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Region</label>
+                        <input type="text" name="state" class="form-control {{#if errors.state}}is-invalid{{/if}}"
+                            value="{{lookup schoolData 'state'}}" />
+                        {{#if errors.state}}<div class="invalid-feedback">{{errors.state.msg}}</div>
+                        {{/if}}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Town</label>
+                        <input type="text" name="city" class="form-control {{#if errors.city}}is-invalid{{/if}}"
+                            value="{{lookup schoolData 'city'}}" />
+                        {{#if errors.city}}<div class="invalid-feedback">{{errors.city.msg}}</div>
+                        {{/if}}
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Address</label>
+                        <input type="text" name="location" class="form-control {{#if errors.location}}is-invalid{{/if}}"
+                            value="{{lookup schoolData 'location'}}" />
+                        {{#if errors.location}}<div class="invalid-feedback">{{errors.location.msg}}
+                        </div>{{/if}}
+                    </div>
+                </div>
+
+                <!-- Logo -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">School Logo</label>
+                        <input type="file" name="logo" accept="image/*"
+                            class="form-control {{#if errors.logo}}is-invalid{{/if}}" />
+                        {{#if errors.logo}}<div class="invalid-feedback">{{errors.logo.msg}}</div>
+                        {{/if}}
+                        <img id="logoPreview" class="mt-2 d-none" />
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Document Upload (Accepted formats: JPG, PNG, PDF – Max size
+                            5MB)</label>
+                        <input type="file" name="school_doc"
+                            class="form-control {{#if errors.school_doc}}is-invalid{{/if}}"
+                            value="{{lookup schoolData 'school_doc'}}" />
+                        {{#if errors.school_doc}}<div class="invalid-feedback">
+                            {{errors.school_doc.msg}}</div>{{/if}}
+                    </div>
+
+                    {{!--
+                </div> --}}
+        </div>
+    </div>
+    <div class="form-section">
+        <h5 class="mb-4"><i class="bi bi-person"></i> Administrator Information</h5>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Full Name</label>
+                <input type="text" name="admin_name" class="form-control {{#if errors.admin_name}}is-invalid{{/if}}"
+                    value="{{lookup schoolData 'admin_name'}}" />
+                {{#if errors.admin_name}}<div class="invalid-feedback">
+                    {{errors.admin_name.msg}}</div>{{/if}}
+            </div>
+
+            <!-- Administrator Info section -->
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Email Address</label>
+                <input type="email" name="admin_email" class="form-control {{#if errors.admin_email}}is-invalid{{/if}}"
+                    value="{{lookup schoolData 'admin_email'}}" />
+                {{#if errors.admin_email}}<div class="invalid-feedback">
+                    {{errors.admin_email.msg}}</div>{{/if}}
+            </div>
+        </div> <!-- Close first row -->
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Phone Number</label>
+                <input type="text" name="admin_phone" class="form-control {{#if errors.admin_phone}}is-invalid{{/if}}"
+                    value="{{lookup schoolData 'admin_phone'}}" />
+                {{#if errors.admin_phone}}<div class="invalid-feedback">
+                    {{errors.admin_phone.msg}}</div>{{/if}}
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Password</label>
+                <input type="text" name="admin_password"
+                    class="form-control {{#if errors.admin_password}}is-invalid{{/if}}"
+                    value="{{lookup schoolData 'admin_password'}}" />
+                {{#if errors.admin_password}}<div class="invalid-feedback">
+                    {{errors.admin_password.msg}}
+                </div>{{/if}}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Administrator ID (National ID, Passport, or Driver’s License)</label>
+                <input type="file" name="admin_id" class="form-control {{#if errors.admin_id}}is-invalid{{/if}}"
+                    value="{{lookup schoolData 'admin_id'}}" />
+                {{#if errors.admin_id}}<div class="invalid-feedback">
+                    {{errors.admin_id.msg}}</div>{{/if}}
+            </div>
+        </div>
+    </div>
+    <!-- Bank Info -->
+    <div class="form-section">
+        <h5 class="mb-4"><i class="bi bi-bank"></i> Bank Information</h5>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Bank Name</label>
+                <input type="text" name="bank_name" class="form-control {{#if errors.bank_name}}is-invalid{{/if}}"
+                    value="{{lookup schoolData 'bank_name'}}" />
+                {{#if errors.bank_name}}<div class="invalid-feedback">{{errors.bank_name.msg}}
+                </div>{{/if}}
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Account Holder</label>
+                <input type="text" name="account_holder"
+                    class="form-control {{#if errors.account_holder}}is-invalid{{/if}}"
+                    value="{{lookup schoolData 'account_holder'}}" />
+                {{#if errors.account_holder}}<div class="invalid-feedback">
+                    {{errors.account_holder.msg}}</div>{{/if}}
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Account Number</label>
+                <input type="text" name="account_number"
+                    class="form-control {{#if errors.account_number}}is-invalid{{/if}}"
+                    value="{{lookup schoolData 'account_number'}}" />
+                {{#if errors.account_number}}<div class="invalid-feedback">
+                    {{errors.account_number.msg}}</div>{{/if}}
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label class="form-label">IBAN Document</label>
+                <input type="file" name="iban_document"
+                    class="form-control {{#if errors.iban_document}}is-invalid{{/if}}" />
+                {{#if errors.iban_document}}<div class="invalid-feedback">
+                    {{errors.iban_document.msg}}</div>{{/if}}
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Settlement Bank</label>
+                <input type="text" name="settlement_bank"
+                    class="form-control {{#if errors.settlement_bank}}is-invalid{{/if}}"
+                    value="{{lookup schoolData 'settlement_bank'}}" required />
+                {{#if errors.settlement_bank}}<div class="invalid-feedback">
+                    {{errors.settlement_bank.msg}}</div>{{/if}}
+            </div>
+        </div>
+    </div>
+    <!-- Submit -->
+    <div class="d-flex justify-content-end mt-4">
+        <a href="/super/school/add" class="btn btn-secondary me-2">
+            <i class="bi bi-x-circle"></i> Clear
+        </a>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i> Create School
+        </button>
+    </div>
+    </form>
+</div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const dropdownMenu = document.getElementById("countryDropdownMenu");
+        const selectedCountryName = document.getElementById("selectedCountryName");
+        const selectedCountryFlag = document.getElementById("selectedCountryFlag");
+        const countryInput = document.getElementById("countryInput");
+        const countrySearch = document.getElementById("countrySearch");
+
+        const preselectedCountry = "{{schoolData.country}}";
+        if (preselectedCountry) {
+            const selectedOption = dropdownMenu.querySelector(`[data-code="${preselectedCountry}"]`);
+            if (selectedOption) {
+                selectedCountryName.textContent = selectedOption.textContent.trim();
+                selectedCountryFlag.src = selectedOption.getAttribute("data-flag");
+                selectedCountryFlag.style.display = "inline";
+                countryInput.value = preselectedCountry;
+            }
+        }
+
+        dropdownMenu.addEventListener("click", (e) => {
+            e.preventDefault();
+            const clickedOption = e.target.closest(".country-option");
+            if (clickedOption) {
+                const code = clickedOption.dataset.code;
+                const flag = clickedOption.dataset.flag;
+                const name = clickedOption.textContent.trim();
+
+                selectedCountryName.textContent = name;
+                selectedCountryFlag.src = flag;
+                selectedCountryFlag.style.display = "inline";
+                countryInput.value = code;
+            }
+        });
+
+        countrySearch.addEventListener("input", () => {
+            const searchValue = countrySearch.value.toLowerCase();
+            const options = dropdownMenu.querySelectorAll(".country-option");
+            options.forEach(option => {
+                const text = option.textContent.toLowerCase();
+                option.closest("li").style.display = text.includes(searchValue) ? "" : "none";
+            });
+        });
+
+        const logoInput = document.querySelector('input[name="logo"]');
+        logoInput?.addEventListener('change', function () {
+            const file = this.files[0];
+            const preview = document.getElementById('logoPreview');
+            if (file) {
+                preview.src = URL.createObjectURL(file);
+                preview.classList.remove('d-none');
+            }
+        });
+    });
+</script>

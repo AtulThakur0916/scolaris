@@ -3,16 +3,30 @@ const { body, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 
 module.exports.controller = function (app) {
+
     /**
      * Render Activities Index Page
      */
     app.get('/activities/index', async (req, res) => {
         if (!req.isAuthenticated()) {
-            req.flash('error', 'Please login to continue.');
+            req.flash('error', 'Please login to continue');
             return res.redirect('/login');
         }
 
+        const role = req.user.role.name;
+
+        if (role !== "SuperAdmin" && role !== "School" && role !== "SubAdmin") {
+            req.flash('error', 'You are not authorised to access this page.');
+            return res.redirect('/');
+        }
+
         try {
+            let whereCondition = {};
+
+            if (role === "School" || role === "SubAdmin") {
+                whereCondition.school_id = req.user.school_id;
+            }
+
             const activityDetails = await models.Activity.findAll({
                 attributes: ['id', 'title', 'description', 'status', 'school_id'],
                 include: [
@@ -22,14 +36,14 @@ module.exports.controller = function (app) {
                         attributes: ['name']
                     }
                 ],
-                order: [['title', 'ASC']]
+                where: whereCondition,
+                order: [['title', 'ASC']],
+                raw: true,
+                nest: true
             });
 
-            // Convert to plain objects to avoid nested dataValues issues
-            const plainActivities = activityDetails.map(activity => activity.get({ plain: true }));
-
             res.render('activities/index', {
-                activityDetails: plainActivities,
+                activityDetails,
                 success: req.flash('success'),
                 error: req.flash('error')
             });
@@ -40,7 +54,6 @@ module.exports.controller = function (app) {
         }
     });
 
-
     /**
      * Render Create Activity Page
      */
@@ -50,24 +63,34 @@ module.exports.controller = function (app) {
             return res.redirect('/login');
         }
 
-        try {
-            const schools = await models.Schools.findAll({
-                attributes: ['id', 'name'], // Fetch only 'id' and 'name'
-                where: {
-                    status: 'Approve'
-                },
-                order: [['name', 'ASC']]
-            });
+        const { name: role } = req.user.role;
 
-            // Convert to plain objects to avoid issues in Handlebars
-            const plainSchools = schools.map(school => school.get({ plain: true }));
+        if (role !== "SuperAdmin" && role !== "School" && role !== "SubAdmin") {
+            req.flash('error', 'You are not authorised to access this page.');
+            return res.redirect('/');
+        }
+
+        try {
+            const schoolCondition = { status: 'Approve' };
+
+            if (role === "School" || role === "SubAdmin") {
+                schoolCondition.id = req.user.school_id;
+            }
+
+            const schools = await models.Schools.findAll({
+                attributes: ['id', 'name'],
+                where: schoolCondition,
+                raw: true
+            });
 
             const errors = req.flash('errors')[0] || {};
             const formData = req.flash('activity')[0] || {};
 
             res.render('activities/create', {
-                activity: formData, success: res.locals.success,
-                error: res.locals.error, schools: plainSchools
+                activity: formData,
+                success: res.locals.success,
+                error: res.locals.error,
+                schools
             });
         } catch (error) {
             console.error('Error loading create activity page:', error);
@@ -75,7 +98,6 @@ module.exports.controller = function (app) {
             res.redirect('/activities/index');
         }
     });
-
 
     /**
      * Handle Create Activity
@@ -86,6 +108,7 @@ module.exports.controller = function (app) {
         body('description').optional().trim()
     ], async (req, res) => {
         const errors = validationResult(req);
+
         if (!errors.isEmpty()) {
             req.flash('errors', errors.mapped());
             req.flash('activity', req.body);
@@ -114,24 +137,38 @@ module.exports.controller = function (app) {
             return res.redirect('/login');
         }
 
+        const { name: role } = req.user.role;
+
+        if (role !== "SuperAdmin" && role !== "School" && role !== "SubAdmin") {
+            req.flash('error', 'You are not authorised to access this page.');
+            return res.redirect('/');
+        }
+
         try {
             const activity = await models.Activity.findByPk(req.params.id);
+
             if (!activity) {
                 req.flash('error', 'Activity not found.');
                 return res.redirect('/activities/index');
             }
 
-            // const schools = await models.Schools.findAll({ order: [['name', 'ASC']] });
+            const schoolCondition = { status: 'Approve' };
+
+            if (role === "School" || role === "SubAdmin") {
+                if (!req.user.school_id) {
+                    req.flash('error', 'School ID is missing for the user.');
+                    return res.redirect('/activities/index');
+                }
+                schoolCondition.id = req.user.school_id;
+            }
+
             const schools = await models.Schools.findAll({
-                attributes: ['id', 'name'], // Fetch only 'id' and 'name'
-                where: {
-                    status: 'Approve'
-                },
-                order: [['name', 'ASC']]
+                attributes: ['id', 'name'],
+                where: schoolCondition,
+                order: [['name', 'ASC']],
+                raw: true
             });
 
-            // Convert to plain objects to avoid issues in Handlebars
-            const plainSchools = schools.map(school => school.get({ plain: true }));
             const errors = req.flash('errors')[0] || {};
             const formData = req.flash('activity')[0] || {};
             const activityData = { ...activity.get(), ...formData };
@@ -139,7 +176,7 @@ module.exports.controller = function (app) {
             res.render('activities/edit', {
                 activityDetail: activityData,
                 errors,
-                schools: plainSchools,
+                schools,
                 messages: { success: req.flash('success'), error: req.flash('error') }
             });
         } catch (error) {
@@ -148,7 +185,6 @@ module.exports.controller = function (app) {
             res.redirect('/activities/index');
         }
     });
-
 
     /**
      * Handle Update Activity
@@ -201,6 +237,7 @@ module.exports.controller = function (app) {
 
         try {
             const activity = await models.Activity.findByPk(req.params.id);
+
             if (!activity) {
                 return res.status(404).json({ success: false, message: 'Activity not found.' });
             }

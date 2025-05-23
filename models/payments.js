@@ -6,7 +6,9 @@ module.exports = (sequelize) => {
         static associate(models) {
             Payments.belongsTo(models.Parents, { foreignKey: 'parent_id', as: 'parent' });
             Payments.belongsTo(models.Students, { foreignKey: 'student_id', as: 'student' });
-            Payments.belongsTo(models.Fees, { foreignKey: 'fee_id', as: 'fee' });
+            // Payments.belongsTo(models.Fees, { foreignKey: 'fee_id', as: 'fee' });
+            Payments.belongsTo(models.StudentFee, { foreignKey: 'student_fee_id', as: 'studentFee' });
+
         }
     }
 
@@ -25,7 +27,16 @@ module.exports = (sequelize) => {
                 type: DataTypes.UUID,
                 allowNull: true,
             },
-            fee_id: {
+
+            school_id: {
+                type: DataTypes.UUID,
+                allowNull: true,
+            },
+            class_id: {
+                type: DataTypes.UUID,
+                allowNull: true,
+            },
+            school_sessions_id: {
                 type: DataTypes.UUID,
                 allowNull: true,
             },
@@ -40,6 +51,10 @@ module.exports = (sequelize) => {
             },
             description: {
                 type: DataTypes.TEXT,
+                allowNull: true,
+            },
+            reference: {
+                type: DataTypes.STRING,
                 allowNull: true,
             },
             status: {

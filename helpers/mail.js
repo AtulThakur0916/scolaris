@@ -1,3 +1,4 @@
+const { console } = require('inspector');
 const nodemailer = require('nodemailer');
 const env = process.env.NODE_ENV || 'development';
 const config = require('../../config/config.json')[env];
@@ -13,7 +14,8 @@ const winston = require('winston');
     });
 
 const sendEmail = (email, subject, text, options, template = null, context = {}) => {
-
+    console.log(template);
+    console.log("hii");
 
     const { host, username, password, port } = config.mail;
         var smtpConfig = {
@@ -30,7 +32,8 @@ const sendEmail = (email, subject, text, options, template = null, context = {})
         
         logger.info(template);
         if(template != null) {
-
+console.log(template);
+console.log("dsf");
             // point to the template folder
             const handlebarOptions = {
                 viewEngine: {

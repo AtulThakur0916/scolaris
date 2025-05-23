@@ -28,7 +28,8 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <label for="name" class="form-label">School Name</label>
-                                    <input type="text" class="form-control {{#if errors.name}}is-invalid{{/if}}"
+                                    <input type="text" max="20"
+                                        class="form-control {{#if errors.name}}is-invalid{{/if}}"
                                         placeholder="Enter school name" name="name" value="{{lookup school 'name'}}"
                                         required />
                                     {{#if errors.name}}
@@ -82,43 +83,15 @@
                             <div class="row mt-2">
                                 <div class="col-md-6">
                                     <label for="country" class="form-label">Country</label>
-                                    <div class="dropdown">
-                                        <!-- Dropdown Button -->
-                                        <button class="btn btn-light dropdown-toggle w-100" type="button"
-                                            id="countryDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <img id="selectedCountryFlag" src="" alt="Flag"
-                                                style="width: 20px; height: auto; margin-right: 5px; display: none;">
-                                            <span id="selectedCountryName">Select Country</span>
-                                        </button>
-
-                                        <!-- Dropdown Menu -->
-                                        <ul class="dropdown-menu w-100" aria-labelledby="countryDropdown"
-                                            id="countryDropdownMenu" style="max-height: 200px; overflow-y: auto;">
-
-                                            <!-- Search Input -->
-                                            <li class="p-2">
-                                                <input type="text" class="form-control" id="countrySearch"
-                                                    placeholder="Search Country...">
-                                            </li>
-
-                                            <!-- Country List -->
-                                            {{#each countries}}
-                                            <li>
-                                                <a class="dropdown-item d-flex align-items-center country-option"
-                                                    href="#" data-code="{{code}}" data-flag="{{flag}}">
-                                                    <img src="{{flag}}" alt="{{name}}"
-                                                        style="width: 20px; height: auto; margin-right: 10px;">
-                                                    {{name}}
-                                                </a>
-                                            </li>
-                                            {{/each}}
-                                        </ul>
-                                    </div>
-                                    <input type="hidden" name="country" id="countryInput" required>
-
+                                    <input type="text" name="country"
+                                        class="form-control {{#if errors.country}}is-invalid{{/if}}"
+                                        value="côte d'Ivoire" readonly />
+                                    {{#if errors.country}}
+                                    <div class="invalid-feedback">{{errors.country.msg}}</div>
+                                    {{/if}}
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="state" class="form-label">State</label>
+                                    <label for="state" class="form-label">Region</label>
                                     <input type="text" class="form-control {{#if errors.state}}is-invalid{{/if}}"
                                         name="state" value="{{lookup school 'state'}}" />
                                     {{#if errors.state}}
@@ -129,7 +102,7 @@
                             </div>
                             <div class="row mt-2">
                                 <div class="col-md-6">
-                                    <label for="city" class="form-label">City</label>
+                                    <label for="city" class="form-label">Town</label>
                                     <input type="text" class="form-control {{#if errors.city}}is-invalid{{/if}}"
                                         name="city" value="{{lookup school 'city'}}" />
                                     {{#if errors.city}}
@@ -159,7 +132,8 @@
                                 </div> --}}
 
                                 <div class="col-md-6">
-                                    <label for="logo" class="form-label">School Logo</label>
+                                    <label for="logo" class="form-label">School Logo (Only PNG, JPG, JPEG, and GIF files
+                                        are allowed and Max Size is 5mb)</label>
                                     <input type="file" class="form-control {{#if errors.logo}}is-invalid{{/if}}"
                                         name="logo" accept="image/*" />
                                     {{#if errors.logo}}
@@ -167,6 +141,19 @@
                                     {{/if}}
                                     {{#if school.logo}}
                                     <img src="{{school.logo}}" alt="School Logo" class="mt-2 img-thumbnail" width="100">
+                                    {{/if}}
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="school_doc" class="form-label">Document Upload (Accepted formats: JPG,
+                                        PNG, PDF – Max size
+                                        5MB)</label>
+                                    <input type="file" class="form-control {{#if errors.school_doc}}is-invalid{{/if}}"
+                                        name="school_doc" />
+                                    {{#if errors.school_doc}}
+                                    <div class="invalid-feedback">{{errors.school_doc.msg}}</div>
+                                    {{/if}}
+                                    {{#if school.school_doc}}
+                                    <a href="{{school.school_doc}}">View School Doc</a>
                                     {{/if}}
                                 </div>
                             </div>

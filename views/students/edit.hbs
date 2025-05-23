@@ -35,7 +35,7 @@
                     <h5 class="card-header">Edit Student</h5>
 
                     <div class="card-body">
-                        <form action="/students/update/{{debug.studentId}}" method="POST">
+                        <form action="/students/update/{{debug.studentId}}" method="POST" enctype="multipart/form-data">
 
 
                             <div class="row">
@@ -108,43 +108,15 @@
                             <div class="row mt-2">
                                 <div class="col-md-6">
                                     <label for="country" class="form-label">Country</label>
-                                    <div class="dropdown">
-                                        <!-- Dropdown Button -->
-                                        <button class="btn btn-light dropdown-toggle w-100" type="button"
-                                            id="countryDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                                            <img id="selectedCountryFlag" src="" alt="Flag"
-                                                style="width: 20px; height: auto; margin-right: 5px; display: none;">
-                                            <span id="selectedCountryName">Select Country</span>
-                                        </button>
-
-                                        <!-- Dropdown Menu -->
-                                        <ul class="dropdown-menu w-100" aria-labelledby="countryDropdown"
-                                            id="countryDropdownMenu" style="max-height: 200px; overflow-y: auto;">
-
-                                            <!-- Search Input -->
-                                            <li class="p-2">
-                                                <input type="text" class="form-control" id="countrySearch"
-                                                    placeholder="Search Country...">
-                                            </li>
-
-                                            <!-- Country List -->
-                                            {{#each countries}}
-                                            <li>
-                                                <a class="dropdown-item d-flex align-items-center country-option"
-                                                    href="#" data-code="{{code}}" data-flag="{{flag}}">
-                                                    <img src="{{flag}}" alt="{{name}}"
-                                                        style="width: 20px; height: auto; margin-right: 10px;">
-                                                    {{name}}
-                                                </a>
-                                            </li>
-                                            {{/each}}
-                                        </ul>
-                                    </div>
-                                    <input type="hidden" name="country" id="countryInput" required>
-
+                                    <input type="text" name="country"
+                                        class="form-control {{#if errors.country}}is-invalid{{/if}}"
+                                        value="côte d'Ivoire" readonly />
+                                    {{#if errors.country}}
+                                    <div class="invalid-feedback">{{errors.country.msg}}</div>
+                                    {{/if}}
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="state" class="form-label">State</label>
+                                    <label for="state" class="form-label">Region</label>
                                     <input type="text" class="form-control {{#if errors.state}}is-invalid{{/if}}"
                                         name="state" value="{{lookup studentData 'state'}}" />
                                     {{#if errors.state}}
@@ -155,7 +127,7 @@
                             </div>
                             <div class="row mt-2">
                                 <div class="col-md-6">
-                                    <label for="city" class="form-label">City</label>
+                                    <label for="city" class="form-label">Town</label>
                                     <input type="text" class="form-control {{#if errors.city}}is-invalid{{/if}}"
                                         name="city" value="{{lookup studentData 'city'}}" />
                                     {{#if errors.city}}
@@ -177,7 +149,7 @@
                                     <label for="roll_number" class="form-label">Roll Number</label>
                                     <input type="number"
                                         class="form-control {{#if errors.roll_number}}is-invalid{{/if}}"
-                                        name="roll_number" value="{{lookup studentData 'roll_number'}}" />
+                                        name="roll_number" min="1" value="{{lookup studentData 'roll_number'}}" />
                                     {{#if errors.roll_number}}
                                     <div class="invalid-feedback">{{errors.roll_number.msg}}</div>
                                     {{/if}}
@@ -196,6 +168,29 @@
                                     {{/if}}
                                 </div>
                             </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <label for="profile_pic" class="form-label">Profile Image</label>
+                                    <input type="file" class="form-control {{#if errors.profile_pic}}is-invalid{{/if}}"
+                                        name="profile_pic" />
+                                    {{#if errors.profile_pic}}
+                                    <div class="invalid-feedback">{{errors.profile_pic.msg}}</div>
+                                    {{/if}}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label d-block">Current Profile Image</label>
+                                    {{#if studentData.profile_pic}}
+                                    <img src="{{studentData.profile_pic}}" alt="Profile Pic" class="img-thumbnail"
+                                        style="max-width: 120px;">
+                                    {{else}}
+                                    <img src="/images/default-user.png" alt="Default Profile" class="img-thumbnail"
+                                        style="max-width: 120px;">
+                                    {{/if}}
+                                </div>
+                            </div>
+
+
+
                             <div class="mt-4">
                                 <button type="submit" class="btn btn-primary float-end">Update Student</button>
                                 <a href="/students/index" class="btn btn-secondary float-end me-2">Cancel</a>

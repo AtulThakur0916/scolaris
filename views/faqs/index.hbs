@@ -48,7 +48,7 @@
                     <tbody>
                         {{#each faqs}}
                         <tr>
-                            <td>{{@index}}</td>
+                            <td class="row-index" data-index="{{@index}}"></td>
                             <td>{{this.question}}</td>
                             {{!-- <td>{{this.answer}}</td> --}}
                             <td class="faq-answer">{{this.answer}}</td>

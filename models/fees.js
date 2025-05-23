@@ -22,9 +22,15 @@ module.exports = (sequelize, DataTypes) => {
                 key: 'id'
             }
         },
-        fee_type: {
-            type: DataTypes.ENUM('Tuition', 'Transport', 'Cafeteria', 'Exam', 'Boarding', 'Events', 'Other'),
-            allowNull: false
+        fees_type_id: {
+            type: DataTypes.UUID,
+            allowNull: false,
+            references: {
+                model: 'fees_types',
+                key: 'id'
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE'
         },
         custom_fee_name: {
             type: DataTypes.STRING(255),
@@ -67,6 +73,8 @@ module.exports = (sequelize, DataTypes) => {
     Fees.associate = function (models) {
         Fees.belongsTo(models.Schools, { foreignKey: 'school_id', as: 'school' });
         Fees.belongsTo(models.Classes, { foreignKey: 'class_id', as: 'class' });
+        Fees.belongsTo(models.SchoolSessions, { foreignKey: 'school_sessions_id', as: 'session' });
+        Fees.belongsTo(models.FeesTypes, { foreignKey: 'fees_type_id', as: 'feesType' }); // ✅ Added association
     };
 
     return Fees;

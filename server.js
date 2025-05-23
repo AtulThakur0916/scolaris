@@ -17,6 +17,7 @@ const { Users } = require('./models'); // Ensure correct import
 const { sendEmail } = require('./helpers/zepto');
 const { Op } = sequelize;
 const { initializeRedisClient } = require('./helpers/redis');
+
 //const apiRoutes = require('./routes/api');
 require('dotenv').config();
 require('./passport/init')(passport);
@@ -68,10 +69,11 @@ app.engine(
         },
     })
 );
+
+
 app.set('view engine', 'hbs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
-
 // API Routes
 //app.use('/api', apiRoutes);
 
@@ -113,7 +115,7 @@ cron.handle(sequelize, sendEmail, Op);
 
 // Route Authentication Middleware
 app.get('/*', (req, res, next) => {
-    const publicRoutes = ['/login', '/register', '/forgot', '/notify'];
+    const publicRoutes = ['/login', '/register', '/forgot', '/forgot-password', '/reset-password/:token', '/notify', '/web/school/add', '/web/school/save'];
 
     if (req.path.startsWith('/reset') || req.path.startsWith('/admin/')) {
         publicRoutes.push(req.path);
@@ -122,7 +124,9 @@ app.get('/*', (req, res, next) => {
     if (req.path.startsWith('/api/')) {
         return next();
     }
-
+    if (req.path.startsWith('/web/')) {
+        return next();
+    }
     if (!req.isAuthenticated() && !publicRoutes.includes(req.path)) {
         return res.redirect('/login');
     }

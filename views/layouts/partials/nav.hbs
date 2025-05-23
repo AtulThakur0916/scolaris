@@ -10,9 +10,8 @@
     <!-- Search -->
     <div class="navbar-nav align-items-center">
       <div class="nav-item d-flex align-items-center">
-        <i class="bx bx-search bx-md"></i>
-        <input type="text" class="form-control border-0 shadow-none ps-1 ps-sm-2" placeholder="Search..."
-          aria-label="Search..." />
+        {{!-- <i class="bx bx-search bx-md"></i> --}}
+        <input type="text" readonly class="form-control border-0 shadow-none ps-1 ps-sm-2" aria-label="Search..." />
       </div>
     </div>
     <!-- /Search -->
@@ -20,10 +19,13 @@
     <ul class="navbar-nav flex-row align-items-center ms-auto">
       <!-- Place this tag where you want the button to render. -->
       <li class="nav-item lh-1 me-4">
-        <a class="github-button" href="https://github.com/themeselection/sneat-html-admin-template-free"
-          data-icon="octicon-star" data-size="large" data-show-count="true"
-          aria-label="Star themeselection/sneat-html-admin-template-free on GitHub">Star</a>
+        <a class="btn btn-primary" href="/super/school/add" role="button"
+          aria-label="Add a new school">
+          Add School
+        </a>
       </li>
+
+
 
       <!-- User -->
       <li class="nav-item navbar-dropdown dropdown-user dropdown">
@@ -52,17 +54,17 @@
           <li>
             <div class="dropdown-divider my-1"></div>
           </li>
-          <li>
+          {{!-- <li>
             <a class="dropdown-item" href="#">
               <i class="bx bx-user bx-md me-3"></i><span>My Profile</span>
             </a>
-          </li>
-          <li>
+          </li> --}}
+          {{!-- <li>
             <a class="dropdown-item" href="#">
               <i class="bx bx-cog bx-md me-3"></i><span>Settings</span>
             </a>
-          </li>
-          <li>
+          </li> --}}
+          {{!-- <li>
             <a class="dropdown-item" href="#">
               <span class="d-flex align-items-center align-middle">
                 <i class="flex-shrink-0 bx bx-credit-card bx-md me-3"></i><span class="flex-grow-1 align-middle">Billing
@@ -70,7 +72,7 @@
                 <span class="flex-shrink-0 badge rounded-pill bg-danger">4</span>
               </span>
             </a>
-          </li>
+          </li> --}}
           <li>
             <div class="dropdown-divider my-1"></div>
           </li>

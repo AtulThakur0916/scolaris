@@ -4,7 +4,11 @@
   hasStudent: {{debug.hasStudent}}
   studentId: {{debug.studentId}}
 </div>
-
+<script>
+  // Add this at the beginning of your file to make feeData available in JavaScript
+  const feeData = {{{json feeData}}};
+  console.log('Fee Data:', feeData);
+</script>
 <div class="content-wrapper">
   <div class="container-xxl flex-grow-1 container-p-y">
     <div class="row g-6">
@@ -65,19 +69,16 @@
                   {{/if}}
                 </div>
                 <div class="col-md-6">
-                  <label for="fee_type" class="form-label">Fee Type</label>
-                  <select class="form-control {{#if errors.fee_type}}is-invalid{{/if}}" name="fee_type" id="feeType">
+                  <label for="fees_type_id" class="form-label">Fee Type</label>
+                  <select class="form-control {{#if errors.fees_type_id}}is-invalid{{/if}}" name="fees_type_id"
+                    id="fees_type_id">
                     <option value="" disabled selected>Select Fee Type</option>
-                    <option value="Tuition">Tuition</option>
-                    <option value="Transport">Transport</option>
-                    <option value="Cafeteria">Cafeteria</option>
-                    <option value="Exam">Exam</option>
-                    <option value="Boarding">Boarding</option>
-                    <option value="Events">Events</option>
-                    <option value="Other">Other</option>
+                    {{#each fees_type}}
+                    <option value="{{id}}">{{name}}</option>
+                    {{/each}}
                   </select>
-                  {{#if errors.fee_type}}
-                  <div class="invalid-feedback">{{errors.fee_type.msg}}</div>
+                  {{#if errors.fees_type_id}}
+                  <div class="invalid-feedback">{{errors.fees_type_id.msg}}</div>
                   {{/if}}
                 </div>
 
@@ -112,7 +113,7 @@
                     <option value="" disabled selected>Select Frequency</option>
                     <option value="Monthly">Monthly</option>
                     <option value="Quarterly">Quarterly</option>
-                    <option value="Annually">Annually</option>
+                    {{!-- <option value="Annually">Annually</option> --}}
                     <option value="One-Time">One-Time</option>
                   </select>
                   {{#if errors.frequency}}
@@ -198,46 +199,88 @@
   });
 
 
-  document.addEventListener("DOMContentLoaded", function () {
+  document.addEventListener("DOMContentLoaded", async function () {
+    const schoolSelect = document.getElementById("schoolSelect");
     const sessionSelect = document.getElementById("sessionSelect");
     const classSelect = document.getElementById("classSelect");
-    const feeType = document.getElementById("feeType");
-    const customFeeContainer = document.getElementById("customFeeContainer");
+    const feesTypeSelect = document.getElementById("fees_type_id");
+    const customFeeInput = document.querySelector('input[name="custom_fee_name"]');
+    const amountInput = document.querySelector('input[name="amount"]');
+    const frequencySelect = document.querySelector('select[name="frequency"]');
+    const descriptionTextarea = document.querySelector('textarea[name="description"]');
+    const statusSelect = document.querySelector('select[name="status"]');
 
-    // Fetch classes based on selected school
-    sessionSelect.addEventListener("change", async function () {
-      const schoolSessionsId = this.value;
-      classSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
-
-      if (schoolSessionsId) {
-        try {
-          const response = await fetch(`/school/class/${schoolSessionsId}`);
-          const data = await response.json();
-
-          if (data.classes.length > 0) {
-            classSelect.innerHTML = `<option value="" disabled selected>Select Class</option>`;
-            data.classes.forEach(cls => {
-              classSelect.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
-            });
-          } else {
-            classSelect.innerHTML = `<option value="" disabled>No classes available</option>`;
+    // Set initial values if feeData exists
+    if (feeData) {
+      // Set simple fields
+      if (feeData.custom_fee_name) customFeeInput.value = feeData.custom_fee_name;
+      if (feeData.amount) amountInput.value = feeData.amount;
+      if (feeData.description) descriptionTextarea.value = feeData.description;
+      if (feeData.status) statusSelect.value = feeData.status;
+      
+      // Set school and trigger change event
+      if (feeData.school_id) {
+        schoolSelect.value = feeData.school_id;
+        const event = new Event('change');
+        schoolSelect.dispatchEvent(event);
+        
+        // Wait for sessions to load then set session
+        setTimeout(() => {
+          if (feeData.school_sessions_id) {
+            sessionSelect.value = feeData.school_sessions_id;
+            sessionSelect.dispatchEvent(new Event('change'));
+            
+            // Wait for classes to load then set class
+            setTimeout(() => {
+              if (feeData.class_id) {
+                classSelect.value = feeData.class_id;
+              }
+            }, 500);
           }
-        } catch (error) {
-          console.error("Error fetching classes:", error);
-          classSelect.innerHTML = `<option value="" disabled>Error loading classes</option>`;
-        }
-      } else {
-        classSelect.innerHTML = `<option value="" disabled selected>Select Class</option>`;
+        }, 500);
       }
-    });
 
-    // Show custom fee name field if "Other" is selected
-    feeType.addEventListener("change", function () {
-      if (this.value === "Other") {
-        customFeeContainer.style.display = "block";
-      } else {
-        customFeeContainer.style.display = "none";
+      // Set fee type
+      if (feeData.fees_type_id) {
+        feesTypeSelect.value = feeData.fees_type_id;
       }
-    });
+
+      // Set frequency
+      if (feeData.frequency) {
+        frequencySelect.value = feeData.frequency;
+      }
+    }
+  });
+  sessionSelect.addEventListener("change", async function () {
+    const schoolSessionsId = this.value;
+
+    // Clear previous classes
+    classSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
+
+    if (schoolSessionsId) {
+      try {
+        const response = await fetch(`/school/class/${schoolSessionsId}`);
+        const data = await response.json();
+
+        if (data.classes && data.classes.length > 0) {
+          classSelect.innerHTML = `<option value="" disabled selected>Select Class</option>`;
+          data.classes.forEach(cls => {
+            classSelect.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
+          });
+
+          // Set class value if exists in feeData
+          if (feeData && feeData.class_id) {
+            classSelect.value = feeData.class_id;
+          }
+        } else {
+          classSelect.innerHTML = `<option value="" disabled>No classes available</option>`;
+        }
+      } catch (error) {
+        console.error("Error fetching classes:", error);
+        classSelect.innerHTML = `<option value="" disabled>Error loading classes</option>`;
+      }
+    } else {
+      classSelect.innerHTML = `<option value="" disabled selected>Select Class</option>`;
+    }
   });
 </script>

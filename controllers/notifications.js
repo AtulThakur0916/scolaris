@@ -117,14 +117,14 @@ module.exports.controller = function (app) {
                     });
                 }
 
-                // Ensure sort_value is a valid integer, default to 0 if missing or invalid
                 const sortValue = sort_value ? parseInt(sort_value) : 0;
                 if (isNaN(sortValue)) {
                     req.flash('error', 'Invalid sort value.');
                     return res.redirect('/notifications/create');
                 }
 
-                await models.Notifications.create({
+                // Create notification first
+                const notification = await models.Notifications.create({
                     title,
                     message,
                     notify_type,
@@ -134,20 +134,37 @@ module.exports.controller = function (app) {
                     sort_value: sortValue,
                 });
 
-                // Send email notifications
+                // Send email notifications with error handling
                 const emailSubject = `New Notification: ${title}`;
+                const emailErrors = [];
+
                 for (const parent of parents) {
                     if (parent.email) {
-                        await Promise.all(parents.map(parent => sendEmail(parent.email, emailSubject, message)));
-
+                        try {
+                            await sendEmail(parent.email, emailSubject, message);
+                        } catch (emailError) {
+                            console.error(`Failed to send email to ${parent.email}:`, emailError);
+                            emailErrors.push(parent.email);
+                        }
                     }
                 }
 
-                req.flash('success', 'New Notification created successfully. Emails sent.');
+                if (emailErrors.length > 0) {
+                    req.flash('warning', `Notification created but failed to send emails to ${emailErrors.length} recipients.`);
+                } else {
+                    req.flash('success', 'New Notification created successfully. All emails sent.');
+                }
+
                 res.redirect('/notifications/index');
             } catch (error) {
                 console.error('Error creating notification:', error);
-                req.flash('error', 'Failed to create notification.');
+                let errorMessage = 'Failed to create notification.';
+
+                if (error?.error?.code === 'TM_4001') {
+                    errorMessage = 'Email service authentication failed. Please check your email service credentials.';
+                }
+
+                req.flash('error', errorMessage);
                 res.redirect('/notifications/create');
             }
         });

@@ -72,6 +72,14 @@
 
               <div class="row mt-2">
                 <div class="col-md-6">
+                  <label for="settlement_bank" class="form-label">Settlement Bank</label>
+                  <input type="text" class="form-control {{#if errors.settlement_bank}}is-invalid{{/if}}"
+                    name="settlement_bank" value="{{bankingDetail.settlement_bank}}" required />
+                  {{#if errors.settlement_bank}}
+                  <div class="invalid-feedback">{{errors.settlement_bank.msg}}</div>
+                  {{/if}}
+                </div>
+                <div class="col-md-6">
                   <label for="iban_document" class="form-label">IBAN Document</label>
                   <input type="file" class="form-control {{#if errors.iban_document}}is-invalid{{/if}}"
                     name="iban_document" />
@@ -82,7 +90,8 @@
                   <div class="invalid-feedback">{{errors.iban_document.msg}}</div>
                   {{/if}}
                 </div>
-
+              </div>
+              <div class="row mt-2">
                 <div class="col-md-6">
                   <label for="status" class="form-label">Status</label>
                   <select class="form-control {{#if errors.status}}is-invalid{{/if}}" name="status">
@@ -94,7 +103,6 @@
                   {{/if}}
                 </div>
               </div>
-
               <div class="mt-4">
                 <button type="submit" class="btn btn-primary float-end">Save Banking Detail</button>
                 <a href="/banking/index" class="btn btn-secondary float-end me-2">Cancel</a>

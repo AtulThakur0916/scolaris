@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{page.title}} - Scolaris Pay</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        .navbar {
+            padding: 15px 0;
+        }
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .navbar-brand img {
+            height: 35px;
+        }
+        .navbar-brand span {
+            font-size: 1.2rem;
+            color: #333;
+            font-weight: 600;
+        }
+        .nav-link {
+            color: #333 !important;
+            font-weight: 500;
+            padding: 0.5rem 1rem !important;
+        }
+        .nav-link:hover {
+            color: #6C5CE7 !important;
+        }
+        .register-btn {
+            background: #6C5CE7;
+            color: white !important;
+            border-radius: 8px;
+            padding: 8px 20px !important;
+            margin-left: 15px;
+        }
+        .register-btn:hover {
+            background: #5A4ED1;
+            color: white !important;
+        }
+        .language-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 15px;
+        }
+        .language-selector img {
+            height: 20px;
+            width: auto;
+        }
+        <style>
+            /* Header Styles */
+            .cms-header {
+                background: linear-gradient(135deg, #6C5CE7 0%, #5A4ED1 100%);
+                padding: 60px 0;
+                color: white;
+            }
+            .breadcrumb {
+                background: transparent;
+            }
+            .breadcrumb-item a {
+                color: rgba(255, 255, 255, 0.8);
+                text-decoration: none;
+            }
+            .breadcrumb-item.active {
+                color: white;
+            }
+            .breadcrumb-item+.breadcrumb-item::before {
+                color: rgba(255, 255, 255, 0.6);
+            }
+            .cms-title {
+                font-size: 2.8rem;
+                font-weight: 600;
+                margin-bottom: 15px;
+                color: white;
+            }
+            .cms-meta {
+                color: rgba(255, 255, 255, 0.8);
+                font-size: 1rem;
+            }
+        
+            /* Content Styles */
+            .cms-container {
+                max-width: 1140px;
+                margin: -50px auto 0;
+                padding: 0 20px;
+                position: relative;
+            }
+            .cms-content {
+                background: white;
+                padding: 40px;
+                border-radius: 16px;
+                box-shadow: 0 5px 30px rgba(0,0,0,0.08);
+            }
+            .cms-content h2 {
+                color: #2D3436;
+                font-size: 1.8rem;
+                margin: 30px 0 20px;
+            }
+            .cms-content p {
+                color: #636E72;
+                line-height: 1.8;
+                margin-bottom: 20px;
+            }
+            .cms-content img {
+                border-radius: 12px;
+                margin: 30px 0;
+                box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+            }
+        
+            /* Footer Styles */
+            .footer {
+                background: #2D3436;
+                color: white;
+                padding: 60px 0 30px;
+                margin-top: 80px;
+            }
+            .footer-logo {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 20px;
+            }
+            .footer-logo img {
+                height: 35px;
+            }
+            .footer-logo span {
+                color: white;
+                font-size: 1.2rem;
+                font-weight: 600;
+            }
+            .footer-links {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+            .footer-links li {
+                margin-bottom: 12px;
+            }
+            .footer-links a {
+                color: rgba(255, 255, 255, 0.8);
+                text-decoration: none;
+                transition: color 0.3s;
+            }
+            .footer-links a:hover {
+                color: #6C5CE7;
+            }
+            .social-links a {
+                color: white;
+                font-size: 1.2rem;
+                margin-right: 15px;
+                transition: color 0.3s;
+            }
+            .social-links a:hover {
+                color: #6C5CE7;
+            }
+            .footer-bottom {
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+                margin-top: 40px;
+                padding-top: 20px;
+                text-align: center;
+                color: rgba(255, 255, 255, 0.6);
+            }
+        </style>
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <img src="/assets/img/logo.png" alt="Scolaris Pay Logo">
+                <span>Scolaris Pay</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav mx-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/about-us">About Us</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/our-pricing-plans">Our Pricing Plans</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/blog">Blog</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/contact">Contact</a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center">
+                    <div class="language-selector">
+                        <img src="/assets/img/en-flag.png" alt="English">
+                        <img src="/assets/img/fr-flag.png" alt="French">
+                    </div>
+                    <a href="/register" class="nav-link register-btn">REGISTER YOUR SCHOOL</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="cms-header">
+        <div class="container">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/">Home</a></li>
+                    <li class="breadcrumb-item active">{{page.title}}</li>
+                </ol>
+            </nav>
+            <h1 class="cms-title">{{page.title}}</h1>
+            <div class="cms-meta">
+                <i class="bi bi-calendar3"></i> {{page.created_at}}
+            </div>
+        </div>
+    </header>
+
+    <!-- Content -->
+    <main class="cms-container">
+        <div class="cms-content">
+            {{{page.content}}}
+        </div>
+    </main>
+
+    <!-- Updated Footer -->
+   <footer class="footer" style="background-color: #6C5CE7; color: white; padding: 60px 0 20px;">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-3 mb-4">
+                <div class="d-flex align-items-center mb-4">
+                    <img src="/assets/img/logo.png" alt="Scolaris Pay" style="height: 40px;">
+                    <h5 class="ms-2 mb-0">Scolaris Pay</h5>
+                </div>
+                <p class="mb-3">Côte d'Ivoire, Abidjan cocody, II plateaux angre terminus B1/ B2</p>
+                <p class="mb-4">225 07 47 12 86 49</p>
+                <div class="social-links">
+                    <a href="#" class="text-white me-3"><i class="bi bi-facebook"></i></a>
+                    <a href="#" class="text-white me-3"><i class="bi bi-instagram"></i></a>
+                    <a href="#" class="text-white"><i class="bi bi-linkedin"></i></a>
+                </div>
+            </div>
+            <div class="col-lg-3 mb-4">
+                <h5 class="mb-4">Quick Menu</h5>
+                <ul class="list-unstyled">
+                    <li class="mb-2"><a href="/" class="text-white text-decoration-none">Home</a></li>
+                    <li class="mb-2"><a href="/about-us" class="text-white text-decoration-none">About Us</a></li>
+                    <li class="mb-2"><a href="/our-pricing-plans" class="text-white text-decoration-none">Our Pricing Plans</a></li>
+                    <li class="mb-2"><a href="/blog" class="text-white text-decoration-none">Blog</a></li>
+                    <li class="mb-2"><a href="/contact" class="text-white text-decoration-none">Contact</a></li>
+                </ul>
+            </div>
+            <div class="col-lg-3 mb-4">
+                <h5 class="mb-4">Legal</h5>
+                <ul class="list-unstyled">
+                    <li class="mb-2"><a href="/faqs" class="text-white text-decoration-none">FAQs</a></li>
+                    <li class="mb-2"><a href="/terms" class="text-white text-decoration-none">Terms & Conditions</a></li>
+                    <li class="mb-2"><a href="/privacy" class="text-white text-decoration-none">Privacy Policy</a></li>
+                </ul>
+            </div>
+            <div class="col-lg-3 mb-4">
+                <h5 class="mb-4">Download Now</h5>
+                <div class="d-flex flex-column gap-3">
+                    <a href="#" class="text-decoration-none">
+                        <img src="/assets/img/google-play.png" alt="Google Play" style="height: 40px;">
+                    </a>
+                    <a href="#" class="text-decoration-none">
+                        <img src="/assets/img/app-store.png" alt="App Store" style="height: 40px;">
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="text-center pt-4 mt-4" style="border-top: 1px solid rgba(255,255,255,0.1);">
+            <p class="mb-0">Copyright © 2025 Scolaris. All Rights Reserved.</p>
+        </div>
+    </div>
+</footer>
+</body>
+</html>

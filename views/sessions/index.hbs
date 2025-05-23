@@ -41,6 +41,7 @@
             <i class="bx bx-upload"></i> Import
           </button>
         </form>
+        <a href="/sessions/download-format" class="btn btn-primary btn-sm">Download xlsx format</a>
       </div>
       <div class="card-datatable table-responsive p-4">
         <table class="table border-top" id="dataTable">
@@ -51,23 +52,31 @@
               <th>Start Date</th>
               <th>End Date</th>
               <th>Status</th>
+              <th>All Classess</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {{#each sessions}}
             <tr>
-              <td>{{@index}}</td>
+              <td class="row-index" data-index="{{@index}}"></td>
               <td>{{this.school.name}}</td>
-              <td>{{this.start_date}}</td>
-              <td>{{this.end_date}}</td>
+              <td>{{this.formattedStart}}</td>
+              <td>{{this.formattedEnd}}</td>
               <td>
                 <select class="status-select form-select" data-id="{{this.id}}">
                   <option value="Active" class="text-success" {{#if (eq this.status "Active" )}}selected{{/if}}>Active
                   </option>
-                  <option value="Completed" class="text-danger" {{#if (eq this.status "Completed" )}}selected{{/if}}>
+                  <option value="Inactive" class="text-danger" {{#if (eq this.status "Inactive" )}}selected{{/if}}>
+                    Inactive</option>
+                  <option value="Completed" class="text-warning" {{#if (eq this.status "Completed" )}}selected{{/if}}>
                     Completed</option>
                 </select>
+              </td>
+              <td>
+                <a href="/classes/index?school_sessions_id={{this.id}}" class="text-primary">
+                  All Classess
+                </a>
               </td>
               <td>
                 <a href="/sessions/edit/{{this.id}}"> <i class="menu-icon tf-icons bx bx-edit-alt text-primary"></i></a>
@@ -87,12 +96,14 @@
         // Update status color function
         function updateStatusColor(selectElement) {
           var status = $(selectElement).val();
-          $(selectElement).removeClass('text-success text-danger');
+          $(selectElement).removeClass('text-success text-danger text-warning');
 
           if (status === 'Active') {
             $(selectElement).addClass('text-success');
-          } else if (status === 'Completed') {
+          } else if (status === 'Inactive') {
             $(selectElement).addClass('text-danger');
+          } else if (status === 'Completed') {
+            $(selectElement).addClass('text-warning');
           }
         }
 

@@ -1,0 +1,79 @@
+{{!-- Flash Messages --}}
+{{#if messages.success}}
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    {{messages.success}}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{{/if}}
+
+{{#if messages.error}}
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    {{messages.error}}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{{/if}}
+
+<div class="content-wrapper">
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <div class="row g-6">
+            <div class="col-md-12">
+                <div class="card">
+                    <h5 class="card-header">Subscription Details</h5>
+
+                    <div class="card-body">
+                        {{!-- Subscription Information --}}
+                        <h5 class="card-title">Subscription Information</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p><strong>Subscription ID:</strong> {{subscription.id}}</p>
+                                <p><strong>Amount:</strong> {{subscription.amount}}</p>
+                                <p><strong>Status:</strong> {{subscription.status}}</p>
+                                <p><strong>Reference:</strong> {{subscription.reference}}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Payment Date:</strong> {{subscription.payment_date}}</p>
+                                <p><strong>Payment Type:</strong> {{subscription.payment_type}}</p>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        {{!-- School Information --}}
+                        <h5 class="card-title mt-3">School Information</h5>
+                        {{#if subscription.school}}
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p><strong>School Name:</strong> {{subscription.school.name}}</p>
+                                <p><strong>Email:</strong> {{subscription.school.email}}</p>
+                                <p><strong>Phone:</strong> {{subscription.school.phone_number}}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Location:</strong> {{subscription.school.location}}</p>
+                            </div>
+                        </div>
+                        {{else}}
+                        <p>No school information available.</p>
+                        {{/if}}
+
+                        {{!-- Transaction Data --}}
+                        {{!-- {{#if subscription.transaction_data}}
+                        <hr>
+                        <h5 class="card-title mt-3">Transaction Details</h5>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <pre class="bg-light p-3 rounded">{{json subscription.transaction_data}}</pre>
+                            </div>
+                        </div>
+                        {{/if}} --}}
+
+                        {{!-- Back Button --}}
+                        <div class="mt-4 text-end">
+                            <a href="/subscriptions/index" class="btn btn-secondary">Back to Subscriptions</a>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

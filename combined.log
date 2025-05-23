@@ -1,1 +1,33 @@
 {"level":"info","message":"handlebarOptions"}
+{"level":"info","message":"Sending template email: approve"}
+{"level":"error","message":"Error sending email: Error: ENOENT: no such file or directory, open 'E:\\pullIms\\templates\\approve.hbs'"}
+{"level":"info","message":"Sending template email: approve"}
+{"level":"info","message":"Email sent successfully: 250 2.0.0 Ok: queued"}
+{"level":"info","message":"Sending plain text email"}
+{"level":"error","message":"Error sending email: Error: ENOENT: no such file or directory, open 'E:\\pullIms\\templates\\undefined.hbs'"}
+{"level":"info","message":"Sending template email: approve"}
+{"level":"info","message":"Email sent successfully: 250 2.0.0 Ok: queued"}
+{"level":"info","message":"Sending template email: approve"}
+{"level":"info","message":"Email sent successfully: 250 2.0.0 Ok: queued"}
+{"level":"info","message":"Sending template email: reject"}
+{"level":"info","message":"Email sent successfully: 250 2.0.0 Ok: queued"}
+{"level":"info","message":"Sending template email: approve"}
+{"level":"info","message":"Email sent successfully: 250 2.0.0 Ok: queued"}
+{"level":"info","message":"Sending template email: approve"}
+{"level":"info","message":"Email sent successfully: 250 2.0.0 Ok: queued"}
+{"level":"info","message":"Sending template email: reject"}
+{"level":"info","message":"Email sent successfully: 250 2.0.0 Ok: queued"}
+{"level":"info","message":"Sending template email: approve"}
+{"level":"info","message":"Email sent successfully: 250 2.0.0 Ok: queued"}
+{"level":"info","message":"Sending plain text email"}
+{"level":"error","message":"Error sending email: Error: ENOENT: no such file or directory, open 'E:\\pullIms\\templates\\undefined.hbs'"}
+{"level":"info","message":"Sending template email: approve"}
+{"level":"info","message":"Email sent successfully: 250 2.0.0 Ok: queued"}
+{"level":"info","message":"Sending template email: approve"}
+{"level":"info","message":"Email sent successfully: 250 2.0.0 Ok: queued"}
+{"level":"info","message":"Sending plain text email"}
+{"level":"error","message":"Error sending email: Error: ENOENT: no such file or directory, open 'E:\\pullIms\\templates\\undefined.hbs'"}
+{"level":"info","message":"Sending template email: approve"}
+{"level":"info","message":"Email sent successfully: 250 2.0.0 Ok: queued"}
+{"level":"info","message":"Sending plain text email"}
+{"level":"error","message":"Error sending email: Error: ENOENT: no such file or directory, open 'E:\\pullIms\\templates\\undefined.hbs'"}

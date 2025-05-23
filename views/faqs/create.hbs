@@ -54,6 +54,18 @@
                             </div>
                             <div class="row mt-2">
                                 <div class="col-md-6">
+                                    <label for="type" class="form-label">Type</label>
+                                    <select class="form-control {{#if errors.type}}is-invalid{{/if}}" name="type">
+                                        <option value="top" selected>Top</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                    {{#if errors.type}}
+                                    <div class="invalid-feedback">{{errors.type.msg}}</div>
+                                    {{/if}}
+                                </div>
+                            </div>
+                            {{!-- <div class="row mt-2">
+                                <div class="col-md-6">
                                     <label for="status" class="form-label">Status</label>
                                     <select class="form-control {{#if errors.status}}is-invalid{{/if}}" name="status">
                                         <option value="1" selected>Active</option>
@@ -63,7 +75,7 @@
                                     <div class="invalid-feedback">{{errors.status.msg}}</div>
                                     {{/if}}
                                 </div>
-                            </div>
+                            </div> --}}
 
                             <div class="m-4">
                                 <button type="submit" class="btn btn-primary float-end">Save FAQ</button>

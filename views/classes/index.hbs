@@ -41,24 +41,30 @@
             <i class="bx bx-upload"></i> Import
           </button>
         </form>
+        <a href="/class/download-format" class="btn btn-primary btn-sm">Download xlsx format</a>
       </div>
       <div class="card-datatable table-responsive p-4">
         <table class="table border-top" id="dataTable">
           <thead>
             <tr>
               <th>#</th>
-              <th>Class Name</th>
               <th>School</th>
-              {{!-- <th>Status</th> --}}
+              <th>Class Name</th>
+              <th>All Student</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {{#each classes}}
             <tr>
-              <td>{{@index}}</td>
-              <td>{{this.name}}</td>
+              <td class="row-index" data-index="{{@index}}"></td>
               <td>{{this.school.name}}</td>
+              <td>{{this.name}}</td>
+              <td>
+                <a href="/students/index?class_id={{this.id}}" class="text-primary">
+                  All Students
+                </a>
+              </td>
               <td>
                 <a href="/classes/edit/{{this.id}}" class="me-2">
                   <i class="menu-icon tf-icons bx bx-edit-alt text-primary"></i>

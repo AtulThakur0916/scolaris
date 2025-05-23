@@ -46,12 +46,7 @@
                                     <label for="school_sessions_id" class="form-label">School Session</label>
                                     <select class="form-control" name="school_sessions_id" id="sessionSelect">
                                         <option value="" disabled>Select School Session</option>
-                                        {{#each formattedSessions}}
-                                        <option value="{{id}}" {{#ifEquals ../feeData.school_sessions_id
-                                            id}}selected{{/ifEquals}}>
-                                            {{start_date}} - {{end_date}}
-                                        </option>
-                                        {{/each}}
+
                                     </select>
                                 </div>
 
@@ -62,37 +57,24 @@
                                     <select class="form-control {{#if errors.class_id}}is-invalid{{/if}}"
                                         name="class_id" id="classSelect">
                                         <option value="" disabled>Select Class</option>
-                                        {{#each classes}}
-                                        <option value="{{id}}" {{#ifEquals ../feeData.class_id
-                                            id}}selected{{/ifEquals}}>{{name}}</option>
-                                        {{/each}}
+
                                     </select>
                                     {{#if errors.class_id}}
                                     <div class="invalid-feedback">{{errors.class_id.msg}}</div>
                                     {{/if}}
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="fee_type" class="form-label">Fee Type</label>
-                                    <select class="form-control {{#if errors.fee_type}}is-invalid{{/if}}"
-                                        name="fee_type" id="feeType">
+                                    <label for="fees_type_id" class="form-label">Fee Type</label>
+                                    <select class="form-control {{#if errors.fees_type_id}}is-invalid{{/if}}"
+                                        name="fees_type_id" id="fees_type_id">
                                         <option value="" disabled>Select Fee Type</option>
-                                        <option value="Tuition" {{#ifEquals feeData.fee_type "Tuition"
-                                            }}selected{{/ifEquals}}>Tuition</option>
-                                        <option value="Transport" {{#ifEquals feeData.fee_type "Transport"
-                                            }}selected{{/ifEquals}}>Transport</option>
-                                        <option value="Cafeteria" {{#ifEquals feeData.fee_type "Cafeteria"
-                                            }}selected{{/ifEquals}}>Cafeteria</option>
-                                        <option value="Exam" {{#ifEquals feeData.fee_type "Exam"
-                                            }}selected{{/ifEquals}}>Exam</option>
-                                        <option value="Boarding" {{#ifEquals feeData.fee_type "Boarding"
-                                            }}selected{{/ifEquals}}>Boarding</option>
-                                        <option value="Events" {{#ifEquals feeData.fee_type "Events"
-                                            }}selected{{/ifEquals}}>Events</option>
-                                        <option value="Other" {{#ifEquals feeData.fee_type "Other"
-                                            }}selected{{/ifEquals}}>Other</option>
+                                        {{#each fees_type}}
+                                        <option value="{{id}}" {{#ifEquals ../feeData.fees_type_id
+                                            id}}selected{{/ifEquals}}>{{name}}</option>
+                                        {{/each}}
                                     </select>
-                                    {{#if errors.fee_type}}
-                                    <div class="invalid-feedback">{{errors.fee_type.msg}}</div>
+                                    {{#if errors.fees_type_id}}
+                                    <div class="invalid-feedback">{{errors.fees_type_id.msg}}</div>
                                     {{/if}}
                                 </div>
 
@@ -175,10 +157,19 @@
     document.addEventListener("DOMContentLoaded", function () {
         const schoolSelect = document.getElementById("schoolSelect");
         const sessionSelect = document.getElementById("sessionSelect");
+        const classSelect = document.getElementById("classSelect");
 
+        // Store the previously selected session & class during edit mode
+        const selectedSessionId = "{{feeData.school_sessions_id}}";
+        const selectedClassId = "{{feeData.class_id}}";
+        console.log(selectedClassId);
+        /** 
+         * 📌 When a school is selected, fetch sessions dynamically 
+         */
         schoolSelect.addEventListener("change", async function () {
             const schoolId = this.value;
-            sessionSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
+            sessionSelect.innerHTML = `<option value="" disabled selected>Loading sessions...</option>`;
+            classSelect.innerHTML = `<option value="" disabled>Select a session first</option>`;
 
             if (schoolId) {
                 try {
@@ -187,20 +178,20 @@
 
                     if (data.session && data.session.length > 0) {
                         sessionSelect.innerHTML = `<option value="" disabled selected>Select Session</option>`;
+
                         data.session.forEach(session => {
                             const startDate = new Date(session.start_date);
                             const endDate = new Date(session.end_date);
+                            const formattedSession = `${startDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })} - ${endDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}`;
 
-                            const monthNames = [
-                                "January", "February", "March", "April", "May", "June",
-                                "July", "August", "September", "October", "November", "December"
-                            ];
-
-                            const formattedStart = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
-                            const formattedEnd = `${monthNames[endDate.getMonth()]} ${endDate.getFullYear()}`;
-
-                            sessionSelect.innerHTML += `<option value="${session.id}">${formattedStart} - ${formattedEnd}</option>`;
+                            sessionSelect.innerHTML += `<option value="${session.id}" ${session.id == selectedSessionId ? 'selected' : ''}>${formattedSession}</option>`;
                         });
+
+                        // If editing, trigger session change to populate classes
+                        if (selectedSessionId) {
+                            sessionSelect.value = selectedSessionId;
+                            sessionSelect.dispatchEvent(new Event("change"));
+                        }
                     } else {
                         sessionSelect.innerHTML = `<option value="" disabled>No sessions available</option>`;
                     }
@@ -212,41 +203,39 @@
                 sessionSelect.innerHTML = `<option value="" disabled selected>Select Session</option>`;
             }
         });
-    });
-    document.addEventListener("DOMContentLoaded", function () {
-        const sessionSelect = document.getElementById("sessionSelect");
-        const classSelect = document.getElementById("classSelect");
-        const feeType = document.getElementById("feeType");
-        const customFeeContainer = document.getElementById("customFeeContainer");
 
-        // Show/Hide custom fee name field based on initial selection
-        if (feeType.value === "Other") {
-            customFeeContainer.style.display = "block";
-        }
-
+        /** 
+         * 📌 When a session is selected, fetch classes dynamically 
+         */
         sessionSelect.addEventListener("change", async function () {
             const schoolSessionsId = this.value;
-            classSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
+            classSelect.innerHTML = `<option value="" disabled selected>Loading classes...</option>`;
 
             if (schoolSessionsId) {
                 try {
                     const response = await fetch(`/school/class/${schoolSessionsId}`);
                     const data = await response.json();
 
-                    classSelect.innerHTML = `<option value="" disabled selected>Select Class</option>`;
-                    data.classes.forEach(cls => {
-                        classSelect.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
-                    });
+                    if (data.classes.length > 0) {
+                        classSelect.innerHTML = `<option value="" disabled selected>Select Class</option>`;
+                        data.classes.forEach(cls => {
+                            classSelect.innerHTML += `<option value="${cls.id}" ${cls.id == selectedClassId ? 'selected' : ''}>${cls.name}</option>`;
+                        });
+                    } else {
+                        classSelect.innerHTML = `<option value="" disabled>No classes available</option>`;
+                    }
                 } catch (error) {
                     console.error("Error fetching classes:", error);
                     classSelect.innerHTML = `<option value="" disabled>Error loading classes</option>`;
                 }
+            } else {
+                classSelect.innerHTML = `<option value="" disabled selected>Select Class</option>`;
             }
         });
 
-        feeType.addEventListener("change", function () {
-            customFeeContainer.style.display = this.value === "Other" ? "block" : "none";
-        });
+        // 🚀 Auto-trigger school change on edit to fetch related sessions & classes
+        if (schoolSelect.value) {
+            schoolSelect.dispatchEvent(new Event("change"));
+        }
     });
-
 </script>

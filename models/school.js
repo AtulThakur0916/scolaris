@@ -11,8 +11,13 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: 'Pending'
     },
+    subscription: {
+      type: DataTypes.ENUM('1', '0'),
+      allowNull: true,
+      defaultValue: '0'
+    },
     name: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: false
     },
     city: {
@@ -27,7 +32,14 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: true
     },
-
+    school_doc: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    address: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
     location: DataTypes.TEXT,
     phone_number: DataTypes.STRING,
     email: DataTypes.STRING,
@@ -44,6 +56,7 @@ module.exports = (sequelize, DataTypes) => {
     Schools.hasMany(models.Students, { foreignKey: 'school_id', as: 'students' });
     Schools.hasMany(models.SchoolSessions, { foreignKey: 'school_id', as: 'sessions' });
     Schools.hasMany(models.Activity, { foreignKey: 'school_id', as: 'activities' });
+    Schools.hasMany(models.BankingDetails, { foreignKey: 'school_id', as: 'BankingDetails' });
 
     Schools.belongsToMany(models.Parents, {
       through: 'ParentSchools',

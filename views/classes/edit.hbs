@@ -29,14 +29,19 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <label for="class_name" class="form-label">Class Name</label>
-                                    <input type="text" class="form-control" placeholder="Enter Class Name" name="name"
-                                        value="{{classData.name}}" required />
+                                    <input type="text" class="form-control {{#if errors.name}}is-invalid{{/if}}"
+                                        placeholder="Enter Class Name" name="name" value="{{classData.name}}"
+                                        required />
+                                    {{#if errors.name}}
+                                    <div class="invalid-feedback">{{errors.name.msg}}</div>
+                                    {{/if}}
                                 </div>
 
                                 <!-- School Selection -->
                                 <div class="col-md-6">
                                     <label for="schoolSelect" class="form-label">School</label>
-                                    <select class="form-control" id="schoolSelect" name="school_id" required>
+                                    <select class="form-control {{#if errors.school_id}}is-invalid{{/if}}"
+                                        id="schoolSelect" name="school_id" required>
                                         <option value="" disabled>Select School</option>
                                         {{#each schools}}
                                         <option value="{{id}}" {{#ifEquals ../classData.school_id
@@ -45,6 +50,9 @@
                                         </option>
                                         {{/each}}
                                     </select>
+                                    {{#if errors.school_id}}
+                                    <div class="invalid-feedback">{{errors.school_id.msg}}</div>
+                                    {{/if}}
                                 </div>
                             </div>
 
@@ -52,7 +60,8 @@
                             <div class="row mt-2">
                                 <div class="col-md-6">
                                     <label for="school_sessions_id" class="form-label">School Session</label>
-                                    <select class="form-control" name="school_sessions_id" id="sessionSelect">
+                                    <select class="form-control {{#if errors.school_sessions_id}}is-invalid{{/if}}"
+                                        name="school_sessions_id" id="sessionSelect">
                                         <option value="" disabled>Select School Session</option>
                                         {{#each formattedSessions}}
                                         <option value="{{id}}" {{#ifEquals ../classData.school_sessions_id
@@ -61,6 +70,9 @@
                                         </option>
                                         {{/each}}
                                     </select>
+                                    {{#if errors.school_sessions_id}}
+                                    <div class="invalid-feedback">{{errors.school_sessions_id.msg}}</div>
+                                    {{/if}}
                                 </div>
                                 <div class="col-md-6">
                                     <label for="status" class="form-label">Status</label>

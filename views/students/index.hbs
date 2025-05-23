@@ -39,6 +39,7 @@
           <thead>
             <tr>
               <th>#</th>
+              <th>Profile Img</th>
               <th>Name</th>
               <th>Email</th>
               <th>Class</th>
@@ -46,10 +47,20 @@
               <th>Actions</th>
             </tr>
           </thead>
+
+
           <tbody>
             {{#each students}}
             <tr>
-              <td>{{@index}}</td>
+              <td class="row-index" data-index="{{@index}}"></td>
+              <td>
+                {{#if this.profile_pic}}
+                <img src="{{this.profile_pic}}" alt="School Logo" width="50" height="50"
+                  style="object-fit: cover; border-radius: 5px;">
+                {{else}}
+                <img src="/uploads/schools/default-placeholder.png" alt="Default Logo" width="50" height="50">
+                {{/if}}
+              </td>
               <td>{{this.name}}</td>
               <td>{{this.email}}</td>
               <td>{{this.class.name}}</td>
@@ -68,3 +79,5 @@
     </div>
   </div>
 </div>
+{{!--
+<pre>{{json students}}</pre> --}}

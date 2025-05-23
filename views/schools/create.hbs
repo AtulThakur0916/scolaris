@@ -26,7 +26,7 @@
               <div class="row">
                 <div class="col-md-6">
                   <label for="name" class="form-label">School Name</label>
-                  <input type="text" class="form-control {{#if errors.name}}is-invalid{{/if}}"
+                  <input type="text" max="20" class="form-control {{#if errors.name}}is-invalid{{/if}}"
                     placeholder="Enter school name" name="name" value="{{lookup schoolData 'name'}}" required />
                   {{#if errors.name}}
                   <div class="invalid-feedback">{{errors.name.msg}}</div>
@@ -78,43 +78,15 @@
               <div class="row mt-2">
                 <div class="col-md-6">
                   <label for="country" class="form-label">Country</label>
-                  <div class="dropdown">
-                    <!-- Dropdown Button -->
-                    <button class="btn btn-light dropdown-toggle w-100" type="button" id="countryDropdown"
-                      data-bs-toggle="dropdown" aria-expanded="false">
-                      <img id="selectedCountryFlag" src="" alt="Flag"
-                        style="width: 20px; height: auto; margin-right: 5px; display: none;">
-                      <span id="selectedCountryName">Select Country</span>
-                    </button>
-
-                    <!-- Dropdown Menu -->
-                    <ul class="dropdown-menu w-100" aria-labelledby="countryDropdown" id="countryDropdownMenu"
-                      style="max-height: 200px; overflow-y: auto;">
-
-                      <!-- Search Input -->
-                      <li class="p-2">
-                        <input type="text" class="form-control" id="countrySearch" placeholder="Search Country...">
-                      </li>
-
-                      <!-- Country List -->
-                      {{#each countries}}
-                      <li>
-                        <a class="dropdown-item d-flex align-items-center country-option" href="#" data-code="{{code}}"
-                          data-flag="{{flag}}">
-                          <img src="{{flag}}" alt="{{name}}" style="width: 20px; height: auto; margin-right: 10px;">
-                          {{name}}
-                        </a>
-                      </li>
-                      {{/each}}
-                    </ul>
-                  </div>
-                  <input type="hidden" name="country" id="countryInput" required>
+                  <input type="text" name="country" class="form-control {{#if errors.country}}is-invalid{{/if}}"
+                    value="côte d'Ivoire" readonly />
+                  {{!-- <input type="hidden" name="country" id="countryInput" required> --}}
 
                 </div>
                 <div class="col-md-6">
-                  <label for="state" class="form-label">State</label>
+                  <label for="state" class="form-label">Region</label>
                   <input type="text" class="form-control {{#if errors.state}}is-invalid{{/if}}" name="state"
-                    value="{{lookup studentData 'state'}}" />
+                    value="{{lookup schoolData 'state'}}" />
                   {{#if errors.state}}
                   <div class="invalid-feedback">{{errors.state.msg}}</div>
                   {{/if}}
@@ -123,9 +95,9 @@
               </div>
               <div class="row mt-2">
                 <div class="col-md-6">
-                  <label for="city" class="form-label">City</label>
+                  <label for="city" class="form-label">Town</label>
                   <input type="text" class="form-control {{#if errors.city}}is-invalid{{/if}}" name="city"
-                    value="{{lookup studentData 'city'}}" />
+                    value="{{lookup schoolData 'city'}}" />
                   {{#if errors.city}}
                   <div class="invalid-feedback">{{errors.city.msg}}</div>
                   {{/if}}
@@ -133,7 +105,7 @@
                 <div class="col-md-6">
                   <label for="location" class="form-label">Address</label>
                   <input type="text" class="form-control {{#if errors.location}}is-invalid{{/if}}" name="location"
-                    value="{{lookup studentData 'location'}}" />
+                    value="{{lookup schoolData 'location'}}" />
                   {{#if errors.location}}
                   <div class="invalid-feedback">{{errors.location.msg}}</div>
                   {{/if}}
@@ -143,11 +115,24 @@
               <div class="row mt-2">
 
                 <div class="col-md-6">
-                  <label for="logo" class="form-label">School Logo</label>
-                  <input type="file" class="form-control {{#if errors.logo}}is-invalid{{/if}}" name="logo"
-                    accept="image/*" />
+                  <label for="logo" class="form-label">School Logo (Only PNG, JPG, JPEG, and GIF files are allowed and
+                    Max Size is 5mb)</label>
+                  <input type="file" class="form-control {{#if errors.logo}}is-invalid{{/if}}"
+                    value="{{lookup schoolData 'logo'}}" name="logo" accept="image/*" />
                   {{#if errors.logo}}
                   <div class="invalid-feedback">{{errors.logo.msg}}</div>
+                  {{/if}}
+
+                </div>
+
+                <div class="col-md-6">
+                  <label for="school_doc" class="form-label">Document Upload (Accepted formats: JPG,
+                    PNG, PDF – Max size
+                    5MB)</label>
+                  <input type="file" value="{{lookup schoolData 'school_doc'}}"
+                    class="form-control {{#if errors.school_doc}}is-invalid{{/if}}" name="school_doc" />
+                  {{#if errors.school_doc}}
+                  <div class="invalid-feedback">{{errors.school_doc.msg}}</div>
                   {{/if}}
 
                 </div>

@@ -59,7 +59,7 @@
           <tbody>
             {{#each schools}}
             <tr>
-              <td>{{@index}}</td>
+              <td class="row-index" data-index="{{@index}}"></td>
               <td>
                 {{#if this.logo}}
                 <img src="{{this.logo}}" alt="School Logo" width="50" height="50"

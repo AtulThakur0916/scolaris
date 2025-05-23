@@ -28,7 +28,7 @@
 {{/if}}
 
 {{!-- Display Validation Errors --}}
-{{#if errors}}
+{{!-- {{#if errors}}
 <div class="alert alert-danger">
     <ul>
         {{#each errors}}
@@ -36,7 +36,7 @@
         {{/each}}
     </ul>
 </div>
-{{/if}}
+{{/if}} --}}
 
 
 <div class="content-wrapper">
@@ -90,6 +90,8 @@
                                         <option value="Active" {{#ifEquals sessionData.status "Active"
                                             }}selected{{/ifEquals}}>
                                             Active</option>
+                                        <option value="Inactive" {{#ifEquals sessionData.status "Inactive"
+                                            }}selected{{/ifEquals}}>Inactive</option>
                                         <option value="Completed" {{#ifEquals sessionData.status "Completed"
                                             }}selected{{/ifEquals}}>Completed</option>
                                     </select>

@@ -1,4 +1,7 @@
 var { SendMailClient } = require("zeptomail");
+const fs = require('fs');
+const handlebars = require('handlebars');
+const path = require('path');
 
 //const env = process.env.NODE_ENV || 'development';
 //const config = require('../config/config.json')[env];
@@ -105,5 +108,105 @@ const planExpiryNeo = (email, variables) => {
     });
 }
 
-// Export function
-module.exports = { sendEmail, paymentSuccess, planExpiry };
+const schoolApproval = (email, variables) => {
+    const url = "api.zeptomail.in/v1.1/email";
+    const token = "Zoho-enczapikey PHtE6r1cFrvqiGUt8BcF4f+8EpbxPdh/qbsxJAQWt4cXW/YEGk0Bqtt4lmCyqkguAPlGFfSYno9r5ezP5+mHIWq5ZzsdWmqyqK3sx/VYSPOZsbq6x00ctl0ZckHdV4DuddVs0CLWvd3cNA==";
+
+    const client = new SendMailClient({ url, token });
+
+    // Read and compile the Handlebars template from the 'tempates' folder
+    const templatePath = path.join(__dirname, '../tempates/school_approval.hbs');
+
+    let templateContent;
+    try {
+        templateContent = fs.readFileSync(templatePath, 'utf-8');
+    } catch (err) {
+        return Promise.reject(new Error("Error reading school approval email template: " + err.message));
+    }
+
+    const template = handlebars.compile(templateContent);
+    const htmlContent = template(variables);
+
+    return new Promise((resolve, reject) => {
+        client.sendMail({
+            from: {
+                address: "noreply@khabriya.in",
+                name: "Scolaris Pay"
+            },
+            to: [{
+                email_address: { address: email }
+            }],
+            subject: "School Registration Approved - Payment Required",
+            htmlbody: htmlContent
+        }).then(resolve).catch(reject);
+    });
+};
+
+const schoolReject = (email, variables) => {
+    const url = "api.zeptomail.in/v1.1/email";
+    const token = "Zoho-enczapikey PHtE6r1cFrvqiGUt8BcF4f+8EpbxPdh/qbsxJAQWt4cXW/YEGk0Bqtt4lmCyqkguAPlGFfSYno9r5ezP5+mHIWq5ZzsdWmqyqK3sx/VYSPOZsbq6x00ctl0ZckHdV4DuddVs0CLWvd3cNA==";
+
+    const client = new SendMailClient({ url, token });
+
+    // Read and compile the Handlebars template
+    const templatePath = path.join(__dirname, '../tempates/school_reject.hbs');
+
+    let templateContent;
+    try {
+        templateContent = fs.readFileSync(templatePath, 'utf-8');
+    } catch (err) {
+        return Promise.reject(new Error("Error reading school rejection email template: " + err.message));
+    }
+
+    const template = handlebars.compile(templateContent);
+    const htmlContent = template(variables);
+
+    return new Promise((resolve, reject) => {
+        client.sendMail({
+            from: {
+                address: "noreply@khabriya.in",
+                name: "Scolaris Pay"
+            },
+            to: [{
+                email_address: { address: email }
+            }],
+            subject: "School Registration Status Update",
+            htmlbody: htmlContent
+        }).then(resolve).catch(reject);
+    });
+};
+const forgotPassword = (email, variables) => {
+    const url = "api.zeptomail.in/v1.1/email";
+    const token = "Zoho-enczapikey PHtE6r1cFrvqiGUt8BcF4f+8EpbxPdh/qbsxJAQWt4cXW/YEGk0Bqtt4lmCyqkguAPlGFfSYno9r5ezP5+mHIWq5ZzsdWmqyqK3sx/VYSPOZsbq6x00ctl0ZckHdV4DuddVs0CLWvd3cNA==";
+
+    const client = new SendMailClient({ url, token });
+
+    // Read and compile the Handlebars template
+    const templatePath = path.join(__dirname, '../tempates/forgot_password.hbs');
+
+    let templateContent;
+    try {
+        templateContent = fs.readFileSync(templatePath, 'utf-8');
+    } catch (err) {
+        return Promise.reject(new Error("Error reading forgot password email template: " + err.message));
+    }
+
+    const template = handlebars.compile(templateContent);
+    const htmlContent = template(variables);
+
+    return new Promise((resolve, reject) => {
+        client.sendMail({
+            from: {
+                address: "noreply@khabriya.in",
+                name: "Scolaris Pay"
+            },
+            to: [{
+                email_address: { address: email }
+            }],
+            subject: "Reset Your Password - Scolaris Pay",
+            htmlbody: htmlContent
+        }).then(resolve).catch(reject);
+    });
+};
+// Update exports
+module.exports = { sendEmail, paymentSuccess, planExpiry, forgotPassword, planExpiryNeo, schoolApproval, schoolReject };

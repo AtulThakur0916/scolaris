@@ -44,7 +44,7 @@
 
                         {{#each payments}}
                         <tr>
-                            <td>{{@index}}</td>
+                            <td class="row-index" data-index="{{@index}}"></td>
                             <td>{{this.student.name}}</td>
                             <td>{{this.student.school.name}}</td>
                             <td>{{this.amount}}</td>

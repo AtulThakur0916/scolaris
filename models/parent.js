@@ -65,27 +65,25 @@ module.exports = (sequelize, DataTypes) => {
     });
 
     Parents.associate = function (models) {
-
         if (models.Schools) {
             Parents.belongsToMany(models.Schools, {
-                through: 'ParentSchools',
+                through: models.ParentSchools, // ✅ Ensure the correct junction table is used
                 foreignKey: 'parent_id',
-                otherKey: 'school_id'
+                otherKey: 'school_id',
+                as: 'schools' // ✅ Alias must match the one in `include`
             });
-        } else {
-            console.error("School model not found in associations");
         }
 
         if (models.Students) {
             Parents.belongsToMany(models.Students, {
                 through: 'ParentStudents',
                 foreignKey: 'parent_id',
-                otherKey: 'student_id'
+                otherKey: 'student_id',
+                as: 'students'
             });
-        } else {
-            console.error("Student model not found in associations");
         }
     };
+
 
     return Parents;
 };

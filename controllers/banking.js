@@ -3,49 +3,78 @@ const { body, validationResult } = require('express-validator');
 const waterfall = require('async-waterfall');
 const fs = require('fs');
 const path = require('path');
+const paystack = require('../helpers/payment');
 
 module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
     /**
-     * List all banking details
-     */
+  * List all banking details
+  */
+    /**
+  * List all banking details
+  */
     app.get('/banking/index', async (req, res) => {
         if (!req.isAuthenticated()) {
             req.flash('error', 'Please login to continue');
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School") {
             req.flash('error', 'You are not authorized to access this page.');
             return res.redirect('/');
         }
 
         try {
-            const bankingDetails = await models.BankingDetails.findAll({
-                attributes: ['id', 'bank_name', 'account_number', 'account_holder'],
-                include: [
-                    {
-                        model: models.Schools,
-                        as: 'school',
-                        attributes: ['name']
-                    }
-                ],
-                order: [['bank_name', 'ASC']],
-                raw: true,
-                nest: true
-            });
+            let bankingDetails;
+
+            if (req.user.role.name === "SuperAdmin") {
+                // SuperAdmin can view all banking details
+                bankingDetails = await models.BankingDetails.findAll({
+                    attributes: ['id', 'bank_name', 'account_number', 'account_holder'],
+                    include: [
+                        {
+                            model: models.Schools,
+                            as: 'school',
+                            attributes: ['name']
+                        }
+                    ],
+                    order: [['bank_name', 'ASC']],
+                    raw: true,
+                    nest: true
+                });
+            } else if (req.user.role.name === "School") {
+                // School role sees only its own school's banking details
+                bankingDetails = await models.BankingDetails.findAll({
+                    attributes: ['id', 'bank_name', 'account_number', 'account_holder'],
+                    include: [
+                        {
+                            model: models.Schools,
+                            as: 'school',
+                            attributes: ['name']
+                        }
+                    ],
+                    where: { school_id: req.user.school_id }, // Restrict to the user's school
+                    order: [['bank_name', 'ASC']],
+                    raw: true,
+                    nest: true
+                });
+            }
 
             res.render('banking/index', {
                 bankingDetails,
-                success: res.locals.success,
-                error: res.locals.error
+                messages: {
+                    success: res.locals.success,
+                    error: res.locals.error
+                }
             });
         } catch (error) {
-            console.error("Error fetching banking details:", error);
+            console.error('Error fetching banking details:', error);
             req.flash('error', 'Failed to load banking details.');
             res.redirect('/');
         }
     });
+
+
 
 
 
@@ -56,11 +85,24 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         try {
             const { id } = req.params;
             let bankingDetail = null;
-            const schools = await models.Schools.findAll({
-                attributes: ['id', 'name'], where: {
-                    status: 'Approve'
-                }, raw: true
-            });
+            let schools;
+            if (req.user.role.name == "School") {
+                schools = await models.Schools.findAll({
+                    attributes: ['id', 'name'],
+                    where: {
+                        status: 'Approve', id: req.user.school_id
+                    },
+                    raw: true
+                });
+            } else {
+                schools = await models.Schools.findAll({
+                    attributes: ['id', 'name'],
+                    where: {
+                        status: 'Approve'
+                    },
+                    raw: true
+                });
+            }
 
             if (id) {
                 bankingDetail = await models.BankingDetails.findOne({ where: { id }, raw: true });
@@ -86,18 +128,15 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         body('account_number')
             .notEmpty().withMessage('Account number is required')
             .isNumeric().withMessage('Account number must be a valid number')
-            .isLength({ min: 6 }).withMessage('Account number must be at least 6 digits long')
-            .custom(async (value) => {
-                const existingAccount = await models.BankingDetails.findOne({ where: { account_number: value } });
-                if (existingAccount) {
-                    throw new Error('Account number already exists.');
-                }
-            }),
+            .isLength({ min: 6 }).withMessage('Account number must be at least 6 digits long'),
 
         body('account_holder')
             .trim()
             .notEmpty().withMessage('Account holder name is required')
             .isLength({ min: 3 }).withMessage('Account holder name must be at least 3 characters long'),
+        body('settlement_bank')
+            .trim()
+            .notEmpty().withMessage('settlement bank name is required'),
         body('school_id')
             .notEmpty().withMessage('School is required')
             .isUUID().withMessage('Invalid school ID format')
@@ -116,7 +155,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School") {
             req.flash('error', 'You are not authorized to access this page.');
             return res.redirect('/banking/index');
         }
@@ -164,13 +203,43 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             },
             async function (ibanDocumentUrl, done) {
                 try {
+                    const school = await models.Schools.findOne({ where: { id: req.body.school_id } });
+
+                    if (!school) {
+                        return done(new Error("Associated school not found."));
+                    }
+                    // console.log("paystack:", paystack);
+                    // console.log("paystack subaccount:", paystack.subAccount);
+                    // console.log("school name:", school.name);
+                    // console.log("account_number:", req.body.account_number);
+                    // Create subaccount in Paystack
+                    const paystackResponse = await paystack.subAccount.create({
+                        business_name: school.name,
+                        account_number: req.body.account_number,
+                        percentage_charge: 90,
+                        // settlement_bank: "057"
+                        settlement_bank: req.body.settlement_bank,
+                    });
+
+
+                    if (!paystackResponse.status) {
+                        return done(new Error("Failed to create subaccount in Paystack."));
+                    }
+
+                    const { id: paystack_id, subaccount_code } = paystackResponse.data;
+
                     await models.BankingDetails.create({
                         bank_name: req.body.bank_name,
                         account_number: req.body.account_number,
                         account_holder: req.body.account_holder,
                         school_id: req.body.school_id,
                         iban_document: ibanDocumentUrl,
-                        status: req.body.status || 1
+                        status: req.body.status || 1,
+                        business_name: school.name,
+                        // settlement_bank: "057",
+                        settlement_bank: req.body.settlement_bank,
+                        subaccount_code,
+                        paystack_id
                     });
 
                     req.flash('success', 'Banking detail added successfully.');
@@ -204,11 +273,24 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             }
             const errors = req.flash('errors')[0] || {};
             const formData = req.flash('school')[0] || {};
-            const schools = await models.Schools.findAll({
-                attributes: ['id', 'name'], where: {
-                    status: 'Approve'
-                }, raw: true
-            });
+            let schools;
+            if (req.user.role.name == "School") {
+                schools = await models.Schools.findAll({
+                    attributes: ['id', 'name'],
+                    where: {
+                        status: 'Approve', id: req.user.school_id
+                    },
+                    raw: true
+                });
+            } else {
+                schools = await models.Schools.findAll({
+                    attributes: ['id', 'name'],
+                    where: {
+                        status: 'Approve'
+                    },
+                    raw: true
+                });
+            }
 
             res.render('banking/edit', {
                 bankingDetail, schools, errors,
@@ -268,7 +350,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School") {
             req.flash('error', 'You are not authorized to access this page.');
             return res.redirect('/banking/index');
         }
@@ -277,8 +359,6 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         if (!errors.isEmpty()) {
             req.flash('errors', errors.mapped());
             req.flash('schools', { ...req.body, id: id });
-            // req.session.oldInput = req.body; // Store old input values
-            // req.session.errors = errors.mapped(); // Store validation errors
             return res.redirect(`/banking/edit/${id}`);
         }
 
@@ -367,7 +447,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 return res.json({ success: false, message: 'Please login to continue' });
             }
 
-            if (req.user.role.name !== "SuperAdmin") {
+            if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School") {
                 return res.json({ success: false, message: 'You are not authorized to access this page.' });
             }
 

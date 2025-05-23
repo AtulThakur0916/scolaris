@@ -14,7 +14,7 @@
 
           <h5 class="card-header">Create Student</h5>
           <div class="card-body">
-            <form action="/students/create" method="post">
+            <form action="/students/create" method="post" enctype="multipart/form-data">
               <div class="row">
                 <div class="col-md-6">
                   <label for="name" class="form-label">Name</label>
@@ -48,7 +48,7 @@
                 <div class="col-md-6">
                   <label for="school_id" class="form-label">School</label>
                   <select class="form-control {{#if errors.school_id}}is-invalid{{/if}}" name="school_id"
-                    id="schoolSelect">
+                    id="schoolSelect" required>
                     <option value="" disabled selected>Select School</option>
                     {{#each schools}}
                     <option value="{{id}}" {{#ifEquals ../studentData.school_id id}}selected{{/ifEquals}}>{{name}}
@@ -65,7 +65,7 @@
                 <div class="col-md-6">
                   <label for="session_id" class="form-label">School Session</label>
                   <select class="form-control {{#if errors.school_sessions_id}}is-invalid{{/if}}"
-                    name="school_sessions_id" id="sessionSelect">
+                    name="school_sessions_id" id="sessionSelect" required>
                     <option value="" disabled selected>Select Session</option>
                   </select>
                   {{#if errors.school_sessions_id}}
@@ -74,8 +74,8 @@
                 </div>
                 <div class="col-md-6">
                   <label for="class_id" class="form-label">Class</label>
-                  <select class="form-control {{#if errors.class_id}}is-invalid{{/if}}" name="class_id"
-                    id="classSelect">
+                  <select class="form-control {{#if errors.class_id}}is-invalid{{/if}}" name="class_id" id="classSelect"
+                    required>
                     <option value="" disabled selected>Select Class</option>
                   </select>
                   {{#if errors.class_id}}
@@ -87,41 +87,11 @@
               <div class="row mt-2">
                 <div class="col-md-6">
                   <label for="country" class="form-label">Country</label>
-                  <div class="dropdown">
-                    <!-- Dropdown Button -->
-                    <button class="btn btn-light dropdown-toggle w-100" type="button" id="countryDropdown"
-                      data-bs-toggle="dropdown" aria-expanded="false">
-                      <img id="selectedCountryFlag" src="" alt="Flag"
-                        style="width: 20px; height: auto; margin-right: 5px; display: none;">
-                      <span id="selectedCountryName">Select Country</span>
-                    </button>
-
-                    <!-- Dropdown Menu -->
-                    <ul class="dropdown-menu w-100" aria-labelledby="countryDropdown" id="countryDropdownMenu"
-                      style="max-height: 200px; overflow-y: auto;">
-
-                      <!-- Search Input -->
-                      <li class="p-2">
-                        <input type="text" class="form-control" id="countrySearch" placeholder="Search Country...">
-                      </li>
-
-                      <!-- Country List -->
-                      {{#each countries}}
-                      <li>
-                        <a class="dropdown-item d-flex align-items-center country-option" href="#" data-code="{{code}}"
-                          data-flag="{{flag}}">
-                          <img src="{{flag}}" alt="{{name}}" style="width: 20px; height: auto; margin-right: 10px;">
-                          {{name}}
-                        </a>
-                      </li>
-                      {{/each}}
-                    </ul>
-                  </div>
-                  <input type="hidden" name="country" id="countryInput" required>
-
+                  <input type="text" name="country" class="form-control {{#if errors.country}}is-invalid{{/if}}"
+                    value="côte d'Ivoire" readonly />
                 </div>
                 <div class="col-md-6">
-                  <label for="state" class="form-label">State</label>
+                  <label for="state" class="form-label">Region</label>
                   <input type="text" class="form-control {{#if errors.state}}is-invalid{{/if}}" name="state"
                     value="{{lookup studentData 'state'}}" />
                   {{#if errors.state}}
@@ -132,7 +102,7 @@
               </div>
               <div class="row mt-2">
                 <div class="col-md-6">
-                  <label for="city" class="form-label">City</label>
+                  <label for="city" class="form-label">Town</label>
                   <input type="text" class="form-control {{#if errors.city}}is-invalid{{/if}}" name="city"
                     value="{{lookup studentData 'city'}}" />
                   {{#if errors.city}}
@@ -152,10 +122,18 @@
               <div class="row mt-2">
                 <div class="col-md-6">
                   <label for="roll_number" class="form-label">Roll Number</label>
-                  <input type="number" class="form-control {{#if errors.roll_number}}is-invalid{{/if}}"
+                  <input type="number" min="1" class="form-control {{#if errors.roll_number}}is-invalid{{/if}}"
                     name="roll_number" value="{{lookup studentData 'roll_number'}}" />
                   {{#if errors.roll_number}}
                   <div class="invalid-feedback">{{errors.roll_number.msg}}</div>
+                  {{/if}}
+                </div>
+                <div class="col-md-6">
+                  <label for="profile_pic" class="form-label">Profile Image</label>
+                  <input type="file" class="form-control {{#if errors.profile_pic}}is-invalid{{/if}}" name="profile_pic"
+                    value="{{lookup studentData 'profile_pic'}}" />
+                  {{#if errors.profile_pic}}
+                  <div class="invalid-feedback">{{errors.profile_pic.msg}}</div>
                   {{/if}}
                 </div>
               </div>
@@ -177,10 +155,10 @@
     const sessionSelect = document.getElementById("sessionSelect");
     const classSelect = document.getElementById("classSelect");
 
-    sessionSelect.addEventListener("change", async function () {
-      const schoolSessionsId = this.value;
+    const oldSessionId = "{{studentData.school_sessions_id}}";
+    const oldClassId = "{{studentData.class_id}}";
 
-      // Clear previous classes
+    async function loadClasses(schoolSessionsId, preselectId = null) {
       classSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
 
       if (schoolSessionsId) {
@@ -189,9 +167,11 @@
           const data = await response.json();
 
           if (data.classes && data.classes.length > 0) {
-            classSelect.innerHTML = `<option value="" disabled selected>Select Class</option>`;
+            classSelect.innerHTML = `<option value="" disabled>Select Class</option>`;
+
             data.classes.forEach(cls => {
-              classSelect.innerHTML += `<option value="${cls.id}">${cls.name}</option>`;
+              const selected = preselectId == cls.id ? "selected" : "";
+              classSelect.innerHTML += `<option value="${cls.id}" ${selected}>${cls.name}</option>`;
             });
           } else {
             classSelect.innerHTML = `<option value="" disabled>No classes available</option>`;
@@ -203,18 +183,29 @@
       } else {
         classSelect.innerHTML = `<option value="" disabled selected>Select Class</option>`;
       }
-    });
-  });
+    }
 
+    // When session is changed
+    sessionSelect.addEventListener("change", function () {
+      const selectedSessionId = this.value;
+      loadClasses(selectedSessionId); // don't preselect on manual change
+    });
+
+    // On page load, if session was previously selected
+    if (oldSessionId) {
+      sessionSelect.value = oldSessionId;
+      loadClasses(oldSessionId, oldClassId);
+    }
+  });
   // session
   document.addEventListener("DOMContentLoaded", function () {
     const schoolSelect = document.getElementById("schoolSelect");
     const sessionSelect = document.getElementById("sessionSelect");
 
-    schoolSelect.addEventListener("change", async function () {
-      const schoolId = this.value;
+    const oldSchoolId = "{{studentData.school_id}}";
+    const oldSessionId = "{{studentData.school_sessions_id}}";
 
-      // Clear previous classes
+    async function loadSessions(schoolId, preselectId = null) {
       sessionSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
 
       if (schoolId) {
@@ -228,11 +219,11 @@
             data.session.forEach(cls => {
               const startDate = new Date(cls.start_date);
               const endDate = new Date(cls.end_date);
-
               const formattedStart = startDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
               const formattedEnd = endDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
 
-              sessionSelect.innerHTML += `<option value="${cls.id}">${formattedStart} - ${formattedEnd}</option>`;
+              const selected = preselectId == cls.id ? "selected" : "";
+              sessionSelect.innerHTML += `<option value="${cls.id}" ${selected}>${formattedStart} - ${formattedEnd}</option>`;
             });
           } else {
             sessionSelect.innerHTML = `<option value="" disabled>No sessions available</option>`;
@@ -244,9 +235,20 @@
       } else {
         sessionSelect.innerHTML = `<option value="" disabled selected>Select Session</option>`;
       }
-    });
-  });
+    }
 
+    // On change of school
+    schoolSelect.addEventListener("change", function () {
+      const selectedSchoolId = this.value;
+      loadSessions(selectedSchoolId); // don't preselect session on manual change
+    });
+
+    // On page load, if oldSchoolId exists, prefill
+    if (oldSchoolId) {
+      schoolSelect.value = oldSchoolId;
+      loadSessions(oldSchoolId, oldSessionId);
+    }
+  });
   document.addEventListener("DOMContentLoaded", function () {
     const dropdownButton = document.getElementById("countryDropdown");
     const dropdownMenu = document.getElementById("countryDropdownMenu");

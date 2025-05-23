@@ -11,7 +11,10 @@ module.exports.controller = function (app) {
             req.flash('error', 'Please login to continue.');
             return res.redirect('/login');
         }
-
+        if (req.user.role.name !== "SuperAdmin") {
+            req.flash('error', 'You are not authorized to access this page.');
+            return res.redirect('/');
+        }
         try {
             const faqs = await models.FAQ.findAll({
                 order: [['created_at', 'DESC']],
@@ -37,7 +40,10 @@ module.exports.controller = function (app) {
             req.flash('error', 'Please login to continue.');
             return res.redirect('/login');
         }
-
+        if (req.user.role.name !== "SuperAdmin") {
+            req.flash('error', 'You are not authorized to access this page.');
+            return res.redirect('/');
+        }
         const errors = req.flash('errors')[0] || {};
         const formData = req.flash('faq')[0] || {};
 
@@ -58,10 +64,10 @@ module.exports.controller = function (app) {
             return res.redirect('/faqs/create');
         }
 
-        const { question, answer } = req.body;
+        const { question, type, answer } = req.body;
 
         try {
-            await models.FAQ.create({ question, answer });
+            await models.FAQ.create({ question, type, answer });
             req.flash('success', 'FAQ created successfully.');
             res.redirect('/faqs/index');
         } catch (error) {
@@ -135,7 +141,7 @@ module.exports.controller = function (app) {
         }
 
         try {
-            const { question, answer, status } = req.body;
+            const { question, type, answer, status } = req.body;
             const faq = await models.FAQ.findByPk(faq_id);
 
             if (!faq) {
@@ -143,7 +149,7 @@ module.exports.controller = function (app) {
                 return res.redirect('/faqs/index');
             }
 
-            await faq.update({ question, answer, status });
+            await faq.update({ question, type, answer, status });
             req.flash('success', 'FAQ updated successfully');
             res.redirect('/faqs/index');
         } catch (error) {

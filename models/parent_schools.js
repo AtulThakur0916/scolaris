@@ -21,8 +21,14 @@ module.exports = (sequelize, DataTypes) => {
     ParentSchools.associate = (models) => {
         ParentSchools.belongsTo(models.Schools, {
             foreignKey: 'school_id',
-            as: 'School' // Alias for fetching school details
+            as: 'school' // ✅ Match alias properly
+        });
+
+        ParentSchools.belongsTo(models.Parents, {
+            foreignKey: 'parent_id',
+            as: 'parent' // ✅ Define parent association as well
         });
     };
+
     return ParentSchools;
 };

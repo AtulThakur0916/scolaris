@@ -30,9 +30,9 @@
 
           <form class="mb-3" action="/login" method="POST">
             <div class="mb-3">
-              <label for="email" class="form-label">Email or Username</label>
+              <label for="email" class="form-label">Email</label>
               <input type="text" class="form-control {{#if errors.email}}is-invalid{{/if}}" id="email" name="email"
-                placeholder="Enter your email or username" autofocus value="{{formData.email}}" />
+                placeholder="Enter your email" autofocus value="{{formData.email}}" />
               {{#if errors.email}}
               <div class="invalid-feedback">{{errors.email.msg}}</div>
               {{/if}}
@@ -52,7 +52,7 @@
               {{/if}}
               <div class="d-flex justify-content-between">
                 <label class="form-label" for=""></label>
-                <a href="/auth/forgot-password">
+                <a href="/forgot-password">
                   <small>Forgot Password?</small>
                 </a>
               </div>
@@ -70,7 +70,7 @@
             </div>
           </form>
 
-          <p class="text-center">
+          {{!-- <p class="text-center">
             <span>New on our platform?</span>
             <a href="/auth/register">
               <span>Create an account</span>
@@ -79,7 +79,7 @@
 
           <div class="divider my-4">
             <div class="divider-text">or</div>
-          </div>
+          </div> --}}
 
         </div>
       </div>

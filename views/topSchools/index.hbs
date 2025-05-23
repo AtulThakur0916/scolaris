@@ -42,15 +42,15 @@
           <tbody>
             {{#each topSchools}}
             <tr>
-              <td>{{@index}}</td>
+              <td class="row-index" data-index="{{@index}}"></td>
               <td>{{this.school.name}}</td>
               <td>{{this.school.phone_number}}</td>
               <td>{{this.school.email}}</td>
               <td>{{this.school.location}}</td>
               <td>
-                <a href="/top-schools/edit/{{this.id}}">
+                {{!-- <a href="/top-schools/edit/{{this.id}}">
                   <i class="menu-icon tf-icons bx bx-edit-alt text-primary"></i>
-                </a>
+                </a> --}}
                 <a href="#" onclick="deleteItem('/top-schools/delete', '{{this.id}}')">
                   <i class="menu-icon tf-icons bx bx-box text-danger"></i>
                 </a>

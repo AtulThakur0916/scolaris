@@ -14,6 +14,11 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.TEXT,
             allowNull: true,
         },
+        type: {
+            type: DataTypes.ENUM("top", "other"),
+            allowNull: false,
+            defaultValue: "other",
+        },
         status: {
             type: DataTypes.ENUM('0', '1'),
             allowNull: true,

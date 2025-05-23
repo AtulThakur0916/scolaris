@@ -47,7 +47,7 @@
           <tbody>
             {{#each activityDetails}}
             <tr>
-              <td>{{@index}}</td>
+              <td class="row-index" data-index="{{@index}}"></td>
               <td>{{this.title}}</td>
               <td>{{this.school.name}}</td>
               <td>{{#if (eq this.status "1")}}Active{{else}}Inactive{{/if}}</td>

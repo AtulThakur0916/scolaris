@@ -12,7 +12,10 @@ module.exports.controller = function (app) {
             req.flash('error', 'Please login to continue');
             return res.redirect('/login');
         }
-
+        if (req.user.role.name !== "SuperAdmin") {
+            req.flash('error', 'You are not authorized to access this page.');
+            return res.redirect('/');
+        }
         try {
             const cmsPages = await models.CMSPage.findAll({
                 attributes: ['id', 'title', 'slug', 'status', 'created_at']
@@ -35,7 +38,10 @@ module.exports.controller = function (app) {
         try {
             const { id } = req.params;
             let cmsPage = null;
-
+            if (req.user.role.name !== "SuperAdmin") {
+                req.flash('error', 'You are not authorized to access this page.');
+                return res.redirect('/');
+            }
             if (id) {
                 cmsPage = await models.CMSPage.findOne({ where: { id }, raw: true });
             }
@@ -86,7 +92,10 @@ module.exports.controller = function (app) {
             if (cms_id) {
                 cms = await models.CMSPage.findOne({ where: { id: cms_id }, raw: true });
             }
-
+            if (req.user.role.name !== "SuperAdmin") {
+                req.flash('error', 'You are not authorized to access this page.');
+                return res.redirect('/');
+            }
             // Retrieve flash messages
             const errors = req.flash('errors')[0] || {};
             const formData = req.flash('cms')[0] || {};
@@ -165,6 +174,42 @@ module.exports.controller = function (app) {
             return res.json({ success: true, message: 'CMS Page deleted successfully.' });
         } catch (error) {
             return res.json({ success: false, message: error.message });
+        }
+    });
+
+
+    app.get('/web/cms/:slug', async (req, res) => {
+        try {
+            // Proper model reference
+            const page = await models.CMSPage.findOne({
+                where: { 
+                    slug: req.params.slug, 
+                    status: '1' 
+                },
+                attributes: ['id', 'title', 'content', 'created_at']
+            });
+
+            // Handle page not found
+            if (!page) {
+                return res.status(404).render('errors/404', {
+                    error: 'The requested page could not be found'
+                });
+            }
+
+            // Render the page with data
+            return res.render('web/cms', { 
+                page: page.get({ plain: true }),
+                title: page.title,
+                layout: false
+            });
+
+        } catch (error) {
+            console.error('Error fetching CMS page:', error);
+            
+            // Handle server error
+            return res.status(500).render('errors/500', {
+                error: 'An error occurred while loading the page'
+            });
         }
     });
 };

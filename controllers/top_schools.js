@@ -10,7 +10,10 @@ module.exports.controller = function (app) {
             req.flash('error', 'Please login to continue.');
             return res.redirect('/login');
         }
-
+        if (req.user.role.name !== "SuperAdmin") {
+            req.flash('error', 'You are not authorized to access this page.');
+            return res.redirect('/');
+        }
         try {
             const topSchools = await models.TopSchool.findAll({
                 include: [
@@ -45,7 +48,10 @@ module.exports.controller = function (app) {
             req.flash('error', 'Please login to continue.');
             return res.redirect('/login');
         }
-
+        if (req.user.role.name !== "SuperAdmin") {
+            req.flash('error', 'You are not authorized to access this page.');
+            return res.redirect('/');
+        }
         try {
             const schools = await models.Schools.findAll({
                 attributes: ['id', 'name'],
@@ -194,11 +200,10 @@ module.exports.controller = function (app) {
     /**
      * Handle Remove Top School
      */
-    app.post('/top-schools/delete/:id', async (req, res) => {
+    app.delete('/top-schools/delete/:id', async (req, res) => {
         if (!req.isAuthenticated()) {
             return res.status(403).json({ success: false, message: 'Unauthorized. Please log in.' });
         }
-
         try {
             const topSchool = await models.TopSchool.findByPk(req.params.id);
             if (!topSchool) {
@@ -206,8 +211,7 @@ module.exports.controller = function (app) {
             }
 
             await topSchool.destroy();
-            req.flash('success', 'School removed from top schools.');
-            res.redirect('/top-schools/index');
+            return res.json({ success: true, message: 'School removed from top schools.' });
         } catch (error) {
             console.error('Error removing top school:', error);
             req.flash('error', 'Failed to remove top school.');

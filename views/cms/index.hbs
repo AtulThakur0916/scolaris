@@ -42,22 +42,22 @@
               <th>Title</th>
               <th>Slug</th>
 
-              <th>Created At</th>
+              {{!-- <th>Created At</th> --}}
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {{#each cmsPages}}
             <tr>
-              <td>{{@index}}</td>
+              <td class="row-index" data-index="{{@index}}"></td>
               <td>{{this.title}}</td>
               <td>{{this.slug}}</td>
-              <td>{{this.created_at}}</td>
+              {{!-- <td>{{this.created_at}}</td> --}}
               <td>
                 <a href="/cms/edit/{{this.id}}"> <i class="menu-icon tf-icons bx bx-edit-alt text-primary"></i></a>
-                <a href="#" onclick="deleteItem('/cms/delete', '{{this.id}}')">
+                {{!-- <a href="#" onclick="deleteItem('/cms/delete', '{{this.id}}')">
                   <i class="menu-icon tf-icons bx bx-trash text-danger"></i>
-                </a>
+                </a> --}}
               </td>
             </tr>
             {{/each}}

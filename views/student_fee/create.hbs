@@ -1,0 +1,347 @@
+{{!-- Flash Messages --}}
+{{#if messages.success}}
+<div class="alert alert-success">{{messages.success}}</div>
+{{/if}}
+{{#if messages.error}}
+<div class="alert alert-danger">{{messages.error}}</div>
+{{/if}}
+<div class="content-wrapper">
+  <div class="container-xxl flex-grow-1 container-p-y">
+    <div class="row g-6">
+      <div class="col-md-12">
+        <div class="card">
+          <h5 class="card-header">Create Student Fee</h5>
+
+          <div class="card-body">
+            <form action="/student-fees/create" method="post">
+
+              <div class="row">
+                {{!-- Select Student --}}
+                <div class="col-md-6">
+                  <label for="school_id" class="form-label">School</label>
+                  <select class="form-control {{#if errors.school_id}}is-invalid{{/if}}" name="school_id"
+                    id="schoolSelect" required>
+                    <option value="" disabled selected>Select School</option>
+                    {{#each schools}}
+                    <option value="{{id}}" {{#ifEquals ../studentData.school_id id}}selected{{/ifEquals}}>{{name}}
+                    </option>
+                    {{/each}}
+                  </select>
+                  {{#if errors.school_id}}
+                  <div class="invalid-feedback">{{errors.school_id.msg}}</div>
+                  {{/if}}
+                </div>
+
+                {{!-- Select Fee --}}
+                <div class="col-md-6">
+                  <label for="session_id" class="form-label">School Session</label>
+                  <select class="form-control {{#if errors.school_sessions_id}}is-invalid{{/if}}"
+                    name="school_sessions_id" id="sessionSelect" required>
+                    <option value="" disabled selected>Select Session</option>
+                  </select>
+                  {{#if errors.school_sessions_id}}
+                  <div class="invalid-feedback">{{errors.school_sessions_id.msg}}</div>
+                  {{/if}}
+                </div>
+              </div>
+              <div class="row mt-2">
+
+
+                <div class="col-md-6">
+                  <label for="fee_id" class="form-label">Select Fee Type</label>
+                  <select class="form-control {{#if errors.fee_id}}is-invalid{{/if}}" name="fee_id" id="feeSelect"
+                    required>
+                    <option value="">Select Fee</option>
+                  </select>
+                  {{#if errors.fee_id}}
+                  <div class="invalid-feedback">{{errors.fee_id.msg}}</div>
+                  {{/if}}
+                </div>
+                <div class="col-md-6">
+                  <label for="class_id" class="form-label">Class</label>
+                  <select class="form-control {{#if errors.class_id}}is-invalid{{/if}}" name="class_id" id="classSelect"
+                    required>
+                    <option value="" disabled selected>Select Class</option>
+                  </select>
+                  {{#if errors.class_id}}
+                  <div class="invalid-feedback">{{errors.class_id.msg}}</div>
+                  {{/if}}
+                </div>
+              </div>
+              <div class="row mt-2">
+                {{!-- Assigned Date --}}
+                <div class="col-md-4">
+                  <label class="form-label">Assigned Date</label>
+                  <input type="date" name="assigned_date"
+                    class="form-control {{#if errors.assigned_date}}is-invalid{{/if}}"
+                    value="{{formData.assigned_date}}" required>
+                  {{#if errors.assigned_date}}
+                  <div class="invalid-feedback">{{errors.assigned_date.msg}}</div>
+                  {{/if}}
+                </div>
+
+                {{!-- Due Date --}}
+                <div class="col-md-4">
+                  <label class="form-label">Due Date</label>
+                  <input type="date" name="due_date" class="form-control {{#if errors.due_date}}is-invalid{{/if}}"
+                    value="{{formData.due_date}}" required>
+                  {{#if errors.due_date}}
+                  <div class="invalid-feedback">{{errors.due_date.msg}}</div>
+                  {{/if}}
+                </div>
+
+                {{!-- Custom Amount --}}
+                <div class="col-md-4">
+                  <label class="form-label">Custom Amount</label>
+                  <input type="number" step="0.01" min="0" name="custom_amount"
+                    class="form-control {{#if errors.custom_amount}}is-invalid{{/if}}"
+                    value="{{formData.custom_amount}}" required>
+                  {{#if errors.custom_amount}}
+                  <div class="invalid-feedback d-block">{{errors.custom_amount.msg}}</div>
+                  {{/if}}
+                </div>
+              </div>
+
+              <button type="submit" class="mt-4 float-end btn btn-primary">Create Fee</button>
+              <a href="/student-fees/index" class="mt-4 float-end btn btn-secondary me-2">Cancel</a>
+
+            </form>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const assignedDateInput = document.querySelector('input[name="assigned_date"]');
+    const dueDateInput = document.querySelector('input[name="due_date"]');
+
+    // Set minimum date for assigned_date to today
+    const today = new Date().toISOString().split('T')[0];
+    assignedDateInput.setAttribute('min', today);
+
+    assignedDateInput.addEventListener('change', () => {
+      const assignedDate = assignedDateInput.value;
+
+      if (assignedDate) {
+        // Set due date min to 1 day after assigned date
+        const assigned = new Date(assignedDate);
+        assigned.setDate(assigned.getDate() + 1);
+
+        const minDueDate = assigned.toISOString().split('T')[0];
+        dueDateInput.setAttribute('min', minDueDate);
+      }
+    });
+
+    // Trigger on page load in case value exists
+    if (assignedDateInput.value) {
+      assignedDateInput.dispatchEvent(new Event('change'));
+    }
+  });
+</script>
+<script>
+  // Dynamic Fee Loading
+  document.addEventListener("DOMContentLoaded", function () {
+    const sessionSelect = document.getElementById("sessionSelect");
+    const feeSelect = document.getElementById("feeSelect"); // Now matches the HTML ID
+
+    if (!sessionSelect || !feeSelect) {
+      console.error("Required elements not found");
+      return;
+    }
+
+    const oldFeeId = "{{studentData.fee_id}}";
+
+    async function loadFees(sessionId, preselectId = null) {
+      if (!feeSelect) return;
+
+      feeSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
+
+      if (sessionId) {
+        try {
+          const response = await fetch(`/school/fees/${sessionId}`);
+          const data = await response.json();
+
+          if (data.fees && data.fees.length > 0) {
+            feeSelect.innerHTML = `<option value="" disabled selected>Select Fee</option>`;
+
+            data.fees.forEach(fee => {
+              const selected = preselectId == fee.id ? "selected" : "";
+              feeSelect.innerHTML += `<option value="${fee.id}" ${selected}>
+                  ${fee.feesType.name} - F CFA${fee.amount} (${fee.frequency})
+                </option>`;
+            });
+          } else {
+            feeSelect.innerHTML = `<option value="" disabled>No fees available</option>`;
+          }
+        } catch (error) {
+          console.error("Error fetching fees:", error);
+          feeSelect.innerHTML = `<option value="" disabled>Error loading fees</option>`;
+        }
+      } else {
+        feeSelect.innerHTML = `<option value="" disabled selected>Select Fee</option>`;
+      }
+    }
+
+    // When session is changed
+    sessionSelect.addEventListener("change", function () {
+      const selectedSessionId = this.value;
+      loadFees(selectedSessionId);
+    });
+
+    // On page load, if session was previously selected
+    if (oldSessionId) {
+      loadFees(oldSessionId, oldFeeId);
+    }
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    const sessionSelect = document.getElementById("sessionSelect");
+    const classSelect = document.getElementById("classSelect");
+
+    const oldSessionId = "{{studentData.school_sessions_id}}";
+    const oldClassId = "{{studentData.class_id}}";
+
+    async function loadClasses(schoolSessionsId, preselectId = null) {
+      classSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
+
+      if (schoolSessionsId) {
+        try {
+          const response = await fetch(`/school/class/${schoolSessionsId}`);
+          const data = await response.json();
+
+          if (data.classes && data.classes.length > 0) {
+            classSelect.innerHTML = `<option value="" disabled>Select Class</option>`;
+
+            data.classes.forEach(cls => {
+              const selected = preselectId == cls.id ? "selected" : "";
+              classSelect.innerHTML += `<option value="${cls.id}" ${selected}>${cls.name}</option>`;
+            });
+          } else {
+            classSelect.innerHTML = `<option value="" disabled>No classes available</option>`;
+          }
+        } catch (error) {
+          console.error("Error fetching classes:", error);
+          classSelect.innerHTML = `<option value="" disabled>Error loading classes</option>`;
+        }
+      } else {
+        classSelect.innerHTML = `<option value="" disabled selected>Select Class</option>`;
+      }
+    }
+
+    // When session is changed
+    sessionSelect.addEventListener("change", function () {
+      const selectedSessionId = this.value;
+      loadClasses(selectedSessionId); // don't preselect on manual change
+    });
+
+    // On page load, if session was previously selected
+    if (oldSessionId) {
+      sessionSelect.value = oldSessionId;
+      loadClasses(oldSessionId, oldClassId);
+    }
+  });
+  // session
+  document.addEventListener("DOMContentLoaded", function () {
+    const schoolSelect = document.getElementById("schoolSelect");
+    const sessionSelect = document.getElementById("sessionSelect");
+
+    const oldSchoolId = "{{studentData.school_id}}";
+    const oldSessionId = "{{studentData.school_sessions_id}}";
+
+    async function loadSessions(schoolId, preselectId = null) {
+      sessionSelect.innerHTML = `<option value="" disabled selected>Loading...</option>`;
+
+      if (schoolId) {
+        try {
+          const response = await fetch(`/school/session/${schoolId}`);
+          const data = await response.json();
+
+          if (data.session && data.session.length > 0) {
+            sessionSelect.innerHTML = `<option value="" disabled selected>Select Session</option>`;
+
+            data.session.forEach(cls => {
+              const startDate = new Date(cls.start_date);
+              const endDate = new Date(cls.end_date);
+              const formattedStart = startDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+              const formattedEnd = endDate.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+
+              const selected = preselectId == cls.id ? "selected" : "";
+              sessionSelect.innerHTML += `<option value="${cls.id}" ${selected}>${formattedStart} - ${formattedEnd}</option>`;
+            });
+          } else {
+            sessionSelect.innerHTML = `<option value="" disabled>No sessions available</option>`;
+          }
+        } catch (error) {
+          console.error("Error fetching sessions:", error);
+          sessionSelect.innerHTML = `<option value="" disabled>Error loading sessions</option>`;
+        }
+      } else {
+        sessionSelect.innerHTML = `<option value="" disabled selected>Select Session</option>`;
+      }
+    }
+
+    // On change of school
+    schoolSelect.addEventListener("change", function () {
+      const selectedSchoolId = this.value;
+      loadSessions(selectedSchoolId); // don't preselect session on manual change
+    });
+
+    // On page load, if oldSchoolId exists, prefill
+    if (oldSchoolId) {
+      schoolSelect.value = oldSchoolId;
+      loadSessions(oldSchoolId, oldSessionId);
+    }
+  });
+  document.addEventListener("DOMContentLoaded", function () {
+    const dropdownButton = document.getElementById("countryDropdown");
+    const dropdownMenu = document.getElementById("countryDropdownMenu");
+    const selectedCountryName = document.getElementById("selectedCountryName");
+    const selectedCountryFlag = document.getElementById("selectedCountryFlag");
+    const countryInput = document.getElementById("countryInput");
+    const countrySearch = document.getElementById("countrySearch");
+
+    // Set default country on load if already selected
+    const preselectedCountry = "{{studentData.country}}";
+    if (preselectedCountry) {
+      const selectedOption = dropdownMenu.querySelector(`[data-code="${preselectedCountry}"]`);
+      if (selectedOption) {
+        selectedCountryName.textContent = selectedOption.textContent.trim();
+        selectedCountryFlag.src = selectedOption.getAttribute("data-flag");
+        selectedCountryFlag.style.display = "inline";
+        countryInput.value = preselectedCountry;
+      }
+    }
+
+    // Handle click on dropdown options
+    dropdownMenu.addEventListener("click", (e) => {
+      e.preventDefault();
+      const clickedOption = e.target.closest(".country-option");
+
+      if (clickedOption) {
+        const countryCode = clickedOption.getAttribute("data-code");
+        const countryFlag = clickedOption.getAttribute("data-flag");
+        const countryName = clickedOption.textContent.trim();
+
+        selectedCountryName.textContent = countryName;
+        selectedCountryFlag.src = countryFlag;
+        selectedCountryFlag.style.display = "inline";
+        countryInput.value = countryCode;
+      }
+    });
+
+    // Search countries in dropdown
+    countrySearch.addEventListener("input", () => {
+      const searchValue = countrySearch.value.toLowerCase();
+      const options = dropdownMenu.querySelectorAll(".country-option");
+
+      options.forEach((option) => {
+        const countryName = option.textContent.trim().toLowerCase();
+        option.closest("li").style.display = countryName.includes(searchValue) ? "" : "none";
+      });
+    });
+  });
+
+
+</script>

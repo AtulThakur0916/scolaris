@@ -1,0 +1,362 @@
+  <style>
+
+          :root {
+            --primary-color: #6C5CE7;
+            --secondary-color: #5A4ED1;
+            --text-color: #2D3436;
+            --border-radius: 12px;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            color: var(--text-color);
+        }
+
+        .content-wrapper {
+            padding: 40px 0;
+            min-height: calc(100vh - 70px);
+        }
+
+        .form-section {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .form-section h5 {
+            color: var(--primary-color);
+            border-bottom: 2px solid #eee;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .form-section h5 i {
+            margin-right: 10px;
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: #4a5568;
+            margin-bottom: 8px;
+        }
+  .form-check-input:checked {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    .form-check-input:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.25rem rgba(108, 92, 231, 0.25);
+    }
+        .form-control {
+            border: 1px solid #e2e8f0;
+            padding: 10px 15px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+        }
+
+        .btn-secondary {
+            background-color: #718096;
+            border-color: #718096;
+        }
+
+        .dropdown-toggle {
+            background: white;
+            border: 1px solid #e2e8f0;
+            text-align: left;
+            padding: 10px 15px;
+        }
+        .dropdown-menu {
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+
+        #logoPreview {
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 5px;
+            background: white;
+        }
+
+        .card-title {
+            color: var(--primary-color);
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 30px;
+        }
+
+        .alert {
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+        }
+
+        /* File input styling */
+        input[type="file"] {
+            padding: 8px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .form-section {
+                padding: 20px;
+            }
+
+            .content-wrapper {
+                padding: 20px 0;
+            }
+        }
+
+        .content-wrapper {
+            padding-top: 30px;
+        }
+
+      
+
+        .dropdown-menu {
+            z-index: 1050;
+        }
+
+        #logoPreview {
+            max-height: 80px;
+        }
+
+        .register-btn {
+            background: #6C5CE7;
+            color: white !important;
+            border-radius: 8px;
+            padding: 8px 20px !important;
+        }
+
+     
+
+        /* Page Specific Styles */
+        .content-wrapper {
+            background: #f8f9fa;
+            padding: 40px 0;
+            min-height: calc(100vh - 70px);
+        }
+
+        .form-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+        body {
+            background-color: #f4f4f4;
+        }
+
+        .height-100 {
+            height: 100vh;
+        }
+
+        .card {
+            width: 400px;
+            border: none;
+            height: 330px;
+            box-shadow: 0px 5px 20px 0px #d2dae3;
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .card h6 {
+            color: #333;
+            font-size: 18px;
+        }
+
+        .inputs input {
+            width: 40px;
+            height: 40px;
+            text-align: center;
+        }
+
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            margin: 0;
+        }
+
+        .card-2 {
+            background-color: #fff;
+            padding: 10px;
+            width: 350px;
+            height: 100px;
+            position: absolute;
+            bottom: -60px;
+            left: 20px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .card-2 .content a {
+            color: red;
+            cursor: pointer;
+        }
+
+        .form-control:focus {
+            box-shadow: none;
+            border: 2px solid red;
+        }
+
+        .validate {
+            border-radius: 20px;
+            height: 40px;
+            background-color: rgb(76, 0, 255);
+            border: 1px solid rgba(0, 4, 255, 0.91);
+            width: 140px;
+        }
+
+        .resend-disabled {
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        .timer {
+            font-size: 14px;
+            color: red;
+        }
+    </style>
+
+    <div class="container height-100 d-flex justify-content-center align-items-center">
+        <div class="position-relative">
+            {{#if error}}
+            <div class="alert alert-danger">{{error}}</div>
+            {{/if}}
+            {{#if success}}
+            <div class="alert alert-success">{{success}}</div>
+            {{/if}}
+
+            <form method="POST" action="/super/school/verify/save" id="otp-form">
+                <div class="card p-2 text-center">
+                    <h6>Please enter the one-time password <br> to verify your account</h6>
+                    <div><span>A code has been sent to</span> <small>{{email}}</small></div>
+                    <div id="otp" class="inputs d-flex flex-row justify-content-center mt-2">
+                        <input class="m-2 text-center form-control rounded" type="text" maxlength="1" required />
+                        <input class="m-2 text-center form-control rounded" type="text" maxlength="1" required />
+                        <input class="m-2 text-center form-control rounded" type="text" maxlength="1" required />
+                        <input class="m-2 text-center form-control rounded" type="text" maxlength="1" required />
+                        <input class="m-2 text-center form-control rounded" type="text" maxlength="1" required />
+                        <input class="m-2 text-center form-control rounded" type="text" maxlength="1" required />
+                    </div>
+                    <!-- Hidden input to store the full OTP -->
+                    <input type="hidden" name="otp" id="otp-hidden" />
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-success px-4 validate">Validate</button>
+                    </div>
+                </div>
+
+            </form>
+            <div class="content justify-center text-center mt-2">
+                <span>Didn't get the code?</span>
+                <form method="POST" action="/super/school/verify/resend" class="text-center mt-3">
+                    <button type="submit" class="btn btn-link p-0"><strong>Resend
+                            OTP</strong></button>
+                </form>
+            </div>
+
+        </div>
+      
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const inputs = document.querySelectorAll('#otp > input');
+            const hiddenOtpInput = document.getElementById('otp-hidden');
+            const form = document.getElementById('otp-form');
+            const resendLink = document.getElementById('resend-link');
+            const resendTimer = document.getElementById('resend-timer');
+
+            inputs.forEach((input, i) => {
+                input.addEventListener('keydown', function (event) {
+                    if (event.key === "Backspace") {
+                        input.value = '';
+                        if (i !== 0) inputs[i - 1].focus();
+                    } else if (event.key.match(/[0-9a-zA-Z]/)) {
+                        input.value = event.key;
+                        if (i !== inputs.length - 1) inputs[i + 1].focus();
+                        event.preventDefault();
+                    }
+                });
+            });
+
+            form.addEventListener('submit', function () {
+                let otpValue = '';
+                inputs.forEach(input => {
+                    otpValue += input.value;
+                });
+                hiddenOtpInput.value = otpValue;
+            });
+
+            startResendCooldown(); // Start countdown on page load
+        });
+
+        function startResendCooldown(duration = 30) {
+            const resendLink = document.getElementById('resend-link');
+            const resendTimer = document.getElementById('resend-timer');
+
+            let timeLeft = duration;
+            const countdown = setInterval(() => {
+                timeLeft--;
+                resendTimer.textContent = `${timeLeft} seconds remaining`; // Update timer text
+
+                if (timeLeft <= 0) {
+                    clearInterval(countdown);
+                    resendLink.style.display = 'inline-block';  // Show Resend OTP button
+                    resendTimer.style.display = 'none';  // Hide countdown timer
+                }
+            }, 1000);
+        }
+
+        function resendOTP() {
+            const resendLink = document.getElementById('resend-link');
+
+            if (!resendLink.style.display === 'inline-block') return;  // Prevent resending if disabled
+
+            // Perform OTP resend action (e.g., fetch request)
+            fetch('/web/school/verify/resend', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email: '{{email}}' }) // assuming `email` is available in the view
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('OTP resent successfully!');
+                        startResendCooldown(); // Restart countdown after OTP is resent
+                    } else {
+                        alert(data.error || 'Failed to resend OTP.');
+                    }
+                })
+                .catch(() => alert('Error sending request.'));
+        }
+    </script>

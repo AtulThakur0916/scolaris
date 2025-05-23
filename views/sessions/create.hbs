@@ -59,8 +59,11 @@
                     <option value="">Select Status</option>
                     <option value="Active" {{#ifEquals sessionData.status "Active" }}selected{{/ifEquals}}>Active
                     </option>
+                    <option value="Inactive" {{#ifEquals sessionData.status "Inactive" }}selected{{/ifEquals}}>
+                      Inactive</option>
                     <option value="Completed" {{#ifEquals sessionData.status "Completed" }}selected{{/ifEquals}}>
                       Completed</option>
+
                   </select>
                   {{#if errors.status}}
                   <div class="invalid-feedback">{{errors.status.msg}}</div>

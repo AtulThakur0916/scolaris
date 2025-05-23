@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
             primaryKey: true
         },
         name: {
-            type: DataTypes.STRING,
+            type: DataTypes.TEXT,
             allowNull: false
         },
         email: {
@@ -69,8 +69,12 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: true
         },
         address: {
-            type: DataTypes.STRING,
+            type: DataTypes.TEXT,
             allowNull: true
+        },
+        profile_pic: {
+            type: DataTypes.STRING,
+            allowNull: true,
         },
         status: {
             type: DataTypes.BOOLEAN,
@@ -87,6 +91,8 @@ module.exports = (sequelize, DataTypes) => {
     Students.associate = function (models) {
         Students.belongsTo(models.Schools, { foreignKey: 'school_id', as: 'school' });
         Students.belongsTo(models.Classes, { foreignKey: 'class_id', as: 'class' });
+        Students.belongsTo(models.SchoolSessions, { foreignKey: 'school_sessions_id', as: 'session' }); // ✅ Add this line
+
     };
 
     return Students;

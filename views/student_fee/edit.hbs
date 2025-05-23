@@ -1,0 +1,117 @@
+{{!-- Flash Messages --}}
+{{#if messages.success}}
+<div class="alert alert-success">{{messages.success}}</div>
+{{/if}}
+{{#if messages.error}}
+<div class="alert alert-danger">{{messages.error}}</div>
+{{/if}}
+
+<div class="content-wrapper">
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <div class="row g-6">
+            <div class="col-md-12">
+                <div class="card">
+                    <h5 class="card-header">Edit Student Fee</h5>
+
+                    <div class="card-body">
+                        <form action="/student-fees/update/{{studentFee.id}}" method="post">
+
+                            <div class="row">
+                                {{!-- Select Student --}}
+                                <div class="col-md-6">
+                                    <label for="student_id" class="form-label">Select Student</label>
+                                    <select class="form-control {{#if errors.student_id}}is-invalid{{/if}}"
+                                        name="student_id" required>
+                                        <option value="">Select Student</option>
+                                        {{#each students}}
+                                        <option value="{{this.id}}" {{#if (eq this.id
+                                            ../studentFee.student_id)}}selected{{/if}}>
+                                            {{this.name}}
+                                        </option>
+                                        {{/each}}
+                                    </select>
+                                    {{#if errors.student_id}}
+                                    <div class="invalid-feedback">{{errors.student_id.msg}}</div>
+                                    {{/if}}
+                                </div>
+
+                                {{!-- Select Fee --}}
+                                <div class="col-md-6">
+                                    <label for="fee_id" class="form-label">Select Fee Type</label>
+                                    <select class="form-control {{#if errors.fee_id}}is-invalid{{/if}}" name="fee_id"
+                                        required>
+                                        <option value="">Select Fee</option>
+                                        {{#each fees}}
+                                        <option value="{{this.id}}" {{#if (eq this.id
+                                            ../studentFee.fee_id)}}selected{{/if}}>
+                                            {{this.feesType.name}} - ${{this.amount}} ({{this.frequency}})
+                                        </option>
+                                        {{/each}}
+                                    </select>
+                                    {{#if errors.fee_id}}
+                                    <div class="invalid-feedback">{{errors.fee_id.msg}}</div>
+                                    {{/if}}
+                                </div>
+                            </div>
+
+                            <div class="row mt-2">
+                                {{!-- Assigned Date --}}
+                                <div class="col-md-4">
+                                    <label class="form-label">Assigned Date</label>
+                                    <input type="date" name="assigned_date" class="form-control"
+                                        value="{{studentFee.assigned_date}}" required>
+                                </div>
+
+                                {{!-- Due Date --}}
+                                <div class="col-md-4">
+                                    <label class="form-label">Due Date</label>
+                                    <input type="date" name="due_date" class="form-control"
+                                        value="{{studentFee.due_date}}" required>
+                                </div>
+
+                                {{!-- Custom Amount --}}
+                                <div class="col-md-4">
+                                    <label class="form-label">Custom Amount</label>
+                                    <input type="number" step="0.01" name="custom_amount" class="form-control"
+                                        value="{{studentFee.custom_amount}}" required>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="mt-4 float-end btn btn-primary">Update Fee</button>
+                            <a href="/student-fees/index" class="mt-4 float-end btn btn-secondary me-2">Cancel</a>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const assignedDateInput = document.querySelector('input[name="assigned_date"]');
+        const dueDateInput = document.querySelector('input[name="due_date"]');
+
+        // Set minimum date for assigned_date to today
+        const today = new Date().toISOString().split('T')[0];
+        assignedDateInput.setAttribute('min', today);
+
+        assignedDateInput.addEventListener('change', () => {
+            const assignedDate = assignedDateInput.value;
+
+            if (assignedDate) {
+                // Set due date min to 1 day after assigned date
+                const assigned = new Date(assignedDate);
+                assigned.setDate(assigned.getDate() + 1);
+
+                const minDueDate = assigned.toISOString().split('T')[0];
+                dueDateInput.setAttribute('min', minDueDate);
+            }
+        });
+
+        // Trigger on page load in case value exists
+        if (assignedDateInput.value) {
+            assignedDateInput.dispatchEvent(new Event('change'));
+        }
+    });
+</script>

@@ -13,19 +13,26 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
 
         try {
+            let whereCondition = {};
+            if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+                whereCondition.school_id = req.user.school_id;
+            }
+
             const fees = await models.Fees.findAll({
-                attributes: ['id', 'fee_type', 'custom_fee_name', 'amount', 'frequency', 'status'],
+                attributes: ['id', 'custom_fee_name', 'amount', 'frequency', 'status'],
                 include: [
                     { model: models.Classes, as: 'class', attributes: ['name'] },
-                    { model: models.Schools, as: 'school', attributes: ['name'] }
+                    { model: models.Schools, as: 'school', attributes: ['name'] },
+                    { model: models.FeesTypes, as: 'feesType', attributes: ['name'] },
                 ],
-                order: [['fee_type', 'ASC']],
+                where: whereCondition,
+                order: [['id', 'ASC']],
                 nest: true
             });
 
@@ -50,75 +57,131 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
      * Create or edit fee
      */
     app.get('/fees/create', async (req, res) => {
+        if (!req.isAuthenticated()) {
+            req.flash('error', 'Please login to continue.');
+            return res.redirect('/login');
+        }
+
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+            req.flash('error', 'You are not authorised to access this page.');
+            return res.redirect('/');
+        }
+
         try {
             const { fee_id } = req.params;
             let feeData = null;
+
+            // Fetch classes (only active ones)
             const classes = await models.Classes.findAll({
-                attributes: ['id', 'name'], where: {
-                    status: '1'
-                }, raw: true
+                attributes: ['id', 'name'],
+                where: { status: '1' },
+                raw: true
             });
-            const schools = await models.Schools.findAll({
-                attributes: ['id', 'name'], where: {
-                    status: 'Approve'
-                }, raw: true
+            const fees_type = await models.FeesTypes.findAll({
+                attributes: ['id', 'name'],
+                where: { status: 'Active' },
+                raw: true
             });
 
+            // School filter based on user role
+            const schoolCondition = { status: 'Approve' };
+            if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+                schoolCondition.id = req.user.school_id;
+            }
+
+            // Fetch schools with condition
+            const schools = await models.Schools.findAll({
+                attributes: ['id', 'name'],
+                where: schoolCondition,
+                raw: true
+            });
+
+            // Fetch fee data if fee_id is provided
             if (fee_id) {
                 feeData = await models.Fees.findOne({ where: { id: fee_id }, raw: true });
             }
 
-            res.render('fees/create', { feeData, classes, schools });
+            res.render('fees/create', { feeData, classes, schools, fees_type });
         } catch (error) {
             console.error('Error in /fees/create:', error);
-            res.status(500).send('Error loading fee data');
+            req.flash('error', 'Failed to load fee data.');
+            res.redirect('/fees/index');
         }
     });
+
 
     /**
      * Create fee with validation
      */
     app.post('/fees/create', [
-        body('fee_type').notEmpty().withMessage('Fee type is required'),
-        body('school_sessions_id')
-            .notEmpty().withMessage('School session is required'),
+        body('fees_type_id').notEmpty().withMessage('Fee type is required'),
+        body('school_sessions_id').notEmpty().withMessage('School session is required'),
         body('amount').isFloat({ min: 0 }).withMessage('Amount must be a positive number'),
         body('frequency').notEmpty().withMessage('Frequency is required'),
         body('school_id').notEmpty().withMessage('School is required'),
         body('status').isIn(['0', '1']).withMessage('Invalid status'),
     ], async (req, res) => {
         if (!req.isAuthenticated()) {
-            req.flash('error', 'Please login to continue');
+            req.flash('error', 'Please login to continue.');
             return res.redirect('/login');
         }
-
-        if (req.user.role.name !== "SuperAdmin") {
-            req.flash('error', "You are not authorised to access this page.");
-            return res.redirect('/fees/index');
+        console.log(req.body);
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+            req.flash('error', 'You are not authorised to access this page.');
+            return res.redirect('/');
         }
 
         const errors = validationResult(req);
+        const { fees_type_id, school_sessions_id, custom_fee_name, amount, frequency, description, school_id, class_id, status } = req.body;
+
         if (!errors.isEmpty()) {
-            return res.render('fees/create', {
-                feeData: req.body,
-                errors: errors.mapped(),
-                classes: await models.Classes.findAll({
-                    attributes: ['id', 'name'], where: {
-                        status: '1'
-                    }, raw: true
-                }),
-                schools: await models.Schools.findAll({
-                    attributes: ['id', 'name'], where: {
-                        status: 'Approve'
-                    }, raw: true
-                })
-            });
+            try {
+                // Fetch classes and apply school condition based on role
+                const classes = await models.Classes.findAll({
+                    attributes: ['id', 'name'],
+                    where: { status: '1' },
+                    raw: true
+                });
+
+                const schoolCondition = { status: 'Approve' };
+                if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+                    schoolCondition.id = req.user.school_id;
+                }
+
+                const schools = await models.Schools.findAll({
+                    attributes: ['id', 'name'],
+                    where: schoolCondition,
+                    raw: true
+                });
+
+                // Render form with errors and existing input
+                return res.render('fees/create', {
+                    feeData: req.body,
+                    errors: errors.mapped(),
+                    classes,
+                    schools
+                });
+
+            } catch (fetchError) {
+                console.error('Error fetching classes or schools:', fetchError);
+                req.flash('error', 'Failed to load form data.');
+                return res.redirect('/fees/index');
+            }
         }
 
-        const { fee_type, school_sessions_id, custom_fee_name, amount, frequency, description, school_id, class_id, status } = req.body;
-
         try {
-            await models.Fees.create({ fee_type, school_sessions_id, custom_fee_name, amount, frequency, description, school_id, class_id, status });
+            // Create the fee record
+            await models.Fees.create({
+                fees_type_id,
+                school_sessions_id,
+                custom_fee_name,
+                amount,
+                frequency,
+                description,
+                school_id,
+                class_id,
+                status
+            });
 
             req.flash('success', 'Fee created successfully.');
             res.redirect('/fees/index');
@@ -128,15 +191,40 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             res.redirect('/fees/create');
         }
     });
+
     app.get('/fees/edit/:fee_id?', async (req, res) => {
+        if (!req.isAuthenticated()) {
+            req.flash('error', 'Please login to continue.');
+            return res.redirect('/login');
+        }
+
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+            req.flash('error', 'You are not authorised to access this page.');
+            return res.redirect('/');
+        }
+
         try {
-            console.log('fee_id:', req.params.fee_id);
             const { fee_id } = req.params;
-            const schools = await models.Schools.findAll({
+            console.log('fee_id:', fee_id);
+
+            // School condition based on role
+            const schoolCondition = { status: 'Approve' };
+            if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+                schoolCondition.id = req.user.school_id;
+            }
+            const fees_type = await models.FeesTypes.findAll({
                 attributes: ['id', 'name'],
-                where: { status: 'Approve' },
+                where: { status: 'Active' },
                 raw: true
             });
+            // Fetch schools
+            const schools = await models.Schools.findAll({
+                attributes: ['id', 'name'],
+                where: schoolCondition,
+                raw: true
+            });
+
+            // Fetch fee data
             let feeData = await models.Fees.findOne({
                 where: { id: fee_id },
                 include: [
@@ -145,9 +233,12 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 ],
                 nest: true
             });
+
             if (feeData) {
                 feeData = feeData.get({ plain: true });
             }
+
+            // Fetch sessions if feeData exists
             const sessions = feeData
                 ? await models.SchoolSessions.findAll({
                     where: { school_id: feeData.school_id },
@@ -155,6 +246,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     raw: true
                 })
                 : [];
+
+            // Format session dates
             const monthNames = [
                 "January", "February", "March", "April", "May", "June",
                 "July", "August", "September", "October", "November", "December"
@@ -172,11 +265,14 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     end_date: formattedEnd
                 };
             });
+
+            // Fetch classes if feeData exists
             const classes = feeData
                 ? await models.Classes.findAll({
                     where: {
                         school_id: feeData.school_id,
-                        school_sessions_id: feeData.school_sessions_id
+                        school_sessions_id: feeData.school_sessions_id,
+                        status: '1'
                     },
                     attributes: ['id', 'name'],
                     raw: true
@@ -196,6 +292,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 },
                 classes,
                 schools,
+                fees_type,
                 formattedSessions,
                 debug: {
                     hasFee: !!feeData,
@@ -204,18 +301,19 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             });
         } catch (error) {
             console.error('Error loading fee edit page:', error);
-            res.status(500).send('Error loading fee data');
+            req.flash('error', 'Error loading fee data.');
+            res.redirect('/fees/index');
         }
     });
+
 
 
     /**
      * Update fee with validation
      */
     app.post('/fees/update/:fee_id', [
-        body('fee_type').notEmpty().withMessage('Fee type is required'),
-        body('school_sessions_id')
-            .notEmpty().withMessage('School session is required'),
+        body('fees_type_id').notEmpty().withMessage('Fee type is required'),
+        body('school_sessions_id').notEmpty().withMessage('School session is required'),
         body('amount').isFloat({ min: 0 }).withMessage('Amount must be a positive number'),
         body('frequency').notEmpty().withMessage('Frequency is required'),
         body('school_id').notEmpty().withMessage('School is required'),
@@ -223,16 +321,19 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     ], async (req, res) => {
         const { fee_id } = req.params;
 
+        // Authentication check
         if (!req.isAuthenticated()) {
-            req.flash('error', 'Please login to continue');
+            req.flash('error', 'Please login to continue.');
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin") {
+        // Authorization check
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
             req.flash('error', "You are not authorized to access this page.");
             return res.redirect('/fees/index');
         }
 
+        // Validate inputs
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             req.flash('errors', errors.mapped());
@@ -241,16 +342,51 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         }
 
         try {
-            const { fee_type, school_sessions_id, custom_fee_name, amount, frequency, description, school_id, class_id, status } = req.body;
+            const {
+                fees_type_id,
+                school_sessions_id,
+                custom_fee_name,
+                amount,
+                frequency,
+                description,
+                school_id,
+                class_id,
+                status
+            } = req.body;
+
+            // Check if fee exists
+            const fee = await models.Fees.findByPk(fee_id);
+            if (!fee) {
+                req.flash('error', 'Fee not found.');
+                return res.redirect('/fees/index');
+            }
+
+            // Restrict School users from updating other schools' fees
+            if ((req.user.role.name === "School" || req.user.role.name === "SubAdmin") && fee.school_id !== req.user.school_id) {
+                req.flash('error', "You don't have permission to update this fee.");
+                return res.redirect('/fees/index');
+            }
+
+            // Update fee
             const [rowsUpdated] = await models.Fees.update(
-                { fee_type, school_sessions_id, custom_fee_name, amount, frequency, description, school_id, class_id, status },
+                {
+                    fees_type_id,
+                    school_sessions_id,
+                    custom_fee_name,
+                    amount,
+                    frequency,
+                    description,
+                    school_id,
+                    class_id,
+                    status
+                },
                 { where: { id: fee_id } }
             );
 
             if (rowsUpdated > 0) {
                 req.flash('success', 'Fee updated successfully.');
             } else {
-                req.flash('error', 'No changes were made or fee not found.');
+                req.flash('info', 'No changes made.');
             }
 
             res.redirect('/fees/index');
@@ -259,34 +395,46 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             req.flash('error', 'Error updating fee. Please try again.');
             res.redirect(`/fees/edit/${fee_id}`);
         }
-    });
 
+    });
     /**
      * Delete fee
      */
     app.delete('/fees/delete/:id', async (req, res) => {
         try {
+            // Authentication check
             if (!req.isAuthenticated()) {
-                return res.json({ success: false, message: 'Please login to continue' });
+                return res.status(401).json({ success: false, message: 'Please login to continue.' });
             }
 
-            if (req.user.role.name !== "SuperAdmin") {
-                return res.json({ success: false, message: 'You are not authorised to access this page.' });
+            // Authorization check
+            if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+                return res.status(403).json({ success: false, message: 'You are not authorised to access this page.' });
             }
 
             const { id } = req.params;
-            const feeData = await models.Fees.findOne({ where: { id } });
 
+            // Check if the fee exists
+            const feeData = await models.Fees.findOne({ where: { id } });
             if (!feeData) {
-                return res.json({ success: false, message: 'Fee not found.' });
+                return res.status(404).json({ success: false, message: 'Fee not found.' });
             }
 
+            // School users can only delete fees related to their school
+            if ((req.user.role.name === "School" || req.user.role.name === "SubAdmin") && feeData.school_id !== req.user.school_id) {
+                return res.status(403).json({ success: false, message: "You don't have permission to delete this fee." });
+            }
+
+            // Delete the fee
             await models.Fees.destroy({ where: { id } });
             return res.json({ success: true, message: 'Fee deleted successfully.' });
+
         } catch (error) {
-            return res.json({ success: false, message: error.message });
+            console.error('Error deleting fee:', error);
+            return res.status(500).json({ success: false, message: 'Error deleting fee. Please try again.' });
         }
     });
+
 
 
 

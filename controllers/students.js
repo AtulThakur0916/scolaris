@@ -2,7 +2,9 @@ const models = require('../models');
 const dd = require('../helpers/dd');
 const { body, validationResult } = require('express-validator');
 const { countries } = require('countries-list');
-
+const waterfall = require('async-waterfall');
+const fs = require('fs');
+const path = require('path');
 
 module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
@@ -15,28 +17,44 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
 
         try {
+            // Build query conditions
+            let whereCondition = {};
+            
+            // Add class_id filter if provided
+            if (req.query.class_id) {
+                whereCondition.class_id = req.query.class_id;
+            }
+
+            // Add school filter for School and SubAdmin roles
+            if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+                whereCondition.school_id = req.user.school_id;
+            }
+
             const students = await models.Students.findAll({
-                attributes: ['id', 'name', 'email', 'class_id', 'school_id', 'status'],
+                attributes: ['id', 'name', 'email', 'class_id', 'profile_pic', 'school_id', 'status'],
+                where: whereCondition,
                 include: [
                     { model: models.Classes, as: 'class', attributes: ['name'] },
                     { model: models.Schools, as: 'school', attributes: ['name'] }
                 ],
-                raw: true,
                 order: [['name', 'ASC']],
+                raw: true,
                 nest: true
             });
 
-
-
             res.render('students/index', {
-                students, success: res.locals.success,
-                error: res.locals.error
+                students,
+                selectedClass: req.query.class_id,
+                messages: {
+                    success: req.flash('success'),
+                    error: req.flash('error')
+                }
             });
 
         } catch (error) {
@@ -51,86 +69,156 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
      * Create or edit student
      */
     app.get('/students/create', async (req, res) => {
+        // Authentication check
+        if (!req.isAuthenticated()) {
+            req.flash('error', 'Please login to continue');
+            return res.redirect('/login');
+        }
+
+        // Authorization check
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+            req.flash('error', 'You are not authorised to access this page.');
+            return res.redirect('/');
+        }
+
         try {
-            const { student_id } = req.params;
             let studentData = null;
+            // const whereCondition = req.user.role.name === "School" ? { school_id: req.user.school_id } : {};
+            const whereCondition = (req.user.role.name === "School" || req.user.role.name === "SubAdmin")
+                ? { school_id: req.user.school_id }
+                : {};
+            // Fetch classes - restricted for School role
             const classes = await models.Classes.findAll({
-                attributes: ['id', 'name'], where: {
-                    status: '1'
-                }, raw: true
-            });
-            const schools = await models.Schools.findAll({
-                attributes: ['id', 'name'], where: {
-                    status: 'Approve'
-                }, raw: true
+                attributes: ['id', 'name'],
+                where: { status: '1', ...whereCondition },
+                raw: true
             });
 
+            // Fetch schools - restricted for School role
+            const schools = req.user.role.name === "SuperAdmin"
+                ? await models.Schools.findAll({
+                    attributes: ['id', 'name'],
+                    where: { status: 'Approve' },
+                    raw: true
+                })
+                : await models.Schools.findAll({
+                    attributes: ['id', 'name'],
+                    where: { id: req.user.school_id },
+                    raw: true
+                });
+
+            // Country list with flags
             const countryList = Object.entries(countries).map(([code, country]) => ({
                 code,
                 name: country.name,
                 flag: `https://flagcdn.com/w40/${code.toLowerCase()}.png`
             }));
-            // countryList.forEach(country => console.log(country.flag));
 
-            if (student_id) {
-                studentData = await models.Students.findOne({ where: { id: student_id }, raw: true });
+            // Preserve student data if editing (optional)
+            if (req.query.student_id) {
+                studentData = await models.Students.findOne({
+                    where: { id: req.query.student_id },
+                    raw: true
+                });
             }
 
-            res.render('students/create', { studentData, classes, schools, countries: countryList });
+            res.render('students/create', {
+                studentData,
+                classes,
+                schools,
+                countries: countryList
+            });
+
         } catch (error) {
             console.error('Error in /students/create:', error);
-            res.status(500).send('Error loading student data');
+            req.flash('error', 'Error loading student data');
+            res.redirect('/');
         }
     });
 
 
+
     app.get('/students/edit/:student_id?', async (req, res) => {
         try {
+            if (!req.isAuthenticated()) {
+                req.flash('error', 'Please login to continue');
+                return res.redirect('/login');
+            }
+
+            // ✅ Authorization check
+            if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+                req.flash('error', 'You are not authorised to access this page.');
+                return res.redirect('/');
+            }
 
             const { student_id } = req.params;
 
-
-            const schools = await models.Schools.findAll({
-                attributes: ['id', 'name'], where: {
-                    status: 'Approve'
-                }, raw: true
+            // ✅ Check if student exists and restrict School Admin to their school
+            const studentData = await models.Students.findOne({
+                where: req.user.role.name === "School" ? {
+                    id: student_id,
+                    school_id: req.user.school_id
+                } : { id: student_id },
+                raw: true
             });
-            let studentData = await models.Students.findOne({ where: { id: student_id }, raw: true });
-            const classes = await models.Classes.findAll({ where: { school_id: studentData.school_id }, attributes: ['id', 'name'], raw: true });
-            const monthNames = [
-                "January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December"
-            ];
 
-            // Fetch sessions
+            if (!studentData) {
+                req.flash('error', 'Student not found or unauthorized access');
+                return res.redirect('/students/index');
+            }
+
+            // ✅ Fetch Schools (SuperAdmin can see all, School Admin only sees their school)
+            const schools = await models.Schools.findAll({
+                attributes: ['id', 'name'],
+                where: (req.user.role.name === "School" || req.user.role.name === "SubAdmin") ? {
+                    id: req.user.school_id,
+                    status: 'Approve'
+                } : { status: 'Approve' },
+                raw: true
+            });
+
+            // ✅ Fetch Classes (filtered by student's school)
+            const classes = await models.Classes.findAll({
+                where: {
+                    school_id: studentData.school_id,
+                    status: '1'
+                },
+                attributes: ['id', 'name'],
+                raw: true
+            });
+
+            // ✅ Fetch School Sessions
             const schoolSessions = await models.SchoolSessions.findAll({
                 where: { school_id: studentData.school_id },
                 attributes: ['id', 'start_date', 'end_date'],
                 raw: true
             });
 
-            // Format dates
+            // ✅ Format session dates
+            const monthNames = [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            ];
             const formattedSessions = schoolSessions.map(session => {
                 const startDate = new Date(session.start_date);
                 const endDate = new Date(session.end_date);
-
                 const formattedStart = `${monthNames[startDate.getMonth()]} ${startDate.getFullYear()}`;
                 const formattedEnd = `${monthNames[endDate.getMonth()]} ${endDate.getFullYear()}`;
-
-                return {
-                    ...session,
-                    start_date: formattedStart,
-                    end_date: formattedEnd
-                };
+                return { ...session, start_date: formattedStart, end_date: formattedEnd };
             });
-            // ✅ Preserve student ID even after validation errors
+
+            // ✅ Handle flash messages and preserve data after validation errors
             const storedStudentData = req.flash('studentData')[0] || {};
-            storedStudentData.id = storedStudentData.id || student_id; // ✅ Ensure ID is set
+            storedStudentData.id = storedStudentData.id || student_id; // Ensure ID is set
+
+            // ✅ Country List (for dropdown)
             const countryList = Object.entries(countries).map(([code, country]) => ({
                 code,
                 name: country.name,
                 flag: `https://flagcdn.com/w40/${code.toLowerCase()}.png`
             }));
+
+            // ✅ Render Edit Page
             res.render('students/edit', {
                 studentData: storedStudentData.name ? storedStudentData : studentData,
                 errors: req.flash('errors')[0] || {},
@@ -148,23 +236,20 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     studentId: student_id,
                 }
             });
+
         } catch (error) {
             console.error('Error loading student edit page:', error);
-            res.status(500).send('Error loading student data');
+            req.flash('error', 'Error loading student data');
+            res.redirect('/students/index');
         }
     });
 
-    /**
-     * Create student with validation
-     */
 
     app.post('/students/create', [
-        // Name validation
         body('name')
             .notEmpty().withMessage('Name is required')
             .matches(/^[A-Za-z\s]+$/).withMessage('Name should contain only alphabets and spaces'),
 
-        // Email validation (optional, must be unique if provided)
         body('email')
             .optional({ checkFalsy: true })
             .isEmail().withMessage('Invalid email address')
@@ -176,12 +261,9 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 return true;
             }),
 
-        // Age validation (optional, must be integer and at least 5)
         body('age')
             .optional({ checkFalsy: true })
             .isInt({ min: 5 }).withMessage('Age must be an integer and at least 5'),
-
-        // Roll number validation (unique for class, school, and session)
         body('roll_number')
             .optional({ checkFalsy: true })
             .custom(async (value, { req }) => {
@@ -200,56 +282,27 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 }
                 return true;
             }),
-
-        // Class validation
-        body('class_id')
-            .notEmpty().withMessage('Class is required'),
-
-        // School validation
-        body('school_id')
-            .notEmpty().withMessage('School is required'),
-
-        // School Session validation
-        body('school_sessions_id')
-            .notEmpty().withMessage('School session is required'),
-
-        // Country validation
-        body('country')
-            .notEmpty().withMessage('Country is required'),
-
-        // State validation
-        body('state')
-            .notEmpty().withMessage('State is required'),
-
-        // City validation
-        body('city')
-            .notEmpty().withMessage('City is required'),
-
-        // Address validation
+        body('class_id').notEmpty().withMessage('Class is required'),
+        body('school_id').notEmpty().withMessage('School is required'),
+        body('school_sessions_id').notEmpty().withMessage('School session is required'),
+        body('country').notEmpty().withMessage('Country is required'),
+        body('state').notEmpty().withMessage('Region is required'),
+        body('city').notEmpty().withMessage('Town is required'),
         body('address')
             .notEmpty().withMessage('Address is required')
             .isLength({ min: 5 }).withMessage('Address must be at least 5 characters long'),
 
-        // Status validation (1 = Active, 0 = Inactive)
-        // body('status')
-        //     .isIn(['1', '0']).withMessage('Status must be Active (1) or Inactive (0)')
-
     ], async (req, res) => {
-        console.log(req.body);
-
-        // Authentication check
         if (!req.isAuthenticated()) {
             req.flash('error', 'Please login to continue');
             return res.redirect('/login');
         }
 
-        // Authorization check
-        if (req.user.role.name !== "SuperAdmin") {
-            req.flash('error', "You are not authorized to access this page.");
-            return res.redirect('/students/index');
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+            req.flash('error', 'You are not authorised to access this page.');
+            return res.redirect('/');
         }
 
-        // Handle validation errors
         const errors = validationResult(req);
         const countryList = Object.entries(countries).map(([code, country]) => ({
             code,
@@ -257,14 +310,16 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             flag: `https://flagcdn.com/w40/${code.toLowerCase()}.png`
         }));
 
+        const schoolCondition = req.user.role.name === "School" ? { id: req.user.school_id } : {};
+        const classesCondition = req.user.role.name === "School" ? { school_id: req.user.school_id, status: '1' } : { status: '1' };
+
         if (!errors.isEmpty()) {
-            console.log(errors);
             return res.render('students/create', {
                 studentData: req.body,
                 countries: countryList,
                 errors: errors.mapped(),
-                classes: await models.Classes.findAll({ attributes: ['id', 'name'], raw: true }),
-                schools: await models.Schools.findAll({ attributes: ['id', 'name'], raw: true })
+                classes: await models.Classes.findAll({ attributes: ['id', 'name'], where: classesCondition, raw: true }),
+                schools: await models.Schools.findAll({ attributes: ['id', 'name'], where: schoolCondition, raw: true })
             });
         }
 
@@ -273,34 +328,87 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             state, address, city, country, status, school_sessions_id
         } = req.body;
 
-        try {
-            await models.Students.create({
-                name,
-                email,
-                age,
-                class_id,
-                school_id,
-                country,
-                city,
-                address,
-                state,
-                roll_number,
-                school_sessions_id,
-                status: true
-            });
+        const finalSchoolId = (req.user.role.name === "School" || req.user.role.name === "SubAdmin") ? req.user.school_id : school_id;
 
-            req.flash('success', 'Student created successfully.');
+        waterfall([
+            function (done) {
+                if (req.files && req.files.profile_pic) {
+                    const file = req.files.profile_pic;
+                    const ext = path.extname(file.name).toLowerCase();
+                    const baseName = path.basename(file.name, ext);
+                    const imageName = `${baseName}-${Date.now()}${ext}`;
+                    const uploadDir = path.join(__dirname, '../public/uploads/students/');
+                    const uploadPath = path.join(uploadDir, imageName);
+
+                    const allowedExtensions = ['.png', '.jpg', '.jpeg', '.gif'];
+
+                    if (!allowedExtensions.includes(ext)) {
+                        req.flash('errors', { profile_pic: { msg: 'Only PNG, JPG, JPEG, and GIF files are allowed.' } });
+                        req.flash('studentData', req.body);
+                        return res.redirect(`/students/create`);
+                    }
+
+                    if (file.size > 5 * 1024 * 1024) {
+                        req.flash('errors', { profile_pic: { msg: 'Profile picture must be under 5MB.' } });
+                        req.flash('studentData', req.body);
+                        return res.redirect(`/students/create`);
+                    }
+
+                    if (!fs.existsSync(uploadDir)) {
+                        fs.mkdirSync(uploadDir, { recursive: true });
+                    }
+
+                    file.mv(uploadPath, function (err) {
+                        if (err) return done(err);
+                        done(null, `/uploads/students/${imageName}`);
+                    });
+                } else {
+                    done(null, null);
+                }
+            },
+            function (profilePicPath, done) {
+                const newStudent = {
+                    name,
+                    email,
+                    age,
+                    class_id,
+                    school_id: finalSchoolId,
+                    country,
+                    city,
+                    address,
+                    state,
+                    roll_number,
+                    school_sessions_id,
+                    status: true
+                };
+
+                if (profilePicPath) {
+                    newStudent.profile_pic = profilePicPath;
+                }
+
+                models.Students.create(newStudent)
+                    .then(() => {
+                        req.flash('success', 'Student created successfully.');
+                        done(null);
+                    })
+                    .catch((error) => {
+                        done(error);
+                    });
+            }
+        ], function (err) {
+            if (err) {
+                console.error('Error creating student:', err);
+                req.flash('error', 'Error creating student. Please try again.');
+                return res.redirect('/students/create');
+            }
             res.redirect('/students/index');
-        } catch (error) {
-            console.error('Error creating student:', error);
-            req.flash('error', 'Error creating student. Please try again.');
-            res.redirect('/students/create');
-        }
+        });
     });
 
     /**
      * Update student with validation
      */
+
 
     app.post('/students/update/:student_id', [
         body('name')
@@ -356,9 +464,9 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         body('country')
             .notEmpty().withMessage('Country is required'),
         body('state')
-            .notEmpty().withMessage('State is required'),
+            .notEmpty().withMessage('Region is required'),
         body('city')
-            .notEmpty().withMessage('City is required'),
+            .notEmpty().withMessage('Town is required'),
         body('address')
             .notEmpty().withMessage('Address is required')
             .isLength({ min: 5 }).withMessage('Address must be at least 5 characters long'),
@@ -373,33 +481,74 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             return res.redirect('/login');
         }
 
-        // Authorization check
-        if (req.user.role.name !== "SuperAdmin") {
-            req.flash('error', "You are not authorized to access this page.");
-            return res.redirect('/students/index');
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+            req.flash('error', 'You are not authorised to access this page.');
+            return res.redirect('/');
         }
 
         // Validation result check
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
+            console.log(errors);
             req.flash('errors', errors.mapped());
             req.flash('studentData', { ...req.body, id: student_id });
             return res.redirect(`/students/edit/${student_id}`);
         }
 
-        // If no errors, update the student
         try {
             const {
                 name, email, age, roll_number, class_id,
                 school_id, school_sessions_id, country, state,
                 city, address, status
             } = req.body;
+            console.log(req.body);
+            let profilePicUrl = null; // Initialize profilePicUrl
 
+            // Handle profile picture upload
+            if (req.files && req.files.profile_pic) {
+                console.log(req.files.profile_pic);
+                const file = req.files.profile_pic;
+                const ext = path.extname(file.name).toLowerCase();
+                const allowedExtensions = ['.png', '.jpg', '.jpeg', '.gif'];
+
+                // Validate file extension
+                if (!allowedExtensions.includes(ext)) {
+                    req.flash('errors', { profile_pic: { msg: 'Only PNG, JPG, JPEG, and GIF files are allowed.' } });
+                    req.flash('studentData', req.body);
+                    return res.redirect(`/students/edit/${student_id}`);
+                }
+
+                // Validate file size (max 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    req.flash('errors', { profile_pic: { msg: 'Profile picture must be under 5MB.' } });
+                    req.flash('studentData', req.body);
+                    return res.redirect(`/students/edit/${student_id}`);
+                }
+
+                // Create the upload directory if it doesn't exist
+                const uploadDir = path.join(__dirname, '../public/uploads/students/');
+                if (!fs.existsSync(uploadDir)) {
+                    fs.mkdirSync(uploadDir, { recursive: true });
+                }
+
+                // Generate unique filename for profile picture
+                const profilePicName = `student-${Date.now()}${ext}`;
+                const uploadPath = path.join(uploadDir, profilePicName);
+
+                // Move the file to the upload path
+                await file.mv(uploadPath);
+
+                // Set the profile picture URL
+                profilePicUrl = `/uploads/students/${profilePicName}`;
+            }
+
+            // Update the student data in the database
             const [rowsUpdated] = await models.Students.update(
                 {
                     name, email, age, roll_number, class_id,
                     school_id, school_sessions_id, country, state,
-                    city, address, status
+                    city, address, status,
+                    profile_pic: profilePicUrl // Update profile picture path if available
                 },
                 { where: { id: student_id } }
             );
@@ -419,7 +568,6 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     });
 
 
-
     /**
      * Delete student
      */
@@ -429,8 +577,9 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 return res.json({ success: false, message: 'Please login to continue' });
             }
 
-            if (req.user.role.name !== "SuperAdmin") {
-                return res.json({ success: false, message: 'You are not authorised to access this page.' });
+            if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+                req.flash('error', 'You are not authorised to access this page.');
+                return res.redirect('/');
             }
 
             const { id } = req.params;

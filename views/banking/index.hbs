@@ -49,14 +49,14 @@
           <tbody>
             {{#each bankingDetails}}
             <tr>
-              <td>{{@index}}</td>
+              <td class="row-index" data-index="{{@index}}"></td>
               <td>{{this.bank_name}}</td>
               <td>{{this.account_number}}</td>
               <td>{{this.school.name}}</td>
               <td>
-                <a href="/banking/edit/{{this.id}}">
+                {{!-- <a href="/banking/edit/{{this.id}}">
                   <i class="menu-icon tf-icons bx bx-edit-alt text-primary"></i>
-                </a>
+                </a> --}}
                 <a href="#" onclick="deleteItem('/banking/delete', '{{this.id}}')">
                   <i class="menu-icon tf-icons bx bx-box text-danger"></i>
                 </a>

@@ -1,0 +1,59 @@
+<div class="content-wrapper">
+    <div class="container-xxl flex-grow-1 container-p-y">
+        <div class="row g-6">
+            <div class="col-md-12">
+                <div class="card">
+                    <h5 class="card-header">Update Profile</h5>
+                    <div class="card-body">
+                        <form action="/profile/update/{{user.id}}" method="post" enctype="multipart/form-data">
+                            <input type="hidden" name="_method" value="PUT">
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Name</label>
+                                    <input type="text" class="form-control {{#if errors.name}}is-invalid{{/if}}"
+                                        name="name" placeholder="John Doe" value="{{user.name}}">
+                                    {{#if errors.name}}
+                                    <div class="invalid-feedback">{{errors.name.msg}}</div>
+                                    {{/if}}
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Email address</label>
+                                    <input type="email" class="form-control {{#if errors.email}}is-invalid{{/if}}"
+                                        name="email" placeholder="john.doe@example.com" value="{{user.email}}" readonly>
+                                    {{#if errors.email}}
+                                    <div class="invalid-feedback">{{errors.email.msg}}</div>
+                                    {{/if}}
+                                </div>
+                            </div>
+
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">Phone</label>
+                                    <input type="tel" class="form-control {{#if errors.phone}}is-invalid{{/if}}"
+                                        name="phone" placeholder="0123456789" value="{{user.phone}}">
+                                    {{#if errors.phone}}
+                                    <div class="invalid-feedback">{{errors.phone.msg}}</div>
+                                    {{/if}}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Profile Image</label>
+                                    <input type="file" class="form-control {{#if errors.admin_id}}is-invalid{{/if}}"
+                                        name="profile_images" value="{{userData.profile_images}}">
+                                    {{#if errors.profile_images}}
+                                    <div class="invalid-feedback">{{errors.profile_images.msg}}</div>
+                                    {{/if}}
+
+                                </div>
+                            </div>
+                            <button type="submit" class="mt-4 float-end btn btn-primary">Update User</button>
+                            <a href="/users/index" class="mt-4 float-end btn btn-secondary me-2">Cancel</a>
+
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

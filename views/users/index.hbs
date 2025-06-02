@@ -38,6 +38,7 @@
           <thead>
             <tr>
               <th>#</th>
+              <th>Profile</th>
               <th>Name</th>
               <th>Email</th>
               <th>Role</th>
@@ -49,6 +50,13 @@
             {{#each users}}
             <tr>
               <td class="row-index" data-index="{{@index}}"></td>
+              <td>
+                <img src="{{#if this.profile_images}}{{this.profile_images}}{{else}}/uploads/profile/default.png{{/if}}" 
+                     alt="Profile" 
+                     class="rounded-circle" 
+                     width="40" 
+                     height="40">
+              </td>
               <td>{{this.name}}</td>
               <td>{{this.email}}</td>
               <td>{{this.role.name}}</td>

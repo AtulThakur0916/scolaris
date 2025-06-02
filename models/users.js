@@ -22,6 +22,7 @@ module.exports = (sequelize, DataTypes) => {
     phone: DataTypes.STRING,
     role_id: DataTypes.UUID,
     status: DataTypes.BOOLEAN,
+    profile_images: DataTypes.STRING,
     reset_password_token: { type: DataTypes.STRING, unique: true },
     reset_password_expires: DataTypes.DATE,
     logo: DataTypes.STRING,

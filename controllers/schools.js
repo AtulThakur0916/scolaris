@@ -9,7 +9,7 @@ const { where } = require('sequelize');
 const bcrypt = require('bcryptjs');
 const { schoolReject, schoolApproval } = require('../helpers/zepto');
 const paystack = require('../helpers/payment');
-
+const { Op } = require('sequelize');
 module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
   /**
@@ -22,7 +22,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     }
     console.log(req.user.role.name);
     // Check for "SuperAdmin", "School", or "SubAdmin"
-    if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+    if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)" && req.user.role.name !== "Administrator") {
       req.flash('error', 'You are not authorised to access this page.');
       return res.redirect('/');
     }
@@ -31,7 +31,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
       let schools;
 
       // If user is "School" or "SubAdmin", only fetch the school linked to the user
-      if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+      if (req.user.role.name === "School (Sub-Admin)" || req.user.role.name === "Administrator") {
         schools = await models.Schools.findOne({
           where: { id: req.user.school_id },
           attributes: ['id', 'name', 'location', 'phone_number', 'email', 'logo', 'status'],
@@ -43,7 +43,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         schools = await models.Schools.findAll({
           attributes: ['id', 'name', 'location', 'phone_number', 'email', 'logo', 'status'],
           raw: true,
-          order: [['name', 'ASC']]
+          order: [['created_at', 'DESC']],
         });
       }
 
@@ -109,7 +109,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
   app.post('/schools/create', [
     body('name')
       .notEmpty().withMessage('School name is required')
-      .isLength({ max: 20 }).withMessage('School name must not exceed 20 characters'),
+      .isLength({ max: 40 }).withMessage('School name must not exceed 40 characters'),
     body('location').notEmpty().withMessage('Address is required'),
     body('city').notEmpty().withMessage('Town is required'),
     body('country').notEmpty().withMessage('Country is required'),
@@ -124,8 +124,18 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
       .isEmail().withMessage('Invalid email address')
       .custom(async (email) => {
         const existingSchool = await models.Schools.findOne({ where: { email } });
-        if (existingSchool) throw new Error('A school with this email already exists.');
+        if (existingSchool) {
+          throw new Error('A school with this email already exists.');
+        }
+
+        const existingUser = await models.Users.findOne({ where: { email } });
+        if (existingUser) {
+          throw new Error('A user with this email already exists.');
+        }
+
+        return true;
       }),
+
     body('type').notEmpty().withMessage('School type is required')
   ], async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -275,7 +285,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
   app.post('/schools/update/:school_id', [
     body('name')
       .notEmpty().withMessage('School name is required')
-      .isLength({ max: 20 }).withMessage('School name must not exceed 20 characters'),
+      .isLength({ max: 40 }).withMessage('School name must not exceed 40 characters'),
     body('type').trim().notEmpty().withMessage('School type is required.'),
     body('phone_number')
       .isMobilePhone().withMessage('Invalid phone number')
@@ -292,14 +302,40 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
       .notEmpty().withMessage('Email is required.')
       .isEmail().withMessage('Invalid email format.')
       .custom(async (value, { req }) => {
+        // Exclude current school from check
         const existingSchool = await models.Schools.findOne({
-          where: { email: value, id: { [Op.ne]: req.params.school_id } }
+          where: {
+            email: value,
+            id: { [Op.ne]: req.params.school_id }
+          }
         });
         if (existingSchool) {
-          throw new Error('Email is already in use.');
+          throw new Error('Email is already in use by another school.');
         }
+
+        // Also check if email exists in Users table
+        const existingUser = await models.Users.findOne({
+          where: { email: value }
+        });
+        if (existingUser) {
+          throw new Error('Email is already in use by a user account.');
+        }
+
         return true;
       }),
+    // body('email')
+    //   .trim()
+    //   .notEmpty().withMessage('Email is required.')
+    //   .isEmail().withMessage('Invalid email format.')
+    //   .custom(async (value, { req }) => {
+    //     const existingSchool = await models.Schools.findOne({
+    //       where: { email: value, id: { [Op.ne]: req.params.school_id } }
+    //     });
+    //     if (existingSchool) {
+    //       throw new Error('Email is already in use.');
+    //     }
+    //     return true;
+    //   }),
     body('location').trim().notEmpty().withMessage('Location is required.')
   ], async (req, res) => {
     if (!req.isAuthenticated()) {
@@ -307,7 +343,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
       return res.redirect('/login');
     }
 
-    if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School") {
+    if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "Administrator" && req.user.role.name !== "School (Sub-Admin)") {
       req.flash('error', "You are not authorized to access this page.");
       return res.redirect('/schools/index');
     }
@@ -326,7 +362,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
       const { name, location, phone_number, email, city, state, country, type } = req.body;
 
       let school;
-      if (req.user.role.name === "School") {
+      if (req.user.role.name === "School (Sub-Admin)" || req.user.role.name === "Administrator") {
         if (req.user.school_id !== school_id) {
           req.flash('error', 'You are not authorized to update this school.');
           return res.redirect('/schools/index');
@@ -672,7 +708,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     // School validations
     body('name')
       .notEmpty().withMessage('School name is required')
-      .isLength({ max: 20 }).withMessage('School name must not exceed 20 characters'),
+      .isLength({ max: 40 }).withMessage('School name must not exceed 40 characters'),
     body('location').notEmpty().withMessage('Address is required'),
     body('city').notEmpty().withMessage('Town is required'),
     body('country').notEmpty().withMessage('Country is required'),
@@ -684,10 +720,19 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         if (existing) throw new Error('A school with this phone number already exists.');
       }),
     body('email')
-      .isEmail().withMessage('Invalid school email')
+      .isEmail().withMessage('Invalid email address')
       .custom(async (email) => {
-        const existing = await models.Schools.findOne({ where: { email } });
-        if (existing) throw new Error('A school with this email already exists.');
+        const existingSchool = await models.Schools.findOne({ where: { email } });
+        if (existingSchool) {
+          throw new Error('A school with this email already exists.');
+        }
+
+        const existingUser = await models.Users.findOne({ where: { email } });
+        if (existingUser) {
+          throw new Error('A user with this email already exists.');
+        }
+
+        return true;
       }),
     body('type').notEmpty().withMessage('School type is required'),
 
@@ -749,6 +794,30 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             admin_name, admin_email, admin_phone, admin_password, settlement_bank,
             bank_name, account_number, account_holder
           } = req.body;
+          // if (req.body.email == req.body.admin_email) {
+          //   const customErrors = {
+          //     admin_email: {
+          //       msg: 'Administrator email must be different from school email'
+          //     }
+          //   };
+          //   req.flash('errors', customErrors);
+          //   // req.flash('school', req.body);
+          //   req.flash('schoolData', req.body);
+          //   return res.redirect('/web/school/add');
+          // }
+          if (req.body.email == req.body.admin_email) {
+            const customErrors = {
+              admin_email: {
+                msg: 'Administrator email must be different from school email'
+              }
+            };
+            return res.render('web/schoolCreate', {
+              layout: false,
+              countries: countryList,
+              schoolData: req.body,
+              errors: customErrors
+            });
+          }
 
           let logoUrl = null;
           if (req.files && req.files.logo) {
@@ -778,6 +847,20 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             const filePath = path.join(dir, fileName);
             await file.mv(filePath);
             admin_idUrl = `/uploads/schools/${fileName}`;
+          }
+          let profile = null;
+          if (req.files && req.files.profile_images) {
+            const file = req.files.profile_images;
+            const ext = path.extname(file.name).toLowerCase();
+            const allowed = ['.png', '.jpg', '.jpeg', '.pdf'];
+            if (!allowed.includes(ext)) throw new Error('Invalid Profile Image type.');
+            if (file.size > 5 * 1024 * 1024) throw new Error('Profile Image must be under 5MB.');
+            const fileName = `${path.basename(file.name, ext)}-${Date.now()}${ext}`;
+            const dir = path.join(__dirname, '../public/uploads/profile/');
+            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+            const filePath = path.join(dir, fileName);
+            await file.mv(filePath);
+            profile = `/uploads/profile/${fileName}`;
           }
 
           let school_docUrl = null;
@@ -819,7 +902,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
               email: admin_email,
               phone: admin_phone,
               password: admin_password,
-              // logo: logoUrl
+              profile_images: profile,
               logo: admin_idUrl
             },
             banking: {
@@ -898,7 +981,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
       // 2. Create admin user
       const hashedPassword = bcrypt.hashSync(data.admin.password, bcrypt.genSaltSync(10));
-      const adminRole = await models.Roles.findOne({ where: { name: 'School' } });
+      const adminRole = await models.Roles.findOne({ where: { name: 'Administrator' } });
 
       await models.Users.create({
         name: data.admin.name,
@@ -908,6 +991,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         role_id: adminRole.id,
         school_id: newSchool.id,
         logo: data.admin.logo,
+        profile_images: data.admin.profile_images,
         status: 1
       }, { transaction: t });
 
@@ -920,7 +1004,12 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
       });
 
       if (!paystackResponse.status) {
-        throw new Error(paystackResponse.message || 'Failed to create subaccount in Paystack.');
+        req.flash('error', paystackResponse.message);
+        return res.redirect('/web/school/add');
+
+        // throw new Error(paystackResponse.message || 'Failed to create subaccount in Paystack.');
+
+        // throw new Error(paystackResponse.message || 'Failed to create subaccount in Paystack.');
       }
 
 
@@ -959,15 +1048,64 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
             You can now log in to your administrator account using:
             - Email: ${data.admin.email}
-            - Password: (the one you set during registration)
-
+            - Password:  ${data.admin.password}
+            Please log in at: https://spay.ralhangroup.com/login
             Need help or didn't receive the email? Contact us at support@scolarispay.com
 
             Warm regards,
             Scolaris Pay Team
             `
       );
+      await Promise.all([
+        // Send to school email
+        sendEmail(
+          data.email,
+          'School Registration Successful - Scolaris Pay',
+          `
+          Dear ${data.name},
 
+          Your school has been successfully registered with Scolaris Pay. 
+          
+          School Details:
+          - Name: ${data.name}
+          - Email: ${data.email}
+          - Phone: ${data.phone_number}
+          - Location: ${data.location}
+          You can now log in to your administrator account using:
+          - Email: ${data.admin.email}
+          - Password: ${data.admin.password}
+          Please log in at: https://spay.ralhangroup.com/login
+          
+          If you have any questions, please contact our support team at support@scolarispay.com
+          
+          Best regards,
+          Scolaris Pay Team
+          `
+        ),
+        // Send to admin email
+        sendEmail(
+          data.admin.email,
+          'Administrator Account Created - Scolaris Pay',
+          `
+          Dear ${data.admin.name},
+
+          Your administrator account for ${data.name} has been created successfully.
+
+          Login Details:
+          - Email: ${data.admin.email}
+          - Password: (the one you set during registration)
+          
+          Please log in at: https://spay.ralhangroup.com/login
+          
+          For security reasons, please change your password after your first login.
+          
+          If you need assistance, contact us at support@scolarispay.com
+          
+          Best regards,
+          Scolaris Pay Team
+          `
+        )
+      ]);
       req.flash('success', 'School saved successfully after verification.');
       return res.redirect('/web/school/verify/page');
 
@@ -1027,6 +1165,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
   /**
    * Create or edit school
    */
+
   app.get('/super/school/add', async (req, res) => {
     try {
       if (!req.isAuthenticated()) {
@@ -1064,7 +1203,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     // School validations
     body('name')
       .notEmpty().withMessage('School name is required')
-      .isLength({ max: 20 }).withMessage('School name must not exceed 20 characters'),
+      .isLength({ max: 40 }).withMessage('School name must not exceed 40 characters'),
     body('location').notEmpty().withMessage('Address is required'),
     body('city').notEmpty().withMessage('Town is required'),
     body('country').notEmpty().withMessage('Country is required'),
@@ -1075,10 +1214,19 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         if (existing) throw new Error('A school with this phone number already exists.');
       }),
     body('email')
-      .isEmail().withMessage('Invalid school email')
+      .isEmail().withMessage('Invalid email address')
       .custom(async (email) => {
-        const existing = await models.Schools.findOne({ where: { email } });
-        if (existing) throw new Error('A school with this email already exists.');
+        const existingSchool = await models.Schools.findOne({ where: { email } });
+        if (existingSchool) {
+          throw new Error('A school with this email already exists.');
+        }
+
+        const existingUser = await models.Users.findOne({ where: { email } });
+        if (existingUser) {
+          throw new Error('A user with this email already exists.');
+        }
+
+        return true;
       }),
     body('type').notEmpty().withMessage('School type is required'),
 
@@ -1133,7 +1281,16 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             admin_name, admin_email, admin_phone, admin_password, settlement_bank,
             bank_name, account_number, account_holder
           } = req.body;
-
+          if (req.body.email == req.body.admin_email) {
+            const customErrors = {
+              admin_email: {
+                msg: 'Administrator email must be different from school email'
+              }
+            };
+            req.flash('errors', customErrors);
+            req.flash('school', req.body);
+            return res.redirect('/super/school/add');
+          }
           let logoUrl = null;
           if (req.files && req.files.logo) {
             const file = req.files.logo;
@@ -1162,6 +1319,20 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             const filePath = path.join(dir, fileName);
             await file.mv(filePath);
             admin_idUrl = `/uploads/schools/${fileName}`;
+          }
+          let profile = null;
+          if (req.files && req.files.profile_images) {
+            const file = req.files.profile_images;
+            const ext = path.extname(file.name).toLowerCase();
+            const allowed = ['.png', '.jpg', '.jpeg'];
+            if (!allowed.includes(ext)) throw new Error('Invalid Profile image type.');
+            if (file.size > 5 * 1024 * 1024) throw new Error('Profile image must be under 5MB.');
+            const fileName = `${path.basename(file.name, ext)}-${Date.now()}${ext}`;
+            const dir = path.join(__dirname, '../public/uploads/profile/');
+            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+            const filePath = path.join(dir, fileName);
+            await file.mv(filePath);
+            profile = `/uploads/profile/${fileName}`;
           }
 
           let school_docUrl = null;
@@ -1203,7 +1374,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
               email: admin_email,
               phone: admin_phone,
               password: admin_password,
-              // logo: logoUrl
+              profile_images: profile,
               logo: admin_idUrl
             },
             banking: {
@@ -1243,7 +1414,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         }
       });
   app.get('/super/school/verify', async (req, res) => {
-    return res.render('superAdmin/verify');
+    const data = req.session.schoolData;
+    return res.render('superAdmin/verify', data);
   });
 
 
@@ -1283,7 +1455,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
       }, { transaction: t });
 
       const hashedPassword = bcrypt.hashSync(data.admin.password, bcrypt.genSaltSync(10));
-      const adminRole = await models.Roles.findOne({ where: { name: 'School' } });
+      const adminRole = await models.Roles.findOne({ where: { name: 'Administrator' } });
 
       await models.Users.create({
         name: data.admin.name,
@@ -1293,6 +1465,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         role_id: adminRole.id,
         school_id: newSchool.id,
         logo: data.admin.logo,
+        profile_images: data.admin.profile_images,
         status: 1
       }, { transaction: t });
 
@@ -1306,7 +1479,9 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
       });
 
       if (!paystackResponse.status) {
-        throw new Error(paystackResponse.message || 'Failed to create subaccount in Paystack.');
+        req.flash('error', paystackResponse.message);
+        return res.redirect('/super/school/add');
+        // throw new Error(paystackResponse.message || 'Failed to create subaccount in Paystack.');
       }
 
 
@@ -1336,8 +1511,57 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
       //   status: 1
       // }, { transaction: t });
 
-      await t.commit();
-      delete req.session.schoolData;
+
+      await Promise.all([
+        // Send to school email
+        sendEmail(
+          data.email,
+          'School Registration Successful - Scolaris Pay',
+          `
+          Dear ${data.name},
+
+          Your school has been successfully registered with Scolaris Pay. 
+          
+          School Details:
+          - Name: ${data.name}
+          - Email: ${data.email}
+          - Phone: ${data.phone_number}
+          - Location: ${data.location}
+           Login Details:
+          - Email: ${data.admin.email}
+          - Password: ${data.admin.password}
+          Please log in at: https://spay.ralhangroup.com/login
+          
+          If you have any questions, please contact our support team at support@scolarispay.com
+          
+          Best regards,
+          Scolaris Pay Team
+          `
+        )
+        // Send to admin email
+        // sendEmail(
+        //   data.admin.email,
+        //   'Administrator Account Created - Scolaris Pay',
+        //   `
+        //   Dear ${data.admin.name},
+
+        //   Your administrator account for ${data.name} has been created successfully.
+
+        //   Login Details:
+        //   - Email: ${data.admin.email}
+        //   - Password: ${data.admin.password}
+
+        //   Please log in at: https://spay.ralhangroup.com/login
+
+        //   For security reasons, please change your password after your first login.
+
+        //   If you need assistance, contact us at support@scolarispay.com
+
+        //   Best regards,
+        //   Scolaris Pay Team
+        //   `
+        // )
+      ]);
       await sendEmail(
         data.admin.email,
         'We\'ve Received Your Submission!',
@@ -1353,8 +1577,9 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
         You can now log in to your administrator account using:
         - Email: ${data.admin.email}
-        - Password: (the one you set during registration)
+        - Password: ${data.admin.password}
 
+        Please log in at: https://spay.ralhangroup.com/login
         Need help or didn't receive the email? Contact us at support@scolarispay.com
 
         Warm regards,
@@ -1362,6 +1587,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         `
       );
       req.flash('success', 'School saved successfully after verification.');
+      await t.commit();
+      delete req.session.schoolData;
       // return res.redirect('/web/school/list');
       return res.redirect('/schools/index');
 

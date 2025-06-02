@@ -17,7 +17,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)" && req.user.role.name !== "Administrator") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
@@ -25,14 +25,14 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         try {
             // Build query conditions
             let whereCondition = {};
-            
+
             // Add class_id filter if provided
             if (req.query.class_id) {
                 whereCondition.class_id = req.query.class_id;
             }
 
-            // Add school filter for School and SubAdmin roles
-            if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+            // Add school filter for School and Administrator roles
+            if (req.user.role.name === "School (Sub-Admin)" || req.user.role.name === "Administrator") {
                 whereCondition.school_id = req.user.school_id;
             }
 
@@ -43,7 +43,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     { model: models.Classes, as: 'class', attributes: ['name'] },
                     { model: models.Schools, as: 'school', attributes: ['name'] }
                 ],
-                order: [['name', 'ASC']],
+                order: [['created_at', 'DESC']],
                 raw: true,
                 nest: true
             });
@@ -76,7 +76,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         }
 
         // Authorization check
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)" && req.user.role.name !== "Administrator") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
@@ -84,7 +84,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         try {
             let studentData = null;
             // const whereCondition = req.user.role.name === "School" ? { school_id: req.user.school_id } : {};
-            const whereCondition = (req.user.role.name === "School" || req.user.role.name === "SubAdmin")
+            const whereCondition = (req.user.role.name === "School (Sub-Admin)" || req.user.role.name === "Administrator")
                 ? { school_id: req.user.school_id }
                 : {};
             // Fetch classes - restricted for School role
@@ -146,7 +146,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             }
 
             // ✅ Authorization check
-            if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+            if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)" && req.user.role.name !== "Administrator") {
                 req.flash('error', 'You are not authorised to access this page.');
                 return res.redirect('/');
             }
@@ -170,7 +170,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             // ✅ Fetch Schools (SuperAdmin can see all, School Admin only sees their school)
             const schools = await models.Schools.findAll({
                 attributes: ['id', 'name'],
-                where: (req.user.role.name === "School" || req.user.role.name === "SubAdmin") ? {
+                where: (req.user.role.name === "School (Sub-Admin)" || req.user.role.name === "Administrator") ? {
                     id: req.user.school_id,
                     status: 'Approve'
                 } : { status: 'Approve' },
@@ -298,7 +298,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)" && req.user.role.name !== "Administrator") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
@@ -328,7 +328,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             state, address, city, country, status, school_sessions_id
         } = req.body;
 
-        const finalSchoolId = (req.user.role.name === "School" || req.user.role.name === "SubAdmin") ? req.user.school_id : school_id;
+        const finalSchoolId = (req.user.role.name === "School (Sub-Admin)" || req.user.role.name === "Administrator") ? req.user.school_id : school_id;
 
         waterfall([
             function (done) {
@@ -387,7 +387,50 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 }
 
                 models.Students.create(newStudent)
-                    .then(() => {
+                    .then(async (student) => {
+                        // Get school name and class name for the email
+                        const [school, studentClass] = await Promise.all([
+                            models.Schools.findOne({
+                                where: { id: finalSchoolId },
+                                attributes: ['name'],
+                                raw: true
+                            }),
+                            models.Classes.findOne({
+                                where: { id: class_id },
+                                attributes: ['name'],
+                                raw: true
+                            })
+                        ]);
+
+                        // Send welcome email to student
+                        if (email) {
+                            try {
+                                await sendEmail(
+                                    email,
+                                    'Welcome to Scolaris Pay - Student Account Created',
+                                    `
+Dear ${name},
+
+Your student account has been created successfully in Scolaris Pay at ${school.name}.
+
+Account Details:
+- Name: ${name}
+- Email: ${email}
+- Roll Number: ${roll_number}
+- Class: ${studentClass.name}
+- School: ${school.name}
+
+
+Best regards,
+The Scolaris Pay Team
+                                    `
+                                );
+                            } catch (emailError) {
+                                console.error('Error sending welcome email:', emailError);
+                                // Continue with student creation even if email fails
+                            }
+                        }
+
                         req.flash('success', 'Student created successfully.');
                         done(null);
                     })
@@ -481,7 +524,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)" && req.user.role.name !== "Administrator") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
@@ -577,7 +620,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 return res.json({ success: false, message: 'Please login to continue' });
             }
 
-            if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+            if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)" && req.user.role.name !== "Administrator") {
                 req.flash('error', 'You are not authorised to access this page.');
                 return res.redirect('/');
             }

@@ -26,12 +26,12 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
         const { id, logo, role, name } = req.user;
 
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
 
-        const whereCondition = req.user.role.name === "School"
+        const whereCondition = req.user.role.name === "School (Sub-Admin)"
             ? { school_id: req.user.school_id }
             : {};
 
@@ -43,11 +43,11 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 model: models.Roles,
                 as: 'role',
                 attributes: ['name'],
-                where: {
-                    name: { [Op.ne]: 'SuperAdmin' } // Exclude SuperAdmin
-                }
+                // where: {
+                //     name: { [Op.ne]: 'SuperAdmin' } // Exclude SuperAdmin
+                // }
             }],
-            order: [['name', 'ASC']],
+            order: [['createdAt', 'DESC']], // Changed from ASC to DESC and ordering by createdAt
             nest: true
         });
 
@@ -365,7 +365,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         //     return res.redirect('/');
         // }
         // Authorization check
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
@@ -386,12 +386,12 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             }
             const roles = req.user.role.name == "SuperAdmin" ? await models.Roles.findAll({
                 where: {
-                    name: ['School', 'SubAdmin']
+                    name: ['School (Sub-Admin)', 'Administrator']
                 },
                 raw: true
             }) : await models.Roles.findAll({
                 where: {
-                    name: ['SubAdmin']
+                    name: ['Administrator']
                 },
                 raw: true
             })
@@ -451,12 +451,12 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             try {
                 const roles = req.user.role.name == "SuperAdmin" ? await models.Roles.findAll({
                     where: {
-                        name: ['School', 'SubAdmin']
+                        name: ['School (Sub-Admin)', 'Administrator']
                     },
                     raw: true
                 }) : await models.Roles.findAll({
                     where: {
-                        name: ['SubAdmin']
+                        name: ['Administrator']
                     },
                     raw: true
                 })
@@ -513,21 +513,39 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
             admin_idUrl = `/uploads/schools/${fileName}`;
         }
+        let profile = null;
+        if (req.files && req.files.profile_images) {
+            console.log(req.files.profile_images)
+            const file = req.files.profile_images;
+            const ext = path.extname(file.name).toLowerCase();
+            const allowed = ['.png', '.jpg', '.jpeg'];
+            if (!allowed.includes(ext)) throw new Error('Invalid Admin ID file type. Allowed types: PNG, JPG, JPEG');
+            if (file.size > 5 * 1024 * 1024) throw new Error('Profile image must be under 5MB');
+
+            const fileName = `${path.basename(file.name, ext)}-${Date.now()}${ext}`;
+            const uploadDir = path.join(__dirname, '../public/uploads/profile/');
+            if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+            const filePath = path.join(uploadDir, fileName);
+            await file.mv(filePath);
+
+            profile = `/uploads/profile/${fileName}`;
+        }
         console.log(admin_idUrl);
         var password = bcrypt.hashSync(req.body.password, bcrypt.genSaltSync(10), null);
-        await models.Users.create({ name, school_id, email, contact_person, phone, status, password, role_id, logo: admin_idUrl });
+        await models.Users.create({ name, school_id, email, contact_person, phone, status, password, role_id, logo: admin_idUrl, profile_images: profile });
         const role = await models.Roles.findOne({ where: { id: role_id } });
 
-        if (role && role.name === 'SubAdmin') {
+        if (role && role.name === 'Administrator') {
             const plainPassword = req.body.password; // only if you're not generating random passwords
 
             await sendEmail(
                 email,
-                'Your SubAdmin Account Details',
+                'Your Administrator Account Details',
                 `
     Dear ${name},
 
-    Your SubAdmin account has been created successfully.
+    Your Administrator account has been created successfully.
 
     Here are your login details:
     Email: ${email}
@@ -542,7 +560,30 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     `
             );
         }
+        if (role && role.name === 'School (Sub-Admin)') {
+            const plainPassword = req.body.password; // only if you're not generating random passwords
 
+            await sendEmail(
+                email,
+                'Your Sub-Admin Account Details',
+                `
+    Dear ${name},
+
+    Your Sub Admin account has been created successfully.
+
+    Here are your login details:
+    Email: ${email}
+    Password: ${plainPassword}
+    Contact Person: ${contact_person}
+    Phone: ${phone}
+
+    Please log in and change your password as soon as possible.
+
+    Best regards,
+    The Scolaris Pay Admin Team
+    `
+            );
+        }
         req.flash('success', 'User Created successfully.');
 
 
@@ -568,12 +609,12 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
             const roles = req.user.role.name == "SuperAdmin" ? await models.Roles.findAll({
                 where: {
-                    name: ['School', 'SubAdmin']
+                    name: ['School (Sub-Admin)', 'Administrator']
                 },
                 raw: true
             }) : await models.Roles.findAll({
                 where: {
-                    name: ['SubAdmin']
+                    name: ['Administrator']
                 },
                 raw: true
             })
@@ -684,6 +725,27 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             }
             if (admin_idUrl) {
                 updatedFields.logo = admin_idUrl;
+            }
+            let profile = null;
+            if (req.files && req.files.profile_images) {
+                console.log(req.files.profile_images)
+                const file = req.files.profile_images;
+                const ext = path.extname(file.name).toLowerCase();
+                const allowed = ['.png', '.jpg', '.jpeg'];
+                if (!allowed.includes(ext)) throw new Error('Invalid Profile Image file type. Allowed types: PNG, JPG, JPEG');
+                if (file.size > 5 * 1024 * 1024) throw new Error('Profile Image must be under 5MB');
+
+                const fileName = `${path.basename(file.name, ext)}-${Date.now()}${ext}`;
+                const uploadDir = path.join(__dirname, '../public/uploads/profile/');
+                if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+                const filePath = path.join(uploadDir, fileName);
+                await file.mv(filePath);
+
+                profile = `/uploads/profile/${fileName}`;
+            }
+            if (profile) {
+                updatedFields.profile_images = profile;
             }
             // Update user data
             const rowsUpdated = await models.Users.update(updatedFields, { where: { id: user_id } });

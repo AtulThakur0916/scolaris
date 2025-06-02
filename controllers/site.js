@@ -6,7 +6,7 @@ const path = require('path');
 const moment = require('moment');
 const config = require('../config/config.json');
 const { body, validationResult } = require('express-validator');
-
+const fs = require('fs');
 module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
     /**
@@ -14,7 +14,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
      */
     app.get('/', async (req, res) => {
         const isSuperAdmin = req.user && req.user.role && req.user.role.name === "SuperAdmin";
-        
+
         // Set conditions based on user role
         const whereCondition = {};
         if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
@@ -297,6 +297,103 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     app.get('/forgot', (req, res) => {
         res.render('site/forgot_password');
     });
+    // Route: GET /profile
+    app.get('/profile', async (req, res) => {
+        try {
+            const user = await models.Users.findOne({
+                where: { id: req.user.id }
+            });
+
+            if (!user) {
+                return res.status(404).send('User not found');
+            }
+
+            // Convert to plain object
+            const userPlain = user.get({ plain: true });
+
+            // Remove the role field if it exists
+            delete userPlain.role;
+            // Render profile without the role
+            res.render('auth/profile', {
+                user: userPlain,
+                errors: {}
+            });
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).send('Server error');
+        }
+    });
+
+
+
+
+    app.post('/profile/update/:user_id', [
+        // Validation middleware
+        body('name').notEmpty().withMessage('Name is required'),
+    ], async (req, res) => {
+        try {
+            if (!req.isAuthenticated()) {
+                req.flash('error', 'Please login to continue');
+                return res.redirect('/login');
+            }
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                const user = await models.Users.findOne({ where: { id: req.user.id } });
+                const userPlain = user.get({ plain: true });
+                delete userPlain.role;
+                console.log('error');
+                return res.render('auth/profile', {
+                    user: userPlain,
+                    errors: errors.mapped()
+                });
+            }
+
+            const { name, phone } = req.body;
+            let updatedFields = { name, phone };
+            console.log("profile:", updatedFields);
+            // Handle profile image upload if provided (using req.files)
+            if (req.files && req.files.profile_images) {
+                const file = req.files.profile_images;
+                const ext = path.extname(file.name).toLowerCase();
+                const allowed = ['.png', '.jpg', '.jpeg'];
+                if (!allowed.includes(ext)) {
+                    req.flash('error', 'Invalid Profile Image file type. Allowed: PNG, JPG, JPEG');
+                    return res.redirect('/profile');
+                }
+                if (file.size > 5 * 1024 * 1024) {
+                    req.flash('error', 'Profile Image must be under 5MB');
+                    return res.redirect('/profile');
+                }
+
+                const fileName = `${path.basename(file.name, ext)}-${Date.now()}${ext}`;
+                const uploadDir = path.join(__dirname, '../public/uploads/profile/');
+                if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+                const filePath = path.join(uploadDir, fileName);
+                await file.mv(filePath);
+
+                updatedFields.profile_images = `/uploads/profile/${fileName}`;
+            }
+
+            // Update user record
+            const [rowsUpdated] = await models.Users.update(updatedFields, { where: { id: req.user.id } });
+
+            if (rowsUpdated > 0) {
+                req.flash('success', 'Profile updated successfully.');
+            } else {
+                req.flash('info', 'No changes were made.');
+            }
+
+            return res.redirect('/profile');
+
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            req.flash('error', 'Something went wrong. Please try again.');
+            return res.redirect('/profile');
+        }
+    });
+
 
     /**
      * Handle Forgot password POST

@@ -13,14 +13,14 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)" && req.user.role.name !== "Administrator") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
 
         try {
             let whereCondition = {};
-            if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+            if (req.user.role.name === "School (Sub-Admin)" || req.user.role.name === "Administrator") {
                 whereCondition.school_id = req.user.school_id;
             }
 
@@ -32,7 +32,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     { model: models.FeesTypes, as: 'feesType', attributes: ['name'] },
                 ],
                 where: whereCondition,
-                order: [['id', 'ASC']],
+                order: [['created_at', 'DESC']],
                 nest: true
             });
 
@@ -62,7 +62,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)" && req.user.role.name !== "Administrator") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
@@ -85,7 +85,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
             // School filter based on user role
             const schoolCondition = { status: 'Approve' };
-            if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+            if (req.user.role.name === "School (Sub-Admin)" || req.user.role.name === "Administrator") {
                 schoolCondition.id = req.user.school_id;
             }
 
@@ -126,7 +126,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             return res.redirect('/login');
         }
         console.log(req.body);
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)" && req.user.role.name !== "Administrator") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
@@ -144,7 +144,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 });
 
                 const schoolCondition = { status: 'Approve' };
-                if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+                if (req.user.role.name === "School (Sub-Admin)" || req.user.role.name === "Administrator") {
                     schoolCondition.id = req.user.school_id;
                 }
 
@@ -170,6 +170,20 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         }
 
         try {
+            const existingFee = await models.Fees.findOne({
+                where: {
+                    school_id,
+                    fees_type_id,
+                    school_sessions_id,
+                    frequency,
+                    class_id
+                }
+            });
+
+            if (existingFee) {
+                req.flash('error', 'Fee with the same School, Session, Frequency and Class already exists.');
+                return res.redirect('/fees/index');
+            }
             // Create the fee record
             await models.Fees.create({
                 fees_type_id,
@@ -198,7 +212,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)" && req.user.role.name !== "Administrator") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
@@ -209,7 +223,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
             // School condition based on role
             const schoolCondition = { status: 'Approve' };
-            if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+            if (req.user.role.name === "School (Sub-Admin)" || req.user.role.name === "Administrator") {
                 schoolCondition.id = req.user.school_id;
             }
             const fees_type = await models.FeesTypes.findAll({
@@ -328,7 +342,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         }
 
         // Authorization check
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)" && req.user.role.name !== "Administrator") {
             req.flash('error', "You are not authorized to access this page.");
             return res.redirect('/fees/index');
         }
@@ -353,7 +367,21 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 class_id,
                 status
             } = req.body;
+            const existingFee = await models.Fees.findOne({
+                where: {
+                    school_id,
+                    fees_type_id,
+                    school_sessions_id,
+                    frequency,
+                    class_id,
+                    id: { [Op.ne]: fee_id } // Exclude current fee from check
+                }
+            });
 
+            if (existingFee) {
+                req.flash('error', 'Fee with the same School, Session, Frequency and Class already exists.');
+                return res.redirect('/fees/index');
+            }
             // Check if fee exists
             const fee = await models.Fees.findByPk(fee_id);
             if (!fee) {
@@ -362,7 +390,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             }
 
             // Restrict School users from updating other schools' fees
-            if ((req.user.role.name === "School" || req.user.role.name === "SubAdmin") && fee.school_id !== req.user.school_id) {
+            if ((req.user.role.name === "School (Sub-Admin)" || req.user.role.name === "Administrator") && fee.school_id !== req.user.school_id) {
                 req.flash('error', "You don't have permission to update this fee.");
                 return res.redirect('/fees/index');
             }
@@ -408,7 +436,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             }
 
             // Authorization check
-            if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+            if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)" && req.user.role.name !== "Administrator") {
                 return res.status(403).json({ success: false, message: 'You are not authorised to access this page.' });
             }
 
@@ -421,7 +449,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             }
 
             // School users can only delete fees related to their school
-            if ((req.user.role.name === "School" || req.user.role.name === "SubAdmin") && feeData.school_id !== req.user.school_id) {
+            if ((req.user.role.name === "School (Sub-Admin)" || req.user.role.name === "Administrator") && feeData.school_id !== req.user.school_id) {
                 return res.status(403).json({ success: false, message: "You don't have permission to delete this fee." });
             }
 

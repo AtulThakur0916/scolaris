@@ -19,7 +19,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)" && req.user.role.name !== "Administrator") {
             req.flash('error', 'You are not authorized to access this page.');
             return res.redirect('/');
         }
@@ -42,7 +42,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     raw: true,
                     nest: true
                 });
-            } else if (req.user.role.name === "School") {
+            } else if (req.user.role.name === "School (Sub-Admin)" || req.user.role.name === "Administrator") {
                 // School role sees only its own school's banking details
                 bankingDetails = await models.BankingDetails.findAll({
                     attributes: ['id', 'bank_name', 'account_number', 'account_holder'],
@@ -54,7 +54,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                         }
                     ],
                     where: { school_id: req.user.school_id }, // Restrict to the user's school
-                    order: [['bank_name', 'ASC']],
+                    order: [['created_at', 'DESC']],
                     raw: true,
                     nest: true
                 });
@@ -86,7 +86,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             const { id } = req.params;
             let bankingDetail = null;
             let schools;
-            if (req.user.role.name == "School") {
+            if (req.user.role.name == "School (Sub-Admin)") {
                 schools = await models.Schools.findAll({
                     attributes: ['id', 'name'],
                     where: {
@@ -155,7 +155,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)") {
             req.flash('error', 'You are not authorized to access this page.');
             return res.redirect('/banking/index');
         }
@@ -274,7 +274,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             const errors = req.flash('errors')[0] || {};
             const formData = req.flash('school')[0] || {};
             let schools;
-            if (req.user.role.name == "School") {
+            if (req.user.role.name == "School (Sub-Admin)") {
                 schools = await models.Schools.findAll({
                     attributes: ['id', 'name'],
                     where: {
@@ -350,7 +350,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)") {
             req.flash('error', 'You are not authorized to access this page.');
             return res.redirect('/banking/index');
         }
@@ -447,7 +447,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 return res.json({ success: false, message: 'Please login to continue' });
             }
 
-            if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School") {
+            if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)") {
                 return res.json({ success: false, message: 'You are not authorized to access this page.' });
             }
 

@@ -12,13 +12,13 @@ module.exports.controller = function (app) {
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)" && req.user.role.name !== "Administrator") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
         try {
             const condition = {};
-            if (req.user.role.name === 'School' || req.user.role.name !== "SubAdmin") {
+            if (req.user.role.name === 'School (Sub-Admin)' || req.user.role.name === "Administrator") {
                 condition.school_id = req.user.school_id;
             }
 
@@ -27,7 +27,8 @@ module.exports.controller = function (app) {
                     {
                         model: models.Students,
                         as: 'student',
-                        where: req.user.role.name === 'School' ? { school_id: req.user.school_id } : undefined
+                        // where: req.user.role.name === 'School (Sub-Admin)' ? { school_id: req.user.school_id } : undefined
+                        where: condition,
                     },
                     {
                         model: models.Fees,
@@ -41,7 +42,7 @@ module.exports.controller = function (app) {
                         ]
                     }
                 ],
-                order: [['id', 'DESC']],
+                order: [['created_at', 'DESC']],
                 raw: true,
                 nest: true
             });
@@ -71,7 +72,7 @@ module.exports.controller = function (app) {
             const userRole = req.user.role.name;
 
             // Role-based condition
-            const condition = (userRole === "School" || userRole === "SubAdmin")
+            const condition = (userRole === "ScSchool (Sub-Admin)hool" || userRole === "Administrator")
                 ? { school_id: req.user.school_id }
                 : {};
 
@@ -141,7 +142,7 @@ module.exports.controller = function (app) {
         const userRole = req.user.role.name;
         const result = validationResult(req);
 
-        if (userRole !== "SuperAdmin" && userRole !== "School" && userRole !== "SubAdmin") {
+        if (userRole !== "SuperAdmin" && userRole !== "School (Sub-Admin)" && userRole !== "Administrator") {
             req.flash('error', 'You are not authorized to access this page.');
             return res.redirect('/');
         }
@@ -178,7 +179,7 @@ module.exports.controller = function (app) {
                 class_id
             };
 
-            if (userRole === "School" || userRole === "SubAdmin") {
+            if (userRole === "School (Sub-Admin)" || userRole === "Administrator") {
                 condition.school_id = req.user.school_id;
             }
 
@@ -283,8 +284,8 @@ module.exports.controller = function (app) {
         const userRole = req.user.role.name;
         const id = req.params.id;
 
-        // Authorization: Only SuperAdmin, School, SubAdmin allowed
-        if (userRole !== "SuperAdmin" && userRole !== "School" && userRole !== "SubAdmin") {
+        // Authorization: Only SuperAdmin, School, Administrator allowed
+        if (userRole !== "SuperAdmin" && userRole !== "School (Sub-Admin)" && userRole !== "Administrator") {
             req.flash('error', 'You are not authorized to access this page.');
             return res.redirect('/');
         }
@@ -300,8 +301,8 @@ module.exports.controller = function (app) {
             let studentCondition = {};
             let feeCondition = {};
 
-            // If School or SubAdmin, limit by their school_id
-            if (userRole === "School" || userRole === "SubAdmin") {
+            // If School or Administrator, limit by their school_id
+            if (userRole === "School (Sub-Admin)" || userRole === "Administrator") {
                 studentCondition.school_id = req.user.school_id;
                 feeCondition.school_id = req.user.school_id;
             }
@@ -410,8 +411,8 @@ module.exports.controller = function (app) {
 
             let whereCondition = { school_sessions_id: sessionId };
 
-            // Add school condition for School and SubAdmin roles
-            if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+            // Add school condition for School and Administrator roles
+            if (req.user.role.name === "School (Sub-Admin)" || req.user.role.name === "Administrator") {
                 whereCondition.school_id = req.user.school_id;
             }
 

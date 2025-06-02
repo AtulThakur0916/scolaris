@@ -15,7 +15,7 @@ module.exports.controller = function (app) {
 
         const role = req.user.role.name;
 
-        if (role !== "SuperAdmin" && role !== "School" && role !== "SubAdmin") {
+        if (role !== "SuperAdmin" && role !== "School (Sub-Admin)" && role !== "Administrator") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
@@ -23,7 +23,7 @@ module.exports.controller = function (app) {
         try {
             let whereCondition = {};
 
-            if (role === "School" || role === "SubAdmin") {
+            if (role === "School (Sub-Admin)" || role === "Administrator") {
                 whereCondition.school_id = req.user.school_id;
             }
 
@@ -37,7 +37,7 @@ module.exports.controller = function (app) {
                     }
                 ],
                 where: whereCondition,
-                order: [['title', 'ASC']],
+                order: [['created_at', 'DESC']],
                 raw: true,
                 nest: true
             });
@@ -65,7 +65,7 @@ module.exports.controller = function (app) {
 
         const { name: role } = req.user.role;
 
-        if (role !== "SuperAdmin" && role !== "School" && role !== "SubAdmin") {
+        if (role !== "SuperAdmin" && role !== "School (Sub-Admin)" && role !== "Administrator") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
@@ -73,7 +73,7 @@ module.exports.controller = function (app) {
         try {
             const schoolCondition = { status: 'Approve' };
 
-            if (role === "School" || role === "SubAdmin") {
+            if (role === "School (Sub-Admin)" || role === "Administrator") {
                 schoolCondition.id = req.user.school_id;
             }
 
@@ -139,7 +139,7 @@ module.exports.controller = function (app) {
 
         const { name: role } = req.user.role;
 
-        if (role !== "SuperAdmin" && role !== "School" && role !== "SubAdmin") {
+        if (role !== "SuperAdmin" && role !== "School (Sub-Admin)" && role !== "Administrator") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
@@ -154,7 +154,7 @@ module.exports.controller = function (app) {
 
             const schoolCondition = { status: 'Approve' };
 
-            if (role === "School" || role === "SubAdmin") {
+            if (role === "School (Sub-Admin)" || role === "Administrator") {
                 if (!req.user.school_id) {
                     req.flash('error', 'School ID is missing for the user.');
                     return res.redirect('/activities/index');

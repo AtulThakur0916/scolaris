@@ -10,7 +10,11 @@ module.exports.controller = function (app) {
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+        if (
+            req.user.role.name !== "SuperAdmin" &&
+            req.user.role.name !== "School (Sub-Admin)" &&
+            req.user.role.name !== "Administrator"
+        ) {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
@@ -18,8 +22,10 @@ module.exports.controller = function (app) {
         try {
             const whereCondition = {};
 
-            // Only fetch related school payments for School role or SubAdmin role
-            if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+            if (
+                req.user.role.name === "School (Sub-Admin)" ||
+                req.user.role.name === "Administrator"
+            ) {
                 whereCondition.school_id = req.user.school_id;
             }
 
@@ -36,7 +42,17 @@ module.exports.controller = function (app) {
                 order: [['created_at', 'DESC']],
             });
 
-            const plainPayments = payments.map(payment => payment.get({ plain: true }));
+            const plainPayments = payments.map(payment => {
+                const obj = payment.get({ plain: true });
+
+                const date = new Date(obj.created_at);
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0'); // month is 0-indexed
+                const day = String(date.getDate()).padStart(2, '0');
+                obj.formattedDate = `${year}-${month}-${day}`; // e.g. 2025-12-01
+
+                return obj;
+            });
 
             res.render('payments/index', { payments: plainPayments });
         } catch (error) {
@@ -52,7 +68,7 @@ module.exports.controller = function (app) {
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)" && req.user.role.name !== "Administrator") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
@@ -104,7 +120,7 @@ module.exports.controller = function (app) {
                     {
                         model: Schools,
                         as: 'school',
-                        attributes: ['id','name', 'email']
+                        attributes: ['id', 'name', 'email']
                     }
                 ],
                 order: [['created_at', 'DESC']],
@@ -126,7 +142,7 @@ module.exports.controller = function (app) {
             return res.redirect('/login');
         }
 
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "SubAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "Administrator" && req.user.role.name !== "School (Sub-Admin)") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }

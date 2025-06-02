@@ -3,7 +3,7 @@ const models = require('../models');
 module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
     // Allowed roles
-    const allowedRoles = ["SuperAdmin", "School", "SubAdmin"];
+    const allowedRoles = ["SuperAdmin", "School (Sub-Admin)", "Administrator"];
 
     /**
      * Render view for managing parents
@@ -22,7 +22,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         try {
             let whereCondition = {};
 
-            if (["School", "SubAdmin"].includes(req.user.role.name)) {
+            if (["School (Sub-Admin)", "Administrator"].includes(req.user.role.name)) {
                 const parentSchools = await models.ParentSchools.findAll({
                     attributes: ['parent_id'],
                     where: { school_id: req.user.school_id },
@@ -54,7 +54,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                     }
                 ],
                 where: whereCondition,
-                order: [['name', 'ASC']],
+                order: [['created_at', 'DESC']],
                 raw: true,
                 nest: true
             });

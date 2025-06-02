@@ -1,8 +1,8 @@
 {
-"development": {
-    "username": "spay_user1",
-    "password": "763%*&%gshsks&^#$^#",
-    "database": "spay_db",
+  "development": {
+    "username": "postgres",
+    "password": "Hariom@847103",
+    "database": "lms_staging",
     "host": "localhost",
     "dialect": "postgres",
     "mail": {
@@ -10,7 +10,7 @@
         "username": "9f798c435b0365",
         "password": "7e8d5fea21ae3d",
         "port": 587
-    } 
+    }
   },
   "test": {
     "username": "lms_staging",

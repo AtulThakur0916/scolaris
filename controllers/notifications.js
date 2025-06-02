@@ -19,7 +19,7 @@ module.exports.controller = function (app) {
         try {
             const notifications = await models.Notifications.findAll({
                 raw: true,
-                order: [['sort_value', 'ASC']]
+                order: [['created_at', 'DESC']],
             });
             res.render('notifications/index', {
                 notifications, success: res.locals.success,

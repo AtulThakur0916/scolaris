@@ -10,13 +10,13 @@ module.exports.controller = function (app) {
             req.flash('error', 'Please log in to continue.');
             return res.redirect('/login');
         }
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School" && req.user.role.name !== "SubAdmin") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)" && req.user.role.name !== "Administrator") {
             req.flash('error', 'You are not authorized to access this page.');
             return res.redirect('/');
         }
         try {
             const feesTypes = await models.FeesTypes.findAll({
-                order: [['id', 'DESC']],
+                order: [['created_at', 'DESC']],
                 raw: true
             });
             // console.log(feesTypes);

@@ -3,8 +3,7 @@
     <!-- Content -->
     <div class="container-xxl flex-grow-1 container-p-y">
         <h4 class="py-3 mb-4">
-            <span class="text-muted fw-light">Student Fees /</span>
-            List
+            <span class="text-muted fw-light">Student Fees /</span> List
         </h4>
 
         {{#if success}}
@@ -32,48 +31,104 @@
         <div class="card">
             <div class="card-header border-bottom d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">Student Fee List</h5>
-                <a href="/student-fees/create" class="btn btn-primary btn-sm">
-                    <i class="bx bx-plus"></i> Add Student Fee
-                </a>
+                <div>
+                    <button class="btn btn-danger btn-sm me-2" onclick="deleteSelected()">Delete Selected</button>
+                    <a href="/student-fees/create" class="btn btn-primary btn-sm">
+                        <i class="bx bx-plus"></i> Add Student Fee
+                    </a>
+                </div>
             </div>
+
             <div class="card-datatable table-responsive p-4">
                 <table class="table border-top" id="dataTable">
                     <thead>
                         <tr>
+                            {{!-- <th><input type="checkbox" id="selectAll" /></th> --}}
+                            <th></th>
                             <th>#</th>
                             <th>Student Name</th>
                             <th>Fee Name</th>
-                            <th>Custom Amount</th>
-                            <th>Assigned Date</th>
                             <th>Due Date</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-
                     <tbody>
                         {{#each studentFees}}
                         <tr>
+                            <td><input type="checkbox" class="select-item" value="{{this.id}}" /></td>
                             <td class="row-index" data-index="{{@index}}"></td>
                             <td>{{this.student.name}}</td>
-                            <td>{{this.fee.feesType.name}} - F CFA{{this.fee.amount}}</td>
-                            <td>F CFA{{this.custom_amount}}</td>
-                            <td>{{this.assigned_date}}</td>
-                            <td>{{this.due_date}}</td>
-
+                            <td>{{this.fee.feesType.name}} - F CFA{{this.fee.amount}}</td>
+                            <td>{{this.formatted_due_date}}</td>
                             <td>
-                                {{!-- <a href="/student-fees/edit/{{this.id}}">
-                                    <i class="menu-icon tf-icons bx bx-edit-alt text-primary"></i>
-                                </a> --}}
-                                <a href="#" onclick="deleteItem('/student-fees/delete', '{{this.id}}')"
-                                    class="text-danger">
+                                <a href="#" onclick="deleteItem('/student-fees/delete', '{{this.id}}')" class="text-danger">
                                     <i class="menu-icon tf-icons bx bx-box text-danger"></i>
                                 </a>
                             </td>
-
-                            {{/each}}
+                        </tr>
+                        {{/each}}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+    // Select/Deselect all checkboxes
+    document.getElementById('selectAll').addEventListener('change', function () {
+        const checkboxes = document.querySelectorAll('.select-item');
+        checkboxes.forEach(cb => cb.checked = this.checked);
+    });
+
+    // Delete selected items
+    function deleteSelected() {
+        const selectedIds = Array.from(document.querySelectorAll('.select-item:checked'))
+            .map(cb => cb.value);
+
+        if (selectedIds.length === 0) {
+            alert('Please select at least one item.');
+            return;
+        }
+
+        if (!confirm('Are you sure you want to delete selected items?')) return;
+
+        fetch('/student-fees/delete-multiple', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ ids: selectedIds })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || 'Failed to delete.');
+            }
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            alert('An error occurred.');
+        });
+    }
+
+    // Single item delete function (already existing)
+    function deleteItem(url, id) {
+        if (!confirm('Are you sure you want to delete this item?')) return;
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || 'Failed to delete.');
+            }
+        });
+    }
+</script>

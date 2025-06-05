@@ -1,8 +1,8 @@
 {
   "development": {
-    "username": "postgres",
-    "password": "Hariom@847103",
-    "database": "lms_staging",
+    "username": "scolarisuser",
+    "password": "spay@12345",
+    "database": "scolarisdb",
     "host": "localhost",
     "dialect": "postgres",
     "mail": {

@@ -42,12 +42,22 @@ module.exports.controller = function (app) {
                         ]
                     }
                 ],
-                order: [['created_at', 'DESC']],
+                order: [['due_date', 'DESC']],
                 raw: true,
                 nest: true
             });
 
-
+            studentFees.forEach(fee => {
+                if (fee.due_date) {
+                    const date = new Date(fee.due_date);
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = date.toLocaleString('en-US', { month: 'short' }); // e.g., Mar
+                    const year = date.getFullYear();
+                    fee.formatted_due_date = `${day}-${month}-${year}`;
+                } else {
+                    fee.formatted_due_date = '';
+                }
+            });
             res.render('student_fee/index', {
                 studentFees,
                 success: res.locals.success,
@@ -72,7 +82,7 @@ module.exports.controller = function (app) {
             const userRole = req.user.role.name;
 
             // Role-based condition
-            const condition = (userRole === "ScSchool (Sub-Admin)hool" || userRole === "Administrator")
+            const condition = (userRole === "School (Sub-Admin)" || userRole === "Administrator")
                 ? { school_id: req.user.school_id }
                 : {};
 
@@ -131,7 +141,7 @@ module.exports.controller = function (app) {
         body('class_id').notEmpty().withMessage('Class is required'),
         body('fee_id').notEmpty().withMessage('Fee is required'),
         body('custom_amount').optional().isFloat({ min: 0 }).withMessage('Amount must be a positive number'),
-        body('assigned_date').optional().isDate().withMessage('Assigned date must be a valid date'),
+        // body('assigned_date').optional().isDate().withMessage('Assigned date must be a valid date'),
         body('due_date').optional().isDate().withMessage('Due date must be a valid date'),
     ], async (req, res) => {
         if (!req.isAuthenticated()) {
@@ -204,7 +214,8 @@ module.exports.controller = function (app) {
 
             const start = new Date(session.start_date);
             const end = new Date(session.end_date);
-            const assignedBase = assigned_date ? new Date(assigned_date) : new Date();
+            // const assignedBase = assigned_date ? new Date(assigned_date) : new Date();
+            const assignedBase = assigned_date ? new Date(assigned_date) : null;
             const dueBase = due_date ? new Date(due_date) : null;
 
             const generateFeeDates = (freq) => {
@@ -233,10 +244,10 @@ module.exports.controller = function (app) {
 
             students.forEach(student => {
                 feeDates.forEach(date => {
-                    const assigned = new Date(date);
-                    assigned.setDate(assignedBase.getDate()); // keep the same day as assigned_date
+                    // const assigned = new Date(date);
+                    // assigned.setDate(assignedBase.getDate()); // keep the same day as assigned_date
                     const due = dueBase ? new Date(date.setDate(dueBase.getDate())) : null;
-
+                    const assigned = assignedBase ? new Date(date.setDate(assignedBase.getDate())) : null;
                     feeEntries.push({
                         student_id: student.id,
                         fee_id,
@@ -438,4 +449,27 @@ module.exports.controller = function (app) {
             });
         }
     });
+
+
+
+    app.post('/student-fees/delete-multiple', async (req, res) => {
+        const { ids } = req.body;
+    
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ success: false, message: 'No IDs provided.' });
+        }
+    
+        try {
+            await models.StudentFee.destroy({
+                where: {
+                    id: ids
+                }
+            });
+            res.json({ success: true });
+        } catch (error) {
+            console.error('Bulk delete error:', error);
+            res.status(500).json({ success: false, message: 'Server error during delete.' });
+        }
+    });
+    
 };

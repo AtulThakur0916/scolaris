@@ -12,7 +12,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             req.flash('error', 'Please login to continue');
             return res.redirect('/login');
         }
-
+console.log("role name:",req.user.role.name);
         if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)" && req.user.role.name !== "Administrator") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');

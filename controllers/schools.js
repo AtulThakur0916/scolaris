@@ -7,7 +7,7 @@ const { body, validationResult } = require('express-validator');
 const xlsx = require('xlsx');
 const { where } = require('sequelize');
 const bcrypt = require('bcryptjs');
-const { schoolReject, schoolApproval } = require('../helpers/zepto');
+const { schoolReject, schoolApproval, school, administrator } = require('../helpers/zepto');
 const paystack = require('../helpers/payment');
 const { Op } = require('sequelize');
 module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
@@ -538,7 +538,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
             school_id: school.id,
             payment_type: 'registration_fee'
           },
-          callback_url: `https://spay.ralhangroup.com/api/v1/verify-registration-payment`
+          callback_url: `https://api.scolarispay.com/api/v1/verify-registration-payment`
         });
 
         // Send approval email with payment link
@@ -942,7 +942,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         }
       });
   app.get('/web/school/verify/page', async (req, res) => {
-    return res.render('web/verify', { layout: false })
+    const data = req.session.schoolData;
+    return res.render('web/verify', { layout: false, data })
   });
   app.post('/web/school/verify/save', async (req, res) => {
     const { otp } = req.body;
@@ -964,6 +965,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     }
 
     const t = await models.sequelize.transaction();
+
     try {
       // 1. Save school
       const newSchool = await models.Schools.create({
@@ -976,18 +978,41 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         country: data.country,
         type: data.type,
         logo: data.logo,
-        school_doc: data.school_doc
+        school_doc: data.school_doc,
+        status: 'Pending'
       }, { transaction: t });
 
-      // 2. Create admin user
-      const hashedPassword = bcrypt.hashSync(data.admin.password, bcrypt.genSaltSync(10));
+      // 2. Find roles
       const adminRole = await models.Roles.findOne({ where: { name: 'Administrator' } });
+      const subAdminRole = await models.Roles.findOne({ where: { name: 'School (Sub-Admin)' } });
+
+      if (!adminRole || !subAdminRole) {
+        throw new Error('User roles not found.');
+      }
+
+      // 3. Create users
+      const generateRandomPassword = () => Math.random().toString(36).slice(-10);
+      const plainPassword = generateRandomPassword(); // for Sub-Admin
+      console.log('Plain Password:', plainPassword);
+      const subAdminHashed = bcrypt.hashSync(plainPassword, bcrypt.genSaltSync(10));
+      console.log('Hashed Password:', subAdminHashed);
+      const adminHashed = bcrypt.hashSync(data.admin.password, bcrypt.genSaltSync(10));
+
+      await models.Users.create({
+        name: data.name,
+        email: data.email,
+        phone: data.phone_number,
+        password: subAdminHashed,
+        role_id: subAdminRole.id,
+        school_id: newSchool.id,
+        status: 1
+      }, { transaction: t });
 
       await models.Users.create({
         name: data.admin.name,
         email: data.admin.email,
         phone: data.admin.phone,
-        password: hashedPassword,
+        password: adminHashed,
         role_id: adminRole.id,
         school_id: newSchool.id,
         logo: data.admin.logo,
@@ -995,7 +1020,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         status: 1
       }, { transaction: t });
 
-      // 3. Create Paystack subaccount
+      // 4. Create Paystack subaccount
       const paystackResponse = await paystack.subAccount.create({
         business_name: newSchool.name,
         account_number: data.banking.account_number,
@@ -1004,18 +1029,14 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
       });
 
       if (!paystackResponse.status) {
-        req.flash('error', paystackResponse.message);
+        await t.rollback(); // Important!
+        req.flash('error', paystackResponse.message || 'Paystack subaccount creation failed.');
         return res.redirect('/web/school/add');
-
-        // throw new Error(paystackResponse.message || 'Failed to create subaccount in Paystack.');
-
-        // throw new Error(paystackResponse.message || 'Failed to create subaccount in Paystack.');
       }
-
 
       const { id: paystack_id, subaccount_code } = paystackResponse.data;
 
-      // 4. Save banking details
+      // 5. Save banking details
       await models.BankingDetails.create({
         bank_name: data.banking.bank_name,
         account_number: data.banking.account_number,
@@ -1029,89 +1050,72 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         paystack_id
       }, { transaction: t });
 
-      // 5. Finalize
+      // 6. Commit
       await t.commit();
       delete req.session.schoolData;
 
-      await sendEmail(
-        data.admin.email,
-        'We\'ve Received Your Submission!',
-        `
-            Hi ${data.admin.name},
+      // 7. Generate Paystack payment link
+      const REGISTRATION_FEE = 10000;
+      const paystackInit = await paystack.transaction.initialize({
+        email: newSchool.email,
+        amount: REGISTRATION_FEE * 100,
+        metadata: {
+          school_id: newSchool.id,
+          payment_type: 'registration_fee'
+        },
+        callback_url: `https://api.scolarispay.com/api/v1/verify-registration-payment`
+      });
 
-            Thanks for completing the submission! We've sent a confirmation email to the school's Administrator with everything needed to move forward.
+      const payment_url = paystackInit.data.authorization_url;
+      const login_url = 'https://admin.scolarispay.com/login';
+      await school(data.email, {
+        school_name: newSchool.name,
+        school_email: newSchool.email,
+        school_password: plainPassword,
+        school_phone: newSchool.phone_number,
+        school_location: newSchool.location,
+        administrator_name: data.admin.name,
+        administrator_email: data.admin.email,
+        administrator_password: data.admin.password,
+        login_url,
+        payment_url,
+        subject: 'School - Information'
+      });
+      // 8. Send emails
+      await administrator(data.admin.email, {
+        school_name: newSchool.name,
+        administrator_name: data.admin.name,
+        administrator_email: data.admin.email,
+        administrator_password: data.admin.password,
+        login_url,
+        payment_url,
+        registration_fee: REGISTRATION_FEE,
+        subject: 'Administrator - Account Created & Payment Required'
+      });
 
-            Your school details:
-            - School Name: ${data.name}
-            - Email: ${data.email}
-            - Phone: ${data.phone_number}
+      // await school(newSchool.email, {
+      //   school_name: newSchool.name,
+      //   school_email: newSchool.email,
+      //   school_phone: newSchool.phone_number,
+      //   school_location: newSchool.location,
+      //   administrator_name: data.admin.name,
+      //   administrator_email: data.admin.email,
+      //   administrator_password: data.admin.password,
+      //   login_url,
+      //   payment_url,
+      //   registration_fee: REGISTRATION_FEE,
+      //   subject: 'School Registered - Payment Required'
+      // });
 
-            You can now log in to your administrator account using:
-            - Email: ${data.admin.email}
-            - Password:  ${data.admin.password}
-            Please log in at: https://spay.ralhangroup.com/login
-            Need help or didn't receive the email? Contact us at support@scolarispay.com
-
-            Warm regards,
-            Scolaris Pay Team
-            `
-      );
-      await Promise.all([
-        // Send to school email
-        sendEmail(
-          data.email,
-          'School Registration Successful - Scolaris Pay',
-          `
-          Dear ${data.name},
-
-          Your school has been successfully registered with Scolaris Pay. 
-          
-          School Details:
-          - Name: ${data.name}
-          - Email: ${data.email}
-          - Phone: ${data.phone_number}
-          - Location: ${data.location}
-          You can now log in to your administrator account using:
-          - Email: ${data.admin.email}
-          - Password: ${data.admin.password}
-          Please log in at: https://spay.ralhangroup.com/login
-          
-          If you have any questions, please contact our support team at support@scolarispay.com
-          
-          Best regards,
-          Scolaris Pay Team
-          `
-        ),
-        // Send to admin email
-        sendEmail(
-          data.admin.email,
-          'Administrator Account Created - Scolaris Pay',
-          `
-          Dear ${data.admin.name},
-
-          Your administrator account for ${data.name} has been created successfully.
-
-          Login Details:
-          - Email: ${data.admin.email}
-          - Password: (the one you set during registration)
-          
-          Please log in at: https://spay.ralhangroup.com/login
-          
-          For security reasons, please change your password after your first login.
-          
-          If you need assistance, contact us at support@scolarispay.com
-          
-          Best regards,
-          Scolaris Pay Team
-          `
-        )
-      ]);
-      req.flash('success', 'School saved successfully after verification.');
+      req.flash('success', 'School verified successfully and payment link sent.');
       return res.redirect('/web/school/verify/page');
 
     } catch (err) {
-      console.error('Verification Save Error:', err);
       await t.rollback();
+      console.error('Verification Save Error:', err);
+      if (err.errors) {
+        err.errors.forEach(e => console.error('Validation error:', e.message));
+      }
       req.flash('error', err.message || 'Verification failed.');
       return res.redirect('/web/school/verify/page');
     }
@@ -1405,12 +1409,11 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
           );
 
           return res.redirect('/super/school/verify');
-          // return res.render('web/verify', { layout: false }); // or with layout if needed
 
         } catch (err) {
           console.error(err);
           req.flash('error', err.message || 'An error occurred.');
-          return res.redirect('/super/schoolCreate');
+          return res.redirect('/super/school/add');
         }
       });
   app.get('/super/school/verify', async (req, res) => {
@@ -1418,12 +1421,12 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
     return res.render('superAdmin/verify', data);
   });
 
+  const bcrypt = require('bcryptjs'); // Ensure it's imported
 
   app.post('/super/school/verify/save', async (req, res) => {
     const { otp } = req.body;
     const data = req.session.schoolData;
-    console.log('otp:', otp);
-    console.log('data:', data);
+
     if (!data) {
       req.flash('error', 'Session expired or invalid.');
       return res.redirect('/super/school/add');
@@ -1434,13 +1437,14 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
       return res.redirect('/super/school/add');
     }
 
-    if (parseInt(otp) !== data.otp) {
+    if (parseInt(otp) !== parseInt(data.otp)) {
       req.flash('error', 'Invalid OTP. Please try again.');
       return res.redirect('/super/school/verify');
     }
 
     const t = await models.sequelize.transaction();
     try {
+      // 1. Create School
       const newSchool = await models.Schools.create({
         name: data.name,
         location: data.location,
@@ -1454,21 +1458,46 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         school_doc: data.school_doc
       }, { transaction: t });
 
-      const hashedPassword = bcrypt.hashSync(data.admin.password, bcrypt.genSaltSync(10));
+      // 2. Create Users (Sub-Admin + Administrator)
+      const generateRandomPassword = () => Math.random().toString(36).slice(-10);
+      const plainPassword = generateRandomPassword();
+
+      const subAdminPassword = bcrypt.hashSync(plainPassword, bcrypt.genSaltSync(10));
+      const adminPassword = bcrypt.hashSync(data.admin.password, bcrypt.genSaltSync(10));
+
       const adminRole = await models.Roles.findOne({ where: { name: 'Administrator' } });
+      const subAdminRole = await models.Roles.findOne({ where: { name: 'School (Sub-Admin)' } });
+
+      if (!adminRole || !subAdminRole) throw new Error('Roles not found');
+      console.log("SubAdmin Data:", {
+        name: data.name,
+        email: data.email,
+        phone: data.phone_number,
+        password: plainPassword,
+        role_id: subAdminRole.id
+      });
+
+      await models.Users.create({
+        name: data.name,
+        email: data.email,
+        phone: data.phone_number,
+        password: subAdminPassword,
+        role_id: subAdminRole.id,
+        school_id: newSchool.id,
+        status: 1
+      }, { transaction: t });
 
       await models.Users.create({
         name: data.admin.name,
         email: data.admin.email,
         phone: data.admin.phone,
-        password: hashedPassword,
+        password: adminPassword,
         role_id: adminRole.id,
         school_id: newSchool.id,
         logo: data.admin.logo,
         profile_images: data.admin.profile_images,
         status: 1
       }, { transaction: t });
-
 
       // 3. Create Paystack subaccount
       const paystackResponse = await paystack.subAccount.create({
@@ -1479,11 +1508,8 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
       });
 
       if (!paystackResponse.status) {
-        req.flash('error', paystackResponse.message);
-        return res.redirect('/super/school/add');
-        // throw new Error(paystackResponse.message || 'Failed to create subaccount in Paystack.');
+        throw new Error(paystackResponse.message || 'Paystack subaccount creation failed');
       }
-
 
       const { id: paystack_id, subaccount_code } = paystackResponse.data;
 
@@ -1501,105 +1527,63 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         paystack_id
       }, { transaction: t });
 
-
-      // await models.BankingDetails.create({
-      //   bank_name: data.banking.bank_name,
-      //   account_number: data.banking.account_number,
-      //   account_holder: data.banking.account_holder,
-      //   school_id: newSchool.id,
-      //   iban_document: data.banking.iban_document,
-      //   status: 1
-      // }, { transaction: t });
-
-
-      await Promise.all([
-        // Send to school email
-        sendEmail(
-          data.email,
-          'School Registration Successful - Scolaris Pay',
-          `
-          Dear ${data.name},
-
-          Your school has been successfully registered with Scolaris Pay. 
-          
-          School Details:
-          - Name: ${data.name}
-          - Email: ${data.email}
-          - Phone: ${data.phone_number}
-          - Location: ${data.location}
-           Login Details:
-          - Email: ${data.admin.email}
-          - Password: ${data.admin.password}
-          Please log in at: https://spay.ralhangroup.com/login
-          
-          If you have any questions, please contact our support team at support@scolarispay.com
-          
-          Best regards,
-          Scolaris Pay Team
-          `
-        )
-        // Send to admin email
-        // sendEmail(
-        //   data.admin.email,
-        //   'Administrator Account Created - Scolaris Pay',
-        //   `
-        //   Dear ${data.admin.name},
-
-        //   Your administrator account for ${data.name} has been created successfully.
-
-        //   Login Details:
-        //   - Email: ${data.admin.email}
-        //   - Password: ${data.admin.password}
-
-        //   Please log in at: https://spay.ralhangroup.com/login
-
-        //   For security reasons, please change your password after your first login.
-
-        //   If you need assistance, contact us at support@scolarispay.com
-
-        //   Best regards,
-        //   Scolaris Pay Team
-        //   `
-        // )
-      ]);
-      await sendEmail(
-        data.admin.email,
-        'We\'ve Received Your Submission!',
-        `
-        Hi ${data.admin.name},
-
-        Thanks for completing the submission! We've sent a confirmation email to the school's Administrator with everything needed to move forward.
-
-        Your school details:
-        - School Name: ${data.name}
-        - Email: ${data.email}
-        - Phone: ${data.phone_number}
-
-        You can now log in to your administrator account using:
-        - Email: ${data.admin.email}
-        - Password: ${data.admin.password}
-
-        Please log in at: https://spay.ralhangroup.com/login
-        Need help or didn't receive the email? Contact us at support@scolarispay.com
-
-        Warm regards,
-        Scolaris Pay Team
-        `
-      );
-      req.flash('success', 'School saved successfully after verification.');
+      // 5. Commit DB transaction
       await t.commit();
+
+      // Clear session data
       delete req.session.schoolData;
-      // return res.redirect('/web/school/list');
+
+      // 6. Generate payment link
+      const REGISTRATION_FEE = 10000;
+      const paystackInit = await paystack.transaction.initialize({
+        email: newSchool.email,
+        amount: REGISTRATION_FEE * 100,
+        metadata: {
+          school_id: newSchool.id,
+          payment_type: 'registration_fee'
+        },
+        callback_url: `https://api.scolarispay.com/api/v1/verify-registration-payment`
+      });
+
+      const payment_url = paystackInit.data.authorization_url;
+      const login_url = "https://admin.scolarispay.com/login";
+
+      // 7. Send emails
+      await school(data.email, {
+        school_name: data.name,
+        school_email: data.email,
+        school_password: plainPassword,
+        school_phone: data.phone_number,
+        school_location: data.location,
+        administrator_name: data.admin.name,
+        administrator_email: data.admin.email,
+        administrator_password: data.admin.password,
+        login_url,
+        payment_url,
+        subject: 'School - Information'
+      });
+
+      await administrator(data.admin.email, {
+        school_name: data.name,
+        administrator_name: data.admin.name,
+        administrator_email: data.admin.email,
+        administrator_password: data.admin.password,
+        login_url,
+        payment_url,
+        subject: 'Administrator - credentials'
+      });
+
+      req.flash('success', 'School verified and created successfully.');
       return res.redirect('/schools/index');
 
     } catch (err) {
-      console.log(err);
-      await t.rollback();
+      if (t) await t.rollback();
       console.error('Verification Save Error:', err);
       req.flash('error', err.message || 'Verification failed.');
       return res.redirect('/super/school/verify');
     }
   });
+
 
   app.post('/super/school/verify/resend', async (req, res) => {
     const data = req.session.schoolData;

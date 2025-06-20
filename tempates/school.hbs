@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>{{subject}}</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      padding: 20px;
+      color: #333;
+      margin: 0;
+      text-align: center;
+    }
+
+    .container {
+      background: #fff;
+      border-radius: 8px;
+      padding: 30px;
+      max-width: 600px;
+      margin: 0 auto;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      display: inline-block;
+      text-align: left;
+    }
+
+    .logo-container {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .logo {
+      max-width: 200px;
+      height: auto;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #1976D2 !important;
+      color: #ffffff !important;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      margin-top: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      line-height: 100%;
+    }
+
+    .button:hover {
+      background: #145ea8;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    p {
+      margin: 10px 0;
+    }
+
+    ul {
+      padding-left: 20px;
+    }
+  </style>
+</head>
+
+<body>
+  <center>
+    <div class="container">
+      <div class="logo-container">
+        <img src="https://spay.ralhangroup.com/assets/img/logo.png" alt="Scolaris Pay" class="logo">
+      </div>
+
+      <h2>🏫 School Registration Successful</h2>
+
+      <p>Dear <strong>{{school_name}}</strong>,</p>
+
+      <p>Your school has been successfully registered with Scolaris Pay. Below are your school details:</p>
+
+      <ul>
+        <li><strong>School Name:</strong> {{school_name}}</li>
+        {{!-- <li><strong>Email:</strong> {{school_email}}</li>
+        <li><strong>Password:</strong> {{school_password}}</li> --}}
+        <li><strong>Phone:</strong> {{school_phone}}</li>
+        <li><strong>Location:</strong> {{school_location}}</li>
+      </ul>
+      <p><strong>School Login Details:</strong></p>
+      <ul>
+        <li><strong>Email:</strong> {{school_email}}</li>
+        <li><strong>Password:</strong> {{school_password}}</li>
+      </ul>
+      <p><strong>Administrator Login Details:</strong></p>
+      <ul>
+        <li><strong>Name:</strong> {{administrator_name}}</li>
+        <li><strong>Email:</strong> {{administrator_email}}</li>
+        <li><strong>Password:</strong> {{administrator_password}}</li>
+      </ul>
+
+      <p>You can now log in to your administrator and school account using the button below:</p>
+
+      <a href="{{login_url}}" class="button"> Log In to Your Account</a>
+
+      <p>Registration Fee: ₦10000 to activate your account, please complete the payment using the link below:</p>
+
+      <a href="{{payment_url}}" class="button">Proceed to Payment</a>
+      <p style="margin-top: 30px;">Need help? Contact us at <a
+          href="mailto:support@scolarispay.com">support@scolarispay.com</a></p>
+
+      <p>Warm regards,<br>The Scolaris Pay Team</p>
+    </div>
+  </center>
+</body>
+
+</html>

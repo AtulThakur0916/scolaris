@@ -26,12 +26,17 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
         const { id, logo, role, name } = req.user;
 
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "Administrator" && req.user.role.name !== "School (Sub-Admin)") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
 
-        const whereCondition = req.user.role.name === "School (Sub-Admin)"
+        // const whereCondition = req.user.role.name === "Administrator"
+        //     ? { school_id: req.user.school_id }
+        //     : {};
+        const whereCondition = (
+            req.user.role.name === "Administrator" || req.user.role.name === "School (Sub-Admin)"
+        )
             ? { school_id: req.user.school_id }
             : {};
 
@@ -43,9 +48,9 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 model: models.Roles,
                 as: 'role',
                 attributes: ['name'],
-                // where: {
-                //     name: { [Op.ne]: 'SuperAdmin' } // Exclude SuperAdmin
-                // }
+                where: {
+                    name: { [Op.ne]: 'SuperAdmin' } // Exclude SuperAdmin
+                }
             }],
             order: [['createdAt', 'DESC']], // Changed from ASC to DESC and ordering by createdAt
             nest: true
@@ -365,7 +370,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
         //     return res.redirect('/');
         // }
         // Authorization check
-        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School (Sub-Admin)") {
+        if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "Administrator") {
             req.flash('error', 'You are not authorised to access this page.');
             return res.redirect('/');
         }
@@ -391,7 +396,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 raw: true
             }) : await models.Roles.findAll({
                 where: {
-                    name: ['Administrator']
+                    name: ['School (Sub-Admin)']
                 },
                 raw: true
             })
@@ -614,7 +619,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 raw: true
             }) : await models.Roles.findAll({
                 where: {
-                    name: ['Administrator']
+                    name: ['School (Sub-Admin)']
                 },
                 raw: true
             })
@@ -686,7 +691,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
                 return res.redirect('/login');
             }
 
-            if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "School") {
+            if (req.user.role.name !== "SuperAdmin" && req.user.role.name !== "Administrator") {
                 req.flash('error', 'You are not authorised to access this page.');
                 return res.redirect('/');
             }

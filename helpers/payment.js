@@ -1,4 +1,4 @@
 const { Paystack } = require('paystack-sdk');
-const paystack = new Paystack('sk_live_2942278ee9ac231f3c85de21574fcbc74a076dff'); // Replace with your real secret key
+const paystack = new Paystack('sk_live_c273ac78a5d6b8c32a4643dcb1ad545beed6d20f'); // Replace with your real secret key
 
 module.exports = paystack;

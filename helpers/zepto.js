@@ -175,6 +175,72 @@ const schoolReject = (email, variables) => {
         }).then(resolve).catch(reject);
     });
 };
+const administrator = (email, variables) => {
+    const url = "api.zeptomail.in/v1.1/email";
+    const token = "Zoho-enczapikey PHtE6r1cFrvqiGUt8BcF4f+8EpbxPdh/qbsxJAQWt4cXW/YEGk0Bqtt4lmCyqkguAPlGFfSYno9r5ezP5+mHIWq5ZzsdWmqyqK3sx/VYSPOZsbq6x00ctl0ZckHdV4DuddVs0CLWvd3cNA==";
+
+    const client = new SendMailClient({ url, token });
+
+    // Read and compile the Handlebars template from the 'tempates' folder
+    const templatePath = path.join(__dirname, '../tempates/administrator.hbs');
+
+    let templateContent;
+    try {
+        templateContent = fs.readFileSync(templatePath, 'utf-8');
+    } catch (err) {
+        return Promise.reject(new Error("Error reading administrator email template: " + err.message));
+    }
+
+    const template = handlebars.compile(templateContent);
+    const htmlContent = template(variables);
+
+    return new Promise((resolve, reject) => {
+        client.sendMail({
+            from: {
+                address: "noreply@khabriya.in",
+                name: "Scolaris Pay"
+            },
+            to: [{
+                email_address: { address: email }
+            }],
+            subject: "Administrator - credentials",
+            htmlbody: htmlContent
+        }).then(resolve).catch(reject);
+    });
+};
+const school = (email, variables) => {
+    const url = "api.zeptomail.in/v1.1/email";
+    const token = "Zoho-enczapikey PHtE6r1cFrvqiGUt8BcF4f+8EpbxPdh/qbsxJAQWt4cXW/YEGk0Bqtt4lmCyqkguAPlGFfSYno9r5ezP5+mHIWq5ZzsdWmqyqK3sx/VYSPOZsbq6x00ctl0ZckHdV4DuddVs0CLWvd3cNA==";
+
+    const client = new SendMailClient({ url, token });
+
+    // Read and compile the Handlebars template from the 'tempates' folder
+    const templatePath = path.join(__dirname, '../tempates/school.hbs');
+
+    let templateContent;
+    try {
+        templateContent = fs.readFileSync(templatePath, 'utf-8');
+    } catch (err) {
+        return Promise.reject(new Error("Error reading school email template: " + err.message));
+    }
+
+    const template = handlebars.compile(templateContent);
+    const htmlContent = template(variables);
+
+    return new Promise((resolve, reject) => {
+        client.sendMail({
+            from: {
+                address: "noreply@khabriya.in",
+                name: "Scolaris Pay"
+            },
+            to: [{
+                email_address: { address: email }
+            }],
+            subject: "School - Information",
+            htmlbody: htmlContent
+        }).then(resolve).catch(reject);
+    });
+};
 const forgotPassword = (email, variables) => {
     const url = "api.zeptomail.in/v1.1/email";
     const token = "Zoho-enczapikey PHtE6r1cFrvqiGUt8BcF4f+8EpbxPdh/qbsxJAQWt4cXW/YEGk0Bqtt4lmCyqkguAPlGFfSYno9r5ezP5+mHIWq5ZzsdWmqyqK3sx/VYSPOZsbq6x00ctl0ZckHdV4DuddVs0CLWvd3cNA==";
@@ -209,4 +275,4 @@ const forgotPassword = (email, variables) => {
     });
 };
 // Update exports
-module.exports = { sendEmail, paymentSuccess, planExpiry, forgotPassword, planExpiryNeo, schoolApproval, schoolReject };
+module.exports = { sendEmail, paymentSuccess,school, planExpiry,administrator, forgotPassword, planExpiryNeo, schoolApproval, schoolReject };

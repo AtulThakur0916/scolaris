@@ -17,7 +17,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
         // Set conditions based on user role
         const whereCondition = {};
-        if (req.user.role.name === "School" || req.user.role.name === "SubAdmin") {
+        if (req.user.role.name === "Administrator" || req.user.role.name === "School (Sub-Admin)") {
             whereCondition.school_id = req.user.school_id;
         }
 
@@ -313,6 +313,7 @@ module.exports.controller = function (app, passport, sendEmail, Op, sequelize) {
 
             // Remove the role field if it exists
             delete userPlain.role;
+            console.log(userPlain);
             // Render profile without the role
             res.render('auth/profile', {
                 user: userPlain,
